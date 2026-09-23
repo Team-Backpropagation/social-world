@@ -1,0 +1,821 @@
+<title>소셜 월드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg:#fff8e7;
+    --surface:#ffffff;
+    --surface-2:#f7f7f2;
+    --ink:#2b2b2b;
+    --ink-soft:#5b5b52;
+    --green-dark:#2f7a4f;
+    --green:#4caf6e;
+    --green-light:#a8e6a1;
+    --blue:#5b8def;
+    --blue-soft:#e6f0ff;
+    --gold:#e0c14a;
+    --gold-soft:#fff2c9;
+    --pink:#a34;
+    --border:#2b2b2b;
+    --shadow:rgba(0,0,0,.25);
+    --kakao:#fee500;
+    --kakao-ink:#3c1e1e;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15231b;
+      --surface:#1c2e23;
+      --surface-2:#213629;
+      --ink:#eef2ea;
+      --ink-soft:#a9b8ac;
+      --green-dark:#7ee3a4;
+      --green:#4fae72;
+      --green-light:#2f4d3a;
+      --blue:#8fb4ff;
+      --blue-soft:#22314d;
+      --gold:#e6c65a;
+      --gold-soft:#3a331a;
+      --pink:#e88;
+      --border:#0b120d;
+      --shadow:rgba(0,0,0,.55);
+      --kakao:#fee500;
+      --kakao-ink:#3c1e1e;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15231b;
+    --surface:#1c2e23;
+    --surface-2:#213629;
+    --ink:#eef2ea;
+    --ink-soft:#a9b8ac;
+    --green-dark:#7ee3a4;
+    --green:#4fae72;
+    --green-light:#2f4d3a;
+    --blue:#8fb4ff;
+    --blue-soft:#22314d;
+    --gold:#e6c65a;
+    --gold-soft:#3a331a;
+    --pink:#e88;
+    --border:#0b120d;
+    --shadow:rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    padding-inline:16px;
+  }
+  .pixel-font{font-family:'Press Start 2P',monospace}
+  button{font-family:inherit;cursor:pointer}
+  a{color:inherit}
+
+  #banner{
+    max-width:640px;margin:14px auto 0;padding:10px 14px;border:2px solid var(--border);
+    border-radius:10px;background:var(--gold-soft);font-size:12.5px;line-height:1.6;color:var(--ink);
+  }
+  #banner b{color:var(--green-dark)}
+
+  #app{max-width:960px;margin:0 auto;padding-block:20px 40px}
+
+  .btn{
+    display:block;width:100%;padding:12px 16px;margin-top:10px;border:3px solid var(--border);
+    border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:700;
+    box-shadow:3px 3px 0 var(--shadow);transition:transform .08s ease;
+  }
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn-primary{background:var(--green);color:#fff}
+  .btn-kakao{background:var(--kakao);color:var(--kakao-ink)}
+  .btn-option{background:var(--blue);color:#fff;margin-top:8px}
+  .btn-ghost{background:transparent;border:none;box-shadow:none;color:var(--green-dark);font-weight:700;
+    text-decoration:underline;padding:6px 8px;width:auto}
+  .btn-auto{width:auto;margin-top:0}
+
+  .pixel-panel{background:var(--surface);border:4px solid var(--border);border-radius:14px;
+    box-shadow:6px 6px 0 var(--shadow);padding:22px}
+
+  .center-screen{min-height:70vh;display:flex;align-items:center;justify-content:center;padding-block:24px}
+  .login-card{max-width:380px;width:100%;text-align:center}
+  .login-logo{font-size:44px}
+  .login-card h1,.onboarding-card h1{font-family:'Press Start 2P',monospace;font-size:19px;
+    color:var(--green-dark);margin:8px 0;text-wrap:balance}
+  .login-sub{color:var(--ink-soft);margin-bottom:16px}
+  .terms{margin-top:16px;font-size:11.5px;color:var(--ink-soft);line-height:1.6}
+  .demo-note{margin-top:12px;font-size:11.5px;color:var(--ink-soft);background:var(--surface-2);
+    border-radius:8px;padding:8px 10px;line-height:1.6}
+
+  .onboarding-card{max-width:420px;width:100%;display:flex;flex-direction:column;gap:10px}
+  .onboarding-card label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px;margin-top:6px}
+  .onboarding-card input,.onboarding-card select,.club-form input,.club-form select,.club-form textarea{
+    font-family:inherit;font-size:15px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;
+    background:var(--surface);color:var(--ink);width:100%;
+  }
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;
+    border-bottom:3px solid var(--border);margin-bottom:16px}
+  .topbar-title{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px}
+  .topbar-right{display:flex;align-items:center;gap:12px;font-size:13.5px}
+  .topbar-nick{font-weight:700;color:var(--green-dark)}
+
+  .plaza-map{position:relative;width:100%;aspect-ratio:900/560;border-radius:14px;border:4px solid var(--border);
+    overflow:hidden;box-shadow:6px 6px 0 var(--shadow);
+    background:repeating-conic-gradient(var(--green) 0% 25%, var(--green-light) 0% 50%) 0 0/8% 12.5%;
+  }
+  .plaza-deco{position:absolute;transform:translate(-50%,-50%);font-size:clamp(18px,3.5vw,30px);
+    pointer-events:none;filter:drop-shadow(1px 2px 0 rgba(0,0,0,.25))}
+  .plaza-sprite{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
+    align-items:center;gap:4px;background:none;border:none;padding:0}
+  .plaza-sprite-icon{font-size:clamp(22px,4vw,34px);line-height:1;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.3))}
+  .plaza-npc-icon{border-radius:50%;padding:6px;display:inline-flex;border:3px solid var(--border)}
+  .plaza-sprite-label{font-size:11px;font-weight:800;background:var(--surface);color:var(--ink);
+    border:2px solid var(--border);border-radius:6px;padding:1px 6px;white-space:nowrap}
+  .plaza-player{position:absolute;transform:translate(-50%,-50%);transition:left .08s linear,top .08s linear;
+    display:flex;flex-direction:column;align-items:center}
+  .plaza-player-icon{font-size:clamp(24px,4.5vw,36px);filter:drop-shadow(2px 2px 0 rgba(0,0,0,.35))}
+  .plaza-player-shadow{width:22px;height:8px;border-radius:50%;background:rgba(0,0,0,.3);margin-top:-4px}
+  .plaza-toast{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;
+    background:var(--border);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;
+    white-space:nowrap}
+  .plaza-hint{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:10px}
+
+  .dpad{display:none;flex-direction:column;align-items:center;gap:4px;margin:14px auto 0;width:fit-content}
+  .dpad-row{display:flex;gap:4px}
+  .dpad button{width:46px;height:46px;font-size:18px;border:3px solid var(--border);border-radius:10px;
+    background:var(--surface);color:var(--ink);box-shadow:3px 3px 0 var(--shadow)}
+  .dpad-interact{background:var(--green) !important;color:#fff}
+  @media (max-width:680px){.dpad{display:flex}}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;
+    justify-content:center;padding:16px;z-index:50}
+  .npc-modal{max-width:420px;width:100%;border-width:5px}
+  .npc-modal-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+  .npc-modal-emoji{font-size:22px;border-radius:50%;padding:6px 8px;border:3px solid var(--border)}
+  .npc-modal-name{font-weight:800;font-size:16px}
+  .npc-modal-disclaimer{font-size:11px;color:var(--pink);margin-top:2px}
+  .npc-modal-close{margin-left:auto;font-size:16px}
+  .npc-modal-text{line-height:1.65;background:var(--surface-2);border-radius:8px;padding:12px}
+  .npc-modal-options{display:flex;flex-direction:column}
+  .crisis-box{margin:12px 0 4px;padding:12px 14px;border:3px solid #d64545;border-radius:8px;background:#fff5f5;color:#3a1515}
+  .crisis-title{font-weight:800;margin-bottom:6px}
+  .crisis-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:4px 0}
+  .crisis-num{font-size:20px;font-weight:800;color:#c0392b;user-select:all;letter-spacing:.02em}
+  .crisis-sub{font-size:12px;color:#7a4a4a}
+  .plaza-npc-rec .plaza-npc-icon{box-shadow:0 0 0 4px rgba(255,214,102,.9);animation:recpulse 1.6s ease-in-out infinite}
+  .plaza-rec-bubble{position:absolute;bottom:100%;left:50%;transform:translate(-50%,-4px);white-space:nowrap;
+    background:#fff;border:2px solid var(--border);border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700;color:var(--ink)}
+  @keyframes recpulse{0%,100%{box-shadow:0 0 0 3px rgba(255,214,102,.9)}50%{box-shadow:0 0 0 8px rgba(255,214,102,.35)}}
+  @media (prefers-reduced-motion: reduce){.plaza-npc-rec .plaza-npc-icon{animation:none}}
+  .mission-rec{font-size:11px;font-weight:800;background:#fff3c4;border:1px solid #e0b020;color:#6b5000;border-radius:6px;padding:1px 6px}
+
+  .room-wrap{max-width:720px;margin:0 auto}
+  .room-desc{color:var(--ink-soft);line-height:1.65}
+  .room-header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  .mission-list,.club-list{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:12px}
+  .mission-item,.club-item{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    flex-wrap:wrap;padding:16px}
+  .mission-item-main,.club-item-main{flex:1 1 240px}
+  .mission-title{font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .mission-reward{font-size:12px;background:var(--gold-soft);border:1px solid var(--gold);border-radius:6px;
+    padding:1px 6px}
+  .club-category{font-size:12px;background:var(--blue-soft);border:1px solid var(--blue);color:var(--blue);
+    border-radius:6px;padding:1px 6px}
+  .mission-desc{font-size:13px;color:var(--ink-soft);margin:6px 0 0}
+  .club-member-count{font-size:12px;color:var(--ink-soft);margin:6px 0 0}
+  .badge-done{font-size:13px;font-weight:700;color:var(--green-dark)}
+
+  .club-form{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+  .club-form label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px}
+
+  [hidden]{display:none !important}
+</style>
+
+<div id="banner">
+  🌱 <b>브리핑용 라이브 데모</b> — 실제 Supabase 프로젝트에 연결되어 있어요. 이 화면에서 만든 프로필·미션 참여·동아리는
+  실제 DB에 저장됩니다. 카카오 로그인은 정식 배포 주소에서만 동작해서, 여기서는 게스트로 체험할 수 있어요.
+</div>
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+  var SUPABASE_URL = "https://czfsoopkxucizommvcnp.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_D6jRdP6qgMc_lGoDiVLlsQ_pnoHND02";
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var SGG_CODES = [
+    { code: "11680", label: "서울시 강남구" },
+    { code: "51110", label: "강원도 춘천시" }
+  ];
+  var AGE_GROUPS = ["10대","20대","30대","40대","50대","60대이상"];
+  var CATEGORIES = ["문화","공연","체육","스터디","기타"];
+
+  // ---------------------------------------------------------------
+  // NPC 대본 — 선택지마다 위험 신호(signal) 태그를 붙인다.
+  //   tags     : 위험 키워드. 고립 척도(UCLA 외로움 척도·De Jong Gierveld 척도·서울시 고립은둔청년
+  //              실태조사)의 문항 주제를 풀어 쓴 것 — 대화상대 부재, 소외감, 사회적 회피, 지속기간
+  //   severity : 0~1 심각도. 대화 1회의 심각도는 선택한 값 중 최댓값
+  //   crisis   : true면 즉시 위기 안내(109) + 지역 단위 위기 기록(user_id 없음)
+  // 대화 원문은 저장하지 않는다. 저장되는 것은 NPC 종류·태그 수·심각도뿐이다.
+  // ---------------------------------------------------------------
+  var NPCS = [
+    { id:"policy", name:"정책추천 NPC", emoji:"📋", color:"#5b8def",
+      tree:{
+        root:{text:"안녕하세요! 저는 정책추천 도우미예요. 무엇을 도와드릴까요?",
+          options:[{label:"청년 주거 지원 정책이 궁금해요", next:"housing"},
+                   {label:"생활비 지원 제도를 알고 싶어요", next:"living", signal:{tags:["생계부담"], severity:0.3}},
+                   {label:"그냥 둘러볼게요", next:"bye"}]},
+        housing:{text:"청년 월세 지원, 전세보증금 대출이자 지원 같은 제도가 있어요. 거주 지역 기준으로 더 정확히 안내해 드릴 수 있어요 (실제 서비스에서는 복지자원 DB와 연동됩니다).",
+          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
+        living:{text:"청년 생활안정자금, 자립수당 등이 대표적이에요. 자격 요건은 소득·나이 기준에 따라 달라져요.",
+          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
+        bye:{text:"언제든 다시 찾아주세요! 👋", options:[]}
+      }},
+    { id:"job", name:"취업상담 NPC", emoji:"💼", color:"#2fa86b",
+      tree:{
+        root:{text:"어떤 취업 준비 단계에 계신가요?",
+          options:[{label:"이제 막 구직을 시작했어요", next:"start"},
+                   {label:"면접까지 왔는데 막막해요", next:"interview"},
+                   {label:"오래 준비했는데 계속 떨어져서 지쳤어요", next:"longterm", signal:{tags:["장기구직","무기력"], severity:0.6}},
+                   {label:"그냥 둘러볼게요", next:"bye"}]},
+        start:{text:"좋아요, 시작이 반이에요. 관심 직무 분야를 정하고 청년 취업지원 프로그램부터 알아보는 걸 추천해요.",
+          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
+        interview:{text:"면접 전 모의면접 프로그램이나 취업 상담 센터를 연계해 드릴 수 있어요 (실제 서비스에서는 복지자원 DB와 연동됩니다).",
+          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
+        longterm:{text:"그동안 정말 애쓰셨어요. 결과가 안 나오면 나 자신을 탓하게 되기 쉬운데, 그건 노력이 부족해서가 아니에요. 구직을 오래 쉬었던 청년을 위한 도전지원사업도 있고, 마음이 많이 지쳤다면 광장의 심리상담 NPC와 먼저 이야기해 보는 것도 좋아요.",
+          options:[{label:"요즘은 아예 아무것도 하기 싫어요", next:"giveup", signal:{tags:["구직단념","사회적회피"], severity:0.7}},
+                   {label:"지원사업 알려주세요", next:"interview"},
+                   {label:"고마워요", next:"bye"}]},
+        giveup:{text:"그럴 수 있어요. 당분간 취업 이야기는 잠시 내려놓아도 괜찮아요. 광장 오른쪽의 심리상담 NPC가 이야기를 들어줄 거예요.",
+          options:[{label:"알겠어요", next:"bye"}]},
+        bye:{text:"응원할게요, 다음에 또 봐요! 💪", options:[]}
+      }},
+    { id:"psych", name:"심리상담 NPC", emoji:"🌱", color:"#c97ad1",
+      disclaimer:"이 NPC는 전문 상담사가 아니라, 필요할 때 도움으로 연결해 주는 도구입니다.",
+      tree:{
+        root:{text:"오늘 기분이 어떠세요? 편하게 이야기해도 괜찮아요.",
+          options:[{label:"요즘 좀 지치고 힘들어요", next:"tired", signal:{tags:["무기력"], severity:0.4}},
+                   {label:"그냥저냥 괜찮아요", next:"okay", signal:{tags:[], severity:0.1}},
+                   {label:"그냥 둘러볼게요", next:"bye"}]},
+        tired:{text:"많이 힘드셨겠어요. 요즘 사람들과는 어떻게 지내세요?",
+          options:[{label:"가끔 친구들 만나요", next:"social", signal:{tags:[], severity:0.2}},
+                   {label:"속얘기할 사람이 별로 없어요", next:"duration", signal:{tags:["대화상대없음","소외감"], severity:0.6}},
+                   {label:"다 귀찮고 혼자 있는 게 편해요", next:"duration", signal:{tags:["사회적회피"], severity:0.6}}]},
+        social:{text:"다행이에요. 가까운 사람들과의 시간이 힘이 될 거예요. 지친 마음은 가벼운 활동으로 풀어 보는 것도 좋아요 — 미션방에 작은 미션들이 있어요.",
+          options:[{label:"고마워요", next:"bye"}]},
+        duration:{text:"그런 시간이 길어지면 마음이 더 무겁게 느껴질 수 있어요. 이런 상태가 얼마나 됐어요?",
+          options:[{label:"몇 주 됐어요", next:"support", signal:{tags:["고립지속"], severity:0.7}},
+                   {label:"몇 달째예요", next:"support", signal:{tags:["고립지속","장기고립"], severity:0.8}},
+                   {label:"사실 다 그만두고 싶을 때가 있어요", next:"crisis", signal:{tags:["위기발화"], severity:1.0, crisis:true}}]},
+        support:{text:"말해줘서 고마워요. 혼자 견디지 않았으면 좋겠어요. 동아리방에는 부담 없이 들어갈 수 있는 모임이 있고, 원하시면 전문 상담도 연결해 드릴 수 있어요.",
+          options:[{label:"상담은 어디서 받을 수 있어요?", next:"counsel"},
+                   {label:"동아리방 한번 가볼게요", next:"bye"},
+                   {label:"고마워요", next:"bye"}]},
+        counsel:{text:"청년 마음건강 바우처로 전문 심리상담을 받을 수 있고, 가까운 정신건강복지센터(정신건강 상담전화 1577-0199)에서도 상담받을 수 있어요.",
+          options:[{label:"고마워요", next:"bye"}]},
+        crisis:{crisis:true,
+          text:"그런 마음까지 드셨군요. 지금 많이 힘든 상태일 수 있어요. 혼자 견디지 말고 지금 바로 전문 상담사와 이야기해 주세요. 24시간 언제든 연결돼요.",
+          options:[{label:"알겠어요", next:"bye"}]},
+        okay:{text:"다행이에요. 언제든 마음이 힘들 때 여기로 와주세요.",
+          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
+        bye:{text:"오늘도 수고 많으셨어요. 또 만나요. 🌱", options:[]}
+      }}
+  ];
+
+  var NPC_POS = { policy:{px:27,py:30}, job:{px:50,py:22}, psych:{px:71,py:34} };
+  var BUILDINGS = [
+    { id:"mission-room", label:"미션방", emoji:"📮", px:15, py:66 },
+    { id:"club-room", label:"동아리방", emoji:"🎪", px:82, py:66 }
+  ];
+  var DECOR = [
+    {e:"🌳",px:6,py:12},{e:"🌳",px:93,py:14},{e:"🌳",px:6,py:80},{e:"🌳",px:94,py:82},
+    {e:"🌼",px:38,py:55},{e:"🌼",px:60,py:60},{e:"⛲",px:50,py:46}
+  ];
+  var STEP_X = 3, STEP_Y = 4.6;
+  var BOUNDS = { minX:6, maxX:94, minY:16, maxY:88 };
+  var NEAR_X = 7, NEAR_Y = 10;
+
+  var state = {
+    view: "loading",
+    session: null,
+    profile: null,
+    missions: [],
+    progress: {},
+    clubs: [],
+    myClubIds: {},
+    busy: null,
+    plazaPos: { px:49, py:58 },
+    activeNpc: null,
+    npcNode: "root",
+    npcSession: null,     // 진행 중인 대화의 신호 누적 {npc_type, started_at, tags, maxSev, turns, crisisReported}
+    feedback: null,       // 위험 탐지 에이전트가 내려준 내 코호트 개인화(cohort_feedback)
+    toast: null,
+    showClubForm: false
+  };
+
+  var app = document.getElementById("app");
+  function h(html){ var t = document.createElement("template"); t.innerHTML = html.trim(); return t.content; }
+  function el(sel, root){ return (root||app).querySelector(sel); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  }); }
+
+  // ---------------- auth / data ----------------
+  function refreshProfile(){
+    if(!state.session) { state.profile = null; return Promise.resolve(); }
+    return sb.from("profiles").select("*").eq("id", state.session.user.id).maybeSingle()
+      .then(function(res){ state.profile = res.data || null; });
+  }
+
+  // ⑩ 환류 — 에이전트가 쓴 "내 코호트" 개인화 지시를 읽는다. RLS가 본인 코호트 행만 돌려준다.
+  // 위험 등급은 이 표에 없다(시민 화면에 등급이 노출될 경로 자체를 두지 않음).
+  function loadFeedback(){
+    if(!state.session || !state.profile) { state.feedback = null; return Promise.resolve(); }
+    return sb.from("cohort_feedback").select("npc_emphasis,priority_missions,updated_at").maybeSingle()
+      .then(function(res){ state.feedback = (res && !res.error) ? res.data : null; })
+      .catch(function(){ state.feedback = null; });
+  }
+
+  function routeAfterAuth(){
+    if(!state.session){ state.view = "login"; render(); return; }
+    refreshProfile().then(loadFeedback).then(function(){
+      state.view = (state.profile && state.profile.onboarded_at) ? "plaza" : "onboarding";
+      render();
+    });
+  }
+
+  sb.auth.getSession().then(function(res){
+    state.session = res.data.session;
+    routeAfterAuth();
+  });
+  sb.auth.onAuthStateChange(function(_e, session){
+    state.session = session;
+  });
+
+  function signInGuest(btn){
+    btn.disabled = true; btn.textContent = "접속 중…";
+    sb.auth.signInAnonymously().then(function(res){
+      if(res.error){ alert("게스트 로그인에 실패했습니다: " + res.error.message); btn.disabled = false; return; }
+      state.session = res.data.session;
+      routeAfterAuth();
+    });
+  }
+
+  // ---------------- render dispatch ----------------
+  function render(){
+    if(state.view === "loading") return renderLoading();
+    if(state.view === "login") return renderLogin();
+    if(state.view === "onboarding") return renderOnboarding();
+    if(state.view === "plaza") return renderPlaza();
+    if(state.view === "mission") return renderMissionRoom();
+    if(state.view === "club") return renderClubRoom();
+  }
+
+  function renderLoading(){
+    app.innerHTML = "";
+    app.appendChild(h('<div class="center-screen"><p>불러오는 중…</p></div>'));
+  }
+
+  // ---------------- login ----------------
+  function renderLogin(){
+    app.innerHTML = "";
+    app.appendChild(h(
+      '<div class="center-screen">' +
+        '<div class="login-card pixel-panel">' +
+          '<div class="login-logo">🌱</div>' +
+          '<h1>소셜 월드</h1>' +
+          '<p class="login-sub">함께 있으면, 덜 외로워요.</p>' +
+          '<button class="btn btn-primary" id="btn-guest">게스트로 체험하기</button>' +
+          '<button class="btn btn-kakao" id="btn-kakao" disabled>카카오로 시작하기 (정식 배포에서 지원)</button>' +
+          '<p class="terms">소셜 월드는 닉네임과 거주 지역·연령대·성별만 수집하며, 대화 원문은 본인만 열람할 수 있습니다.</p>' +
+          '<p class="demo-note">이 페이지는 브리핑용 라이브 데모예요. 실제 socialworld Supabase 프로젝트에 연결되어 있어서, 게스트로 들어가도 온보딩·미션·동아리·NPC 대화 신호가 실제 데이터베이스에 기록됩니다. 대화 원문은 저장하지 않고, 선택지에 붙은 위험 신호 수치만 남습니다.</p>' +
+        '</div>' +
+      '</div>'
+    ));
+    el("#btn-guest").addEventListener("click", function(){ signInGuest(this); });
+  }
+
+  // ---------------- onboarding ----------------
+  function renderOnboarding(){
+    app.innerHTML = "";
+    var sggOptions = SGG_CODES.map(function(s){ return '<option value="'+s.code+'">'+esc(s.label)+'</option>'; }).join("");
+    var ageOptions = AGE_GROUPS.map(function(a){ return '<option value="'+a+'">'+a+'</option>'; }).join("");
+    app.appendChild(h(
+      '<div class="center-screen">' +
+        '<form class="pixel-panel onboarding-card" id="onboard-form">' +
+          '<h1>처음이시네요! 👋</h1>' +
+          '<p class="login-sub">거주 지역 정보는 지역 단위 위험도 산출에 꼭 필요해서 온보딩에서 한 번만 여쭤봐요.</p>' +
+          '<label>닉네임<input id="ob-nickname" maxlength="20" placeholder="소셜 월드에서 쓸 이름"></label>' +
+          '<label>거주 시군구<select id="ob-sgg">'+sggOptions+'</select></label>' +
+          '<label>연령대<select id="ob-age">'+ageOptions+'</select></label>' +
+          '<label>성별 (선택 — 응답해야 집단 분석에 반영돼요)<select id="ob-gender"><option value="">응답하지 않음</option><option value="F">여성</option><option value="M">남성</option></select></label>' +
+          '<button class="btn btn-primary" type="submit" id="ob-submit">광장으로 입장하기</button>' +
+        '</form>' +
+      '</div>'
+    ));
+    el("#onboard-form").addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var nickname = el("#ob-nickname").value.trim();
+      if(!nickname){ alert("닉네임을 입력해 주세요."); return; }
+      var submitBtn = el("#ob-submit");
+      submitBtn.disabled = true; submitBtn.textContent = "저장 중…";
+      sb.from("profiles").upsert({
+        id: state.session.user.id,
+        nickname: nickname,
+        sgg_code: el("#ob-sgg").value,
+        age_group: el("#ob-age").value,
+        gender: el("#ob-gender").value || null,
+        onboarded_at: new Date().toISOString()
+      }).then(function(res){
+        if(res.error){ alert("저장에 실패했습니다."); submitBtn.disabled = false; submitBtn.textContent = "광장으로 입장하기"; return; }
+        refreshProfile().then(loadFeedback).then(function(){ state.view = "plaza"; render(); });
+      });
+    });
+  }
+
+  // ---------------- topbar ----------------
+  function topbarHtml(title){
+    var nick = state.profile ? '<span class="topbar-nick">'+esc(state.profile.nickname)+'님</span>' : "";
+    return '<div class="topbar"><div class="topbar-title"><span>🌱</span><span>'+esc(title)+'</span></div>' +
+      '<div class="topbar-right">'+nick+'<button class="btn-ghost" id="btn-logout">로그아웃</button></div></div>';
+  }
+  function bindTopbar(){
+    el("#btn-logout").addEventListener("click", function(){
+      sb.auth.signOut().then(function(){ state.session = null; state.profile = null; state.view = "login"; render(); });
+    });
+  }
+
+  // ---------------- plaza ----------------
+  var plazaKeyHandler = null;
+
+  function renderPlaza(){
+    window.removeEventListener("keydown", plazaKeyHandler);
+    app.innerHTML = "";
+    var wrap = h(
+      topbarHtml("광장") +
+      '<div class="plaza-wrap">' +
+        '<div class="plaza-map" id="plaza-map"></div>' +
+        '<p class="plaza-hint">이동: 방향키 / WASD · 상호작용: Enter 또는 스페이스바 · 캐릭터·건물을 클릭해도 됩니다</p>' +
+        '<div class="dpad">' +
+          '<button id="dp-up">▲</button>' +
+          '<div class="dpad-row"><button id="dp-left">◀</button><button class="dpad-interact" id="dp-act">●</button><button id="dp-right">▶</button></div>' +
+          '<button id="dp-down">▼</button>' +
+        '</div>' +
+      '</div>'
+    );
+    app.appendChild(wrap);
+    bindTopbar();
+
+    var map = el("#plaza-map");
+    DECOR.forEach(function(d){
+      var s = document.createElement("span");
+      s.className = "plaza-deco"; s.style.left = d.px+"%"; s.style.top = d.py+"%"; s.textContent = d.e;
+      map.appendChild(s);
+    });
+    BUILDINGS.forEach(function(b){
+      var btn = document.createElement("button");
+      btn.className = "plaza-sprite plaza-building";
+      btn.style.left = b.px+"%"; btn.style.top = b.py+"%";
+      btn.innerHTML = '<span class="plaza-sprite-icon">'+b.emoji+'</span><span class="plaza-sprite-label">'+esc(b.label)+'</span>';
+      btn.addEventListener("click", function(){ enterBuilding(b.id); });
+      map.appendChild(btn);
+    });
+    NPCS.forEach(function(npc){
+      var pos = NPC_POS[npc.id];
+      var btn = document.createElement("button");
+      var recommended = state.feedback && state.feedback.npc_emphasis === npc.id;
+      btn.className = "plaza-sprite plaza-npc" + (recommended ? " plaza-npc-rec" : "");
+      btn.style.left = pos.px+"%"; btn.style.top = pos.py+"%";
+      btn.innerHTML = (recommended ? '<span class="plaza-rec-bubble">💬 오늘 이야기 나눠요</span>' : '') +
+        '<span class="plaza-sprite-icon plaza-npc-icon" style="background:'+npc.color+'">'+npc.emoji+'</span><span class="plaza-sprite-label">'+esc(npc.name)+'</span>';
+      btn.addEventListener("click", function(){ openNpc(npc.id); });
+      map.appendChild(btn);
+    });
+    var player = document.createElement("div");
+    player.className = "plaza-player"; player.id = "plaza-player";
+    map.appendChild(player);
+    drawPlayer();
+
+    plazaKeyHandler = function(e){
+      if(state.activeNpc) return;
+      var key = e.key;
+      if(key==="ArrowUp"||key==="w"||key==="W") movePlayer(0,-STEP_Y);
+      else if(key==="ArrowDown"||key==="s"||key==="S") movePlayer(0,STEP_Y);
+      else if(key==="ArrowLeft"||key==="a"||key==="A") movePlayer(-STEP_X,0);
+      else if(key==="ArrowRight"||key==="d"||key==="D") movePlayer(STEP_X,0);
+      else if(key==="Enter"||key===" "){ e.preventDefault(); interactNear(); }
+    };
+    window.addEventListener("keydown", plazaKeyHandler);
+
+    el("#dp-up").addEventListener("click", function(){ movePlayer(0,-STEP_Y); });
+    el("#dp-down").addEventListener("click", function(){ movePlayer(0,STEP_Y); });
+    el("#dp-left").addEventListener("click", function(){ movePlayer(-STEP_X,0); });
+    el("#dp-right").addEventListener("click", function(){ movePlayer(STEP_X,0); });
+    el("#dp-act").addEventListener("click", function(){ interactNear(); });
+
+    if(state.activeNpc) renderNpcModal();
+  }
+
+  function findNearTarget(){
+    var targets = NPCS.map(function(n){ return { type:"npc", id:n.id, px:NPC_POS[n.id].px, py:NPC_POS[n.id].py }; })
+      .concat(BUILDINGS.map(function(b){ return { type:"building", id:b.id, px:b.px, py:b.py }; }));
+    for(var i=0;i<targets.length;i++){
+      var t = targets[i];
+      if(Math.abs(t.px-state.plazaPos.px) < NEAR_X && Math.abs(t.py-state.plazaPos.py) < NEAR_Y) return t;
+    }
+    return null;
+  }
+
+  function movePlayer(dx,dy){
+    state.plazaPos.px = Math.min(BOUNDS.maxX, Math.max(BOUNDS.minX, state.plazaPos.px+dx));
+    state.plazaPos.py = Math.min(BOUNDS.maxY, Math.max(BOUNDS.minY, state.plazaPos.py+dy));
+    drawPlayer();
+  }
+
+  function drawPlayer(){
+    var player = el("#plaza-player");
+    if(!player) return;
+    player.style.left = state.plazaPos.px+"%";
+    player.style.top = state.plazaPos.py+"%";
+    var near = findNearTarget();
+    var toastHtml = "";
+    if(near){
+      var label = near.type==="npc" ? (NPCS.filter(function(n){return n.id===near.id;})[0].name+" — Enter로 대화하기")
+        : (BUILDINGS.filter(function(b){return b.id===near.id;})[0].label+" — Enter로 들어가기");
+      toastHtml = '<span class="plaza-toast">'+esc(label)+'</span>';
+    }
+    player.innerHTML = '<span class="plaza-player-icon">🧑</span><span class="plaza-player-shadow"></span>'+toastHtml;
+  }
+
+  function interactNear(){
+    var near = findNearTarget();
+    if(!near) return;
+    if(near.type==="npc") openNpc(near.id);
+    else enterBuilding(near.id);
+  }
+
+  function enterBuilding(id){
+    if(id === "mission-room"){ loadMissionRoom(); }
+    else if(id === "club-room"){ loadClubRoom(); }
+  }
+
+  // ---------------- npc modal ----------------
+  function openNpc(id){
+    state.activeNpc = NPCS.filter(function(n){ return n.id===id; })[0];
+    state.npcNode = "root";
+    state.npcSession = { npc_type: id, started_at: new Date().toISOString(), tags: {}, maxSev: 0, turns: 0, crisisReported: false };
+    renderNpcModal();
+  }
+
+  // 대화 1회를 npc_sessions에 남긴다 — 원문 없이 신호 수치만. 선택을 한 번도 안 했으면 남기지 않는다.
+  function saveNpcSession(){
+    var sess = state.npcSession;
+    state.npcSession = null;
+    if(!sess || sess.turns === 0 || !state.session) return;
+    var tags = Object.keys(sess.tags);
+    sb.from("npc_sessions").insert({
+      npc_type: sess.npc_type,
+      started_at: sess.started_at,
+      ended_at: new Date().toISOString(),
+      risk_keyword_count: tags.length,
+      severity_score: Math.round(sess.maxSev * 100) / 100,
+      keyword_tags: tags
+    }).then(function(res){
+      if(res.error) console.warn("대화 신호 저장 실패:", res.error.message);
+    });
+  }
+
+  function closeNpc(){
+    saveNpcSession();
+    state.activeNpc = null;
+    var existing = document.getElementById("npc-modal-backdrop");
+    if(existing) existing.remove();
+  }
+
+  function chooseOption(opt){
+    var sess = state.npcSession;
+    if(sess){
+      sess.turns += 1;
+      if(opt.signal){
+        (opt.signal.tags || []).forEach(function(t){ sess.tags[t] = true; });
+        sess.maxSev = Math.max(sess.maxSev, opt.signal.severity || 0);
+        // 가드레일(8-1) — 위기 발화는 모든 NPC 공통으로 즉시 기록. 지역·NPC 종류만 남고 user_id는 저장하지 않는다.
+        if(opt.signal.crisis && !sess.crisisReported){
+          sess.crisisReported = true;
+          sb.rpc("report_crisis", { p_npc_type: sess.npc_type }).then(function(res){
+            if(res.error) console.warn("위기 기록 실패:", res.error.message);
+          });
+        }
+      }
+    }
+    state.npcNode = opt.next;
+    renderNpcModal();
+  }
+
+  function renderNpcModal(){
+    var existing = document.getElementById("npc-modal-backdrop");
+    if(existing) existing.remove();
+    var npc = state.activeNpc;
+    var node = npc.tree[state.npcNode];
+    var optionsHtml = node.options.length
+      ? node.options.map(function(o,i){ return '<button class="btn btn-option" data-opt="'+i+'">'+esc(o.label)+'</button>'; }).join("")
+      : '<button class="btn btn-primary" id="npc-bye">대화 마치기</button>';
+    var disclaimerHtml = npc.disclaimer ? '<div class="npc-modal-disclaimer">'+esc(npc.disclaimer)+'</div>' : "";
+    var crisisHtml = node.crisis
+      ? '<div class="crisis-box" role="alert">' +
+          '<div class="crisis-title">지금 바로 이야기할 수 있는 곳</div>' +
+          '<div class="crisis-line"><b>자살예방 상담전화</b> <span class="crisis-num">109</span> <span class="crisis-sub">24시간 · 무료</span></div>' +
+          '<div class="crisis-line"><b>정신건강 상담전화</b> <span class="crisis-num">1577-0199</span></div>' +
+          '<div class="crisis-sub">위급하면 112 또는 119에 바로 연락하세요.</div>' +
+        '</div>'
+      : "";
+    var backdrop = document.createElement("div");
+    backdrop.className = "modal-backdrop"; backdrop.id = "npc-modal-backdrop";
+    backdrop.innerHTML =
+      '<div class="npc-modal pixel-panel" style="border-color:'+npc.color+'">' +
+        '<div class="npc-modal-header">' +
+          '<span class="npc-modal-emoji" style="background:'+npc.color+'">'+npc.emoji+'</span>' +
+          '<div><div class="npc-modal-name">'+esc(npc.name)+'</div>'+disclaimerHtml+'</div>' +
+          '<button class="btn-ghost npc-modal-close" id="npc-close">✕</button>' +
+        '</div>' +
+        '<p class="npc-modal-text">'+esc(node.text)+'</p>' +
+        crisisHtml +
+        '<div class="npc-modal-options">'+optionsHtml+'</div>' +
+      '</div>';
+    backdrop.addEventListener("click", function(e){ if(e.target===backdrop){ closeNpc(); } });
+    document.body.appendChild(backdrop);
+    el("#npc-close", backdrop).addEventListener("click", closeNpc);
+    var byeBtn = el("#npc-bye", backdrop);
+    if(byeBtn) byeBtn.addEventListener("click", closeNpc);
+    Array.prototype.forEach.call(backdrop.querySelectorAll("[data-opt]"), function(btn){
+      btn.addEventListener("click", function(){ chooseOption(node.options[Number(btn.getAttribute("data-opt"))]); });
+    });
+  }
+
+  // ---------------- mission room ----------------
+  function loadMissionRoom(){
+    state.view = "mission";
+    render();
+    Promise.all([
+      sb.from("missions").select("*").eq("is_active", true).order("id"),
+      sb.from("mission_progress").select("*").eq("user_id", state.session.user.id)
+    ]).then(function(results){
+      state.missions = results[0].data || [];
+      var map = {};
+      (results[1].data || []).forEach(function(r){ map[r.mission_id] = r; });
+      state.progress = map;
+      renderMissionRoom();
+    });
+  }
+
+  function renderMissionRoom(){
+    window.removeEventListener("keydown", plazaKeyHandler);
+    app.innerHTML = "";
+    var itemsHtml;
+    if(state.missions === undefined){
+      itemsHtml = "<p>불러오는 중…</p>";
+    } else if(state.missions.length === 0){
+      itemsHtml = "<p>등록된 미션이 없어요.</p>";
+    } else {
+      // ⑩ 환류 — 에이전트가 추천한 미션을 맨 위로 올리고 '추천' 표시
+      var prio = (state.feedback && state.feedback.priority_missions) || [];
+      var ordered = state.missions.slice().sort(function(a,b){
+        var ia = prio.indexOf(a.title), ib = prio.indexOf(b.title);
+        ia = ia < 0 ? 99 : ia; ib = ib < 0 ? 99 : ib;
+        return ia - ib || a.id - b.id;
+      });
+      itemsHtml = '<ul class="mission-list">' + ordered.map(function(m){
+        var p = state.progress[m.id];
+        var isRec = prio.indexOf(m.title) >= 0;
+        var actionHtml;
+        if(p && p.status === "done") actionHtml = '<span class="badge-done">완료됨 ✅</span>';
+        else if(p) actionHtml = '<button class="btn btn-primary btn-auto" data-complete="'+m.id+'">완료하기</button>';
+        else actionHtml = '<button class="btn btn-option btn-auto" data-join="'+m.id+'">참여하기</button>';
+        return '<li class="mission-item pixel-panel"><div class="mission-item-main">' +
+          '<div class="mission-title">'+esc(m.title)+'<span class="mission-reward">+'+m.reward_point+'P</span>' +
+            (isRec ? '<span class="mission-rec">추천</span>' : '') + '</div>' +
+          (m.description ? '<p class="mission-desc">'+esc(m.description)+'</p>' : '') +
+          '</div><div class="mission-actions">'+actionHtml+'</div></li>';
+      }).join("") + '</ul>';
+    }
+    app.appendChild(h(
+      topbarHtml("미션방") +
+      '<div class="room-wrap">' +
+        '<button class="btn-ghost" id="btn-back">← 광장으로</button>' +
+        '<p class="room-desc">꾸준히 사회 활동을 이어갈 수 있도록 작은 미션들을 준비했어요. 완료하면 포인트를 받을 수 있어요.</p>' +
+        itemsHtml +
+      '</div>'
+    ));
+    bindTopbar();
+    el("#btn-back").addEventListener("click", function(){ state.view = "plaza"; render(); });
+    Array.prototype.forEach.call(app.querySelectorAll("[data-join]"), function(btn){
+      btn.addEventListener("click", function(){
+        var id = Number(btn.getAttribute("data-join"));
+        btn.disabled = true;
+        sb.from("mission_progress").insert({ user_id: state.session.user.id, mission_id: id, status:"in_progress" })
+          .then(function(res){ if(res.error){ alert("참여에 실패했습니다."); } loadMissionRoom(); });
+      });
+    });
+    Array.prototype.forEach.call(app.querySelectorAll("[data-complete]"), function(btn){
+      btn.addEventListener("click", function(){
+        var id = Number(btn.getAttribute("data-complete"));
+        btn.disabled = true;
+        sb.from("mission_progress").update({ status:"done", completed_at: new Date().toISOString() })
+          .eq("user_id", state.session.user.id).eq("mission_id", id)
+          .then(function(res){ if(res.error){ alert("완료 처리에 실패했습니다."); } loadMissionRoom(); });
+      });
+    });
+  }
+
+  // ---------------- club room ----------------
+  function loadClubRoom(){
+    state.view = "club";
+    render();
+    Promise.all([
+      sb.from("clubs").select("*, member_count:club_members(count)").order("created_at", { ascending:false }),
+      sb.from("club_members").select("club_id").eq("user_id", state.session.user.id)
+    ]).then(function(results){
+      state.clubs = results[0].data || [];
+      var ids = {};
+      (results[1].data || []).forEach(function(r){ ids[r.club_id] = true; });
+      state.myClubIds = ids;
+      renderClubRoom();
+    });
+  }
+
+  function renderClubRoom(){
+    window.removeEventListener("keydown", plazaKeyHandler);
+    app.innerHTML = "";
+    var catOptions = CATEGORIES.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join("");
+    var formHtml = state.showClubForm ? (
+      '<form class="pixel-panel club-form" id="club-form">' +
+        '<label>동아리 이름<input id="cf-name" maxlength="30" placeholder="예: 퇴근 후 러닝 크루"></label>' +
+        '<label>카테고리<select id="cf-category">'+catOptions+'</select></label>' +
+        '<label>소개<textarea id="cf-desc" maxlength="200" rows="3" placeholder="어떤 모임인지 짧게 소개해 주세요"></textarea></label>' +
+        '<button class="btn btn-primary btn-auto" type="submit">개설하기</button>' +
+      '</form>'
+    ) : "";
+    var listHtml;
+    if(state.clubs.length === 0){
+      listHtml = "<p>아직 개설된 동아리가 없어요. 첫 동아리를 만들어 보세요!</p>";
+    } else {
+      listHtml = '<ul class="club-list">' + state.clubs.map(function(c){
+        var joined = !!state.myClubIds[c.id];
+        var count = (c.member_count && c.member_count[0] && c.member_count[0].count) || 0;
+        var actionHtml = joined ? '<span class="badge-done">가입됨 ✅</span>' : '<button class="btn btn-option btn-auto" data-join-club="'+c.id+'">가입하기</button>';
+        return '<li class="club-item pixel-panel"><div class="club-item-main">' +
+          '<div class="mission-title">'+esc(c.name)+'<span class="club-category">'+esc(c.category||"")+'</span></div>' +
+          (c.description ? '<p class="mission-desc">'+esc(c.description)+'</p>' : '') +
+          '<p class="club-member-count">멤버 '+count+'명</p>' +
+          '</div><div class="mission-actions">'+actionHtml+'</div></li>';
+      }).join("") + '</ul>';
+    }
+    app.appendChild(h(
+      topbarHtml("동아리방") +
+      '<div class="room-wrap">' +
+        '<button class="btn-ghost" id="btn-back">← 광장으로</button>' +
+        '<div class="room-header-row"><p class="room-desc">관심사가 비슷한 사람들과 문화·공연·체육 활동을 함께 해보세요.</p>' +
+        '<button class="btn btn-primary btn-auto" id="btn-toggle-form">'+(state.showClubForm?"닫기":"+ 동아리 개설")+'</button></div>' +
+        formHtml + listHtml +
+      '</div>'
+    ));
+    bindTopbar();
+    el("#btn-back").addEventListener("click", function(){ state.view = "plaza"; render(); });
+    el("#btn-toggle-form").addEventListener("click", function(){ state.showClubForm = !state.showClubForm; renderClubRoom(); });
+    var form = el("#club-form");
+    if(form){
+      form.addEventListener("submit", function(ev){
+        ev.preventDefault();
+        var name = el("#cf-name").value.trim();
+        if(!name){ alert("동아리 이름을 입력해 주세요."); return; }
+        sb.from("clubs").insert({
+          name: name, category: el("#cf-category").value,
+          description: el("#cf-desc").value.trim() || null,
+          owner_id: state.session.user.id
+        }).select().single().then(function(res){
+          if(res.error || !res.data){ alert("동아리 개설에 실패했습니다."); return; }
+          sb.from("club_members").insert({ club_id: res.data.id, user_id: state.session.user.id }).then(function(){
+            state.showClubForm = false;
+            loadClubRoom();
+          });
+        });
+      });
+    }
+    Array.prototype.forEach.call(app.querySelectorAll("[data-join-club]"), function(btn){
+      btn.addEventListener("click", function(){
+        var id = Number(btn.getAttribute("data-join-club"));
+        btn.disabled = true;
+        sb.from("club_members").insert({ club_id: id, user_id: state.session.user.id })
+          .then(function(res){ if(res.error){ alert("가입에 실패했습니다."); } loadClubRoom(); });
+      });
+    });
+  }
+
+  render();
+})();
+</script>

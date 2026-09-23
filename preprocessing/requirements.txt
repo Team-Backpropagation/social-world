@@ -1,0 +1,16 @@
+# 필요한 패키지
+#   설치: pip install -r requirements.txt
+#
+# 파이썬 버전은 requirements.txt로 지정할 수 없다(pip이 강제하지 않음).
+# 아래 버전 하한은 Python 3.12 기준으로 잡았다. 그 이전 버전은 3.12용 빌드가
+# 배포되지 않아 설치 자체가 실패한다.
+#   - 실행 환경: Python 3.12.10
+#   - 검증 환경: Python 3.10 + pandas 2.3.3 / pandas 3.0.2 (둘 다 통과)
+#   - 코드 자체는 Python 3.8 이상에서 동작
+
+# --- 전처리 파이프라인(run_pipeline.py)에 필요 ---
+pandas>=2.1     # Python 3.12 지원 시작 버전
+numpy>=1.26     # Python 3.12 지원 시작 버전
+
+# --- 탐색 노트북(notebooks/)에만 필요. 파이프라인 실행에는 불필요 ---
+matplotlib>=3.8  # Python 3.12 지원 시작 버전
