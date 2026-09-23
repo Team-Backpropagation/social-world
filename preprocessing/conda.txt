@@ -1,2 +1,0 @@
-create -n contest --file requirements.txt
-conda activate contest
