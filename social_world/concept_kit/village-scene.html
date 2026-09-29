@@ -3,475 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cut">
-<title>소셜 월드</title>
+<title>이음 마을 컨셉 키트</title>
+<!--
+  ================================================================
+  이음 마을 — 컨셉아트 키트 (소셜 월드 프로토타입과 같은 3D 엔진)
+  ----------------------------------------------------------------
+  · 로그인·튜토리얼 없이 마을 장면만 바로 뜬다. 이 파일 하나만 브라우저로 열면 된다.
+  · 🎨 고쳐도 되는 곳
+      1) 바로 아래 THEME — 하늘·안개·빛·땅·팔레트
+      2) 엔진 안의 "🎨 [꾸미기 구역]" 표시가 붙은 부분 — 건물·나무·캐릭터 모양과 색
+  · 🚫 고치면 안 되는 곳
+      장소 좌표(x,z), 건물 크기·문 위치, colliders/places 줄, NPC id(psych·policy·job·chief),
+      api 함수 이름, 후처리(틸트시프트)·둥근 지평선 셰이더 구조, three.js 버전(r149)
+  · 결과물은 반드시 "파일 전체"로 — 중간 생략(…) 금지
+  ================================================================
+-->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
 <style>
-  :root{
-    --bg:#fff8e7;
-    --surface:#ffffff;
-    --surface-2:#f7f7f2;
-    --ink:#2b2b2b;
-    --ink-soft:#5b5b52;
-    --green-dark:#2f7a4f;
-    --green:#4caf6e;
-    --green-light:#a8e6a1;
-    --blue:#5b8def;
-    --blue-soft:#e6f0ff;
-    --gold:#e0c14a;
-    --gold-soft:#fff2c9;
-    --pink:#a34;
-    --border:#2b2b2b;
-    --shadow:rgba(0,0,0,.25);
-    --kakao:#fee500;
-    --kakao-ink:#3c1e1e;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--ink);
-    font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-    padding-inline:16px;
-  }
-  .pixel-font{font-family:'Press Start 2P',monospace}
-  button{font-family:inherit;cursor:pointer}
-  a{color:inherit}
-
-  #banner{
-    max-width:640px;margin:14px auto 0;padding:10px 14px;border:2px solid var(--border);
-    border-radius:10px;background:var(--gold-soft);font-size:12.5px;line-height:1.6;color:var(--ink);
-  }
-  #banner b{color:var(--green-dark)}
-
-  #app{max-width:960px;margin:0 auto;padding-block:20px 40px}
-
-  .btn{
-    display:block;width:100%;padding:12px 16px;margin-top:10px;border:3px solid var(--border);
-    border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:700;
-    box-shadow:3px 3px 0 var(--shadow);transition:transform .08s ease;
-  }
-  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
-  .btn:disabled{opacity:.55;cursor:not-allowed}
-  .btn-primary{background:var(--green);color:#fff}
-  .btn-kakao{background:var(--kakao);color:var(--kakao-ink)}
-  .btn-option{background:var(--blue);color:#fff;margin-top:8px}
-  .btn-ghost{background:transparent;border:none;box-shadow:none;color:var(--green-dark);font-weight:700;
-    text-decoration:underline;padding:6px 8px;width:auto}
-  .btn-auto{width:auto;margin-top:0}
-
-  .pixel-panel{background:var(--surface);border:4px solid var(--border);border-radius:14px;
-    box-shadow:6px 6px 0 var(--shadow);padding:22px}
-
-  .center-screen{min-height:70vh;display:flex;align-items:center;justify-content:center;padding-block:24px}
-  .login-card{max-width:380px;width:100%;text-align:center}
-  .login-logo{font-size:44px}
-  .login-card h1,.onboarding-card h1{font-family:'Press Start 2P',monospace;font-size:19px;
-    color:var(--green-dark);margin:8px 0;text-wrap:balance}
-  .login-sub{color:var(--ink-soft);margin-bottom:16px}
-  .terms{margin-top:16px;font-size:11.5px;color:var(--ink-soft);line-height:1.6}
-  .demo-note{margin-top:12px;font-size:11.5px;color:var(--ink-soft);background:var(--surface-2);
-    border-radius:8px;padding:8px 10px;line-height:1.6}
-
-  .onboarding-card{max-width:420px;width:100%;display:flex;flex-direction:column;gap:10px}
-  .onboarding-card label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px;margin-top:6px}
-  .onboarding-card input,.onboarding-card select,.club-form input,.club-form select,.club-form textarea{
-    font-family:inherit;font-size:15px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;
-    background:var(--surface);color:var(--ink);width:100%;
-  }
-
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;
-    border-bottom:3px solid var(--border);margin-bottom:16px}
-  .topbar-title{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px}
-  .topbar-right{display:flex;align-items:center;gap:12px;font-size:13.5px}
-  .topbar-nick{font-weight:700;color:var(--green-dark)}
-
-  .plaza-map{position:relative;width:100%;aspect-ratio:900/560;border-radius:14px;border:4px solid var(--border);
-    overflow:hidden;box-shadow:6px 6px 0 var(--shadow);
-    background:repeating-conic-gradient(var(--green) 0% 25%, var(--green-light) 0% 50%) 0 0/8% 12.5%;
-  }
-  .plaza-deco{position:absolute;transform:translate(-50%,-50%);font-size:clamp(18px,3.5vw,30px);
-    pointer-events:none;filter:drop-shadow(1px 2px 0 rgba(0,0,0,.25))}
-  .plaza-sprite{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
-    align-items:center;gap:4px;background:none;border:none;padding:0}
-  .plaza-sprite-icon{font-size:clamp(22px,4vw,34px);line-height:1;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.3))}
-  .plaza-npc-icon{border-radius:50%;padding:6px;display:inline-flex;border:3px solid var(--border)}
-  .plaza-sprite-label{font-size:11px;font-weight:800;background:var(--surface);color:var(--ink);
-    border:2px solid var(--border);border-radius:6px;padding:1px 6px;white-space:nowrap}
-  .plaza-player{position:absolute;transform:translate(-50%,-50%);transition:left .08s linear,top .08s linear;
-    display:flex;flex-direction:column;align-items:center}
-  .plaza-player-icon{font-size:clamp(24px,4.5vw,36px);filter:drop-shadow(2px 2px 0 rgba(0,0,0,.35))}
-  .plaza-player-shadow{width:22px;height:8px;border-radius:50%;background:rgba(0,0,0,.3);margin-top:-4px}
-  .plaza-toast{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;
-    background:var(--border);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;
-    white-space:nowrap}
-  .plaza-hint{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:10px}
-
-  .dpad{display:none;flex-direction:column;align-items:center;gap:4px;margin:14px auto 0;width:fit-content}
-  .dpad-row{display:flex;gap:4px}
-  .dpad button{width:46px;height:46px;font-size:18px;border:3px solid var(--border);border-radius:10px;
-    background:var(--surface);color:var(--ink);box-shadow:3px 3px 0 var(--shadow)}
-  .dpad-interact{background:var(--green) !important;color:#fff}
-  @media (max-width:680px){.dpad{display:flex}}
-
-  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;
-    justify-content:center;padding:16px;z-index:50}
-  .npc-modal{max-width:420px;width:100%;border-width:5px}
-  .npc-modal-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
-  .npc-modal-emoji{font-size:22px;border-radius:50%;padding:6px 8px;border:3px solid var(--border)}
-  .npc-modal-name{font-weight:800;font-size:16px}
-  .npc-modal-disclaimer{font-size:11px;color:var(--pink);margin-top:2px}
-  .npc-modal-close{margin-left:auto;font-size:16px}
-  .npc-modal-text{line-height:1.65;background:var(--surface-2);border-radius:8px;padding:12px}
-  .npc-modal-options{display:flex;flex-direction:column}
-  .crisis-box{margin:12px 0 4px;padding:12px 14px;border:3px solid #d64545;border-radius:8px;background:#fff5f5;color:#3a1515}
-  .crisis-title{font-weight:800;margin-bottom:6px}
-  .crisis-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:4px 0}
-  .crisis-num{font-size:20px;font-weight:800;color:#c0392b;user-select:all;letter-spacing:.02em}
-  .crisis-sub{font-size:12px;color:#7a4a4a}
-  .plaza-npc-rec .plaza-npc-icon{box-shadow:0 0 0 4px rgba(255,214,102,.9);animation:recpulse 1.6s ease-in-out infinite}
-  .plaza-rec-bubble{position:absolute;bottom:100%;left:50%;transform:translate(-50%,-4px);white-space:nowrap;
-    background:#fff;border:2px solid var(--border);border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700;color:var(--ink)}
-  @keyframes recpulse{0%,100%{box-shadow:0 0 0 3px rgba(255,214,102,.9)}50%{box-shadow:0 0 0 8px rgba(255,214,102,.35)}}
-  @media (prefers-reduced-motion: reduce){.plaza-npc-rec .plaza-npc-icon{animation:none}}
-  .mission-rec{font-size:11px;font-weight:800;background:#fff3c4;border:1px solid #e0b020;color:#6b5000;border-radius:6px;padding:1px 6px}
-
-  .room-wrap{max-width:720px;margin:0 auto}
-  .room-desc{color:var(--ink-soft);line-height:1.65}
-  .room-header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-
-  .mission-list,.club-list{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:12px}
-  .mission-item,.club-item{display:flex;align-items:center;justify-content:space-between;gap:12px;
-    flex-wrap:wrap;padding:16px}
-  .mission-item-main,.club-item-main{flex:1 1 240px}
-  .mission-title{font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .mission-reward{font-size:12px;background:var(--gold-soft);border:1px solid var(--gold);border-radius:6px;
-    padding:1px 6px}
-  .club-category{font-size:12px;background:var(--blue-soft);border:1px solid var(--blue);color:var(--blue);
-    border-radius:6px;padding:1px 6px}
-  .mission-desc{font-size:13px;color:var(--ink-soft);margin:6px 0 0}
-  .club-member-count{font-size:12px;color:var(--ink-soft);margin:6px 0 0}
-  .badge-done{font-size:13px;font-weight:700;color:var(--green-dark)}
-
-  .club-form{margin-top:14px;display:flex;flex-direction:column;gap:10px}
-  .club-form label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px}
-
-
-  /* ---------- 튜토리얼 (2026-09-29) ---------- */
-  .survey-card{max-width:460px;width:100%}
-  .survey-step{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-bottom:6px}
-  .survey-progress{height:10px;background:var(--surface-2);border:2px solid var(--border);border-radius:6px;overflow:hidden}
-  .survey-progress>span{display:block;height:100%;background:var(--green);transition:width .25s ease}
-  .survey-q{font-size:20px;font-weight:800;margin:16px 0 6px;line-height:1.4;text-wrap:balance}
-  .survey-sub{font-size:13px;color:var(--ink-soft);line-height:1.65;margin:0 0 12px}
-  .survey-mini{font-size:13px;font-weight:700;margin:14px 0 8px}
-  .survey-count{font-size:12px;color:var(--ink-soft);margin:8px 0 0}
-  .survey-input{font-family:inherit;font-size:16px;padding:12px;border:2px solid var(--border);border-radius:8px;
-    background:var(--surface);color:var(--ink);width:100%}
-  .survey-input[aria-invalid="true"]{border-color:#d64545}
-  .choice-list{display:flex;flex-direction:column;gap:8px}
-  .choice{text-align:left;padding:12px 14px;border:3px solid var(--border);border-radius:10px;background:var(--surface);
-    color:var(--ink);font-size:15px;font-weight:700;box-shadow:3px 3px 0 var(--shadow)}
-  .choice.on,.vibe.on{background:var(--green);color:#fff}
-  .choice:focus-visible,.chip:focus-visible,.vibe:focus-visible,.swatch:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
-  .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{padding:8px 14px;border:2px solid var(--border);border-radius:999px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px}
-  .chip[aria-pressed="true"]{background:var(--green);color:#fff}
-  .vibe-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .vibe{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px;border:3px solid var(--border);border-radius:10px;
-    background:var(--surface);color:var(--ink);font-weight:800;font-size:15px}
-  .vibe-emoji{font-size:26px}
-  .swatches{display:flex;flex-wrap:wrap;gap:10px}
-  .swatch{width:40px;height:40px;border-radius:50%;border:3px solid var(--border)}
-  .swatch.on{outline:3px solid var(--ink);outline-offset:3px}
-  .survey-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:18px;flex-wrap:wrap}
-  .survey-nav-right{display:flex;align-items:center;gap:6px;margin-left:auto}
-  .char-card{max-width:480px}
-  .char-preview{display:flex;justify-content:center;background:var(--gold-soft);border:2px solid var(--border);border-radius:12px;padding:10px}
-  .char-name{text-align:center;font-weight:800;margin:8px 0 4px}
-  .part-row{display:grid;grid-template-columns:78px 40px 1fr 40px;align-items:center;gap:6px;margin-top:8px}
-  .part-name{font-size:13px;font-weight:700;color:var(--ink-soft)}
-  .part-row button{height:36px;border:2px solid var(--border);border-radius:8px;background:var(--surface);color:var(--ink);font-weight:800}
-  .part-val{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:14px}
-  .dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);display:inline-block}
-  .room-map{position:relative;width:100%;aspect-ratio:900/560;border-radius:14px;border:4px solid var(--border);overflow:hidden;
-    box-shadow:6px 6px 0 var(--shadow);background:repeating-linear-gradient(90deg,#d9a86c 0 9%,#cf9a5c 9% 18%)}
-  .room-wall{position:absolute;left:0;right:0;top:0;height:26%;background:#f3e2c7;border-bottom:4px solid #b88652}
-  .room-rug{position:absolute;left:36%;top:48%;width:28%;height:26%;border-radius:50%;background:#e9c46a;opacity:.55;border:3px dashed #b88652}
-  .room-big{font-size:clamp(30px,6vw,52px)}
-  .room-lumi{pointer-events:none;transition:top .6s ease}
-  .plaza-player-icon svg{display:block}
-  .sleeping{animation:sleep 1.6s ease-in-out infinite}
-  @keyframes sleep{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(-2deg)}}
-  @media (prefers-reduced-motion: reduce){.sleeping{animation:none}}
-  .room-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
-  .room-actions .btn{margin-top:0}
-  .tut-details summary{cursor:pointer;font-size:12.5px;color:var(--green-dark);font-weight:700;margin-top:10px}
-  .tut-details ul{font-size:12.5px;line-height:1.6;padding-left:18px;margin:6px 0 0;color:var(--ink-soft)}
-  .sw-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--border);color:#fff;
-    padding:10px 16px;border-radius:10px;font-weight:700;z-index:60;box-shadow:3px 3px 0 var(--shadow)}
-  .tour-panel{max-width:960px;margin:12px auto 0;padding:14px 16px;border-width:3px}
-  .tour-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-  .tour-who{font-weight:800;color:#a24ab0}
-  .tour-count{font-size:12.5px;color:var(--ink-soft);font-weight:700}
-  .tour-dots{display:flex;gap:6px;margin:8px 0 2px}
-  .tour-dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--border);background:var(--surface)}
-  .tour-dot.done{background:var(--green)}
-  .tour-dot.now{background:var(--gold)}
-  .tour-text{line-height:1.7;margin:8px 0 10px}
-  .tour-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .tour-actions .btn{margin-top:0}
-  .tour-lumi{pointer-events:none;transition:left 1.1s ease,top 1.1s ease;z-index:3}
-  .tour-marker{position:absolute;transform:translate(-50%,-50%);font-size:clamp(18px,3vw,26px);pointer-events:none;
-    animation:markbob 1s ease-in-out infinite;z-index:3}
-  @keyframes markbob{0%,100%{margin-top:0}50%{margin-top:-6px}}
-  @media (prefers-reduced-motion: reduce){.tour-lumi{transition:none}.tour-marker{animation:none}}
-  @media (max-width:520px){
-    .plaza-sprite-icon,.plaza-player-icon{font-size:18px}
-    .plaza-npc-icon{padding:3px}
-    .plaza-sprite-label{font-size:9px;padding:0 3px}
-    .plaza-player-icon svg{width:30px;height:30px}
-    .plaza-deco{font-size:16px}
-  }
-
-  /* ================= 이음 마을 스타일 (3D 컨셉 아티팩트 톤, 2026-09-29) ================= */
-  :root{
-    --bg:#EBD7AE; --surface:#FFF8EC; --surface-2:#F6EBD6; --ink:#2F3642; --ink-soft:#5A4A3C;
-    --green-dark:#2F6E69; --green:#2F6E69; --green-light:#CFE3DF; --blue:#3F8C86; --blue-soft:#E3F0EE;
-    --gold:#E9B44C; --gold-soft:#F7ECD3; --pink:#B5475B; --border:#E7D3B4; --shadow:rgba(122,75,46,.18);
-    color-scheme: light;
-  }
-  body{font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-tap-highlight-color:transparent}
-  .pixel-panel{border:0;border-radius:26px;box-shadow:0 8px 0 rgba(122,75,46,.2);background:var(--surface)}
-  .btn{border:0;border-radius:999px;box-shadow:0 4px 0 rgba(122,75,46,.18);min-height:44px;background:#F1E2C8;color:var(--ink);font-weight:700}
-  .btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(122,75,46,.18)}
-  .btn-primary{background:var(--ink);color:var(--surface)}
-  .btn-option{background:#2F6E69;color:#FFF8EC}
-  .btn-ghost{color:#2F6E69}
-  .login-card h1,.onboarding-card h1,.survey-q{font-family:'Gowun Batang','Gowun Dodum',serif;font-weight:700;color:var(--ink)}
-  .login-card h1{font-size:28px}
-  .survey-progress{border:0;background:#EFE1C6;height:8px;border-radius:999px}
-  .survey-progress>span{background:#2F6E69}
-  .choice,.vibe{border:0;border-radius:18px;background:#F6EBD6;box-shadow:0 4px 0 rgba(122,75,46,.14);min-height:48px}
-  .choice.on,.vibe.on{background:#2F6E69;color:#FFF8EC}
-  .chip{border:0;background:#F1E2C8;min-height:40px}
-  .chip[aria-pressed="true"]{background:#2F6E69;color:#FFF8EC}
-  .swatch{border:3px solid #FFF8EC;box-shadow:0 0 0 2px #E7D3B4}
-  .swatch.on{outline:3px solid #2F3642}
-  .survey-input{border:2px solid #E7D3B4;border-radius:14px;background:#FFFDF7}
-  .char-preview{background:linear-gradient(#F7E4C0,#F1D6A8);border:0;border-radius:22px;min-height:230px;align-items:center}
-  .char-preview canvas{display:block}
-  .part-row button{border:0;border-radius:12px;background:#F1E2C8}
-  .dot{border:2px solid #FFF8EC;box-shadow:0 0 0 1px #C9B28E}
-  .topbar{border-bottom:2px solid var(--border)}
-  .mission-item,.club-item{border-radius:22px}
-  #banner{border:0;border-radius:18px;background:#FFF8EC;box-shadow:0 5px 0 rgba(122,75,46,.14)}
-
-  /* 대화창 — 화면 아래 말풍선(아티팩트 .dialog) */
-  .modal-backdrop{background:linear-gradient(rgba(47,54,66,0) 45%,rgba(47,54,66,.28));align-items:flex-end;
-    padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px))}
-  .npc-modal{max-width:560px;border:0 !important;border-radius:26px;padding:20px 22px 18px;box-shadow:0 8px 0 rgba(122,75,46,.22)}
-  .npc-modal-emoji{border:0;font-size:18px}
-  .npc-modal-text{background:transparent;padding:0;font-size:18px;line-height:1.6;margin:4px 0 10px;text-wrap:pretty}
-  .npc-modal-options{flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:8px}
-  .npc-modal-options .btn{width:auto;margin-top:0;box-shadow:none}
-  .npc-modal-options .btn-option{background:#F1E2C8;color:var(--ink)}
-  .npc-modal-options .btn-option:last-child,.npc-modal-options .btn-primary{background:var(--ink);color:#FFF8EC}
-  .crisis-box{border-radius:16px}
-
-  /* 3D 무대와 HUD */
-  #stage{position:fixed;inset:0;touch-action:none;z-index:0}
+  :root{ --panel:rgba(255,248,236,.94); --ink:#2F3642; --soft:#5A4A3C; --accent:#2F6E69; }
+  html,body{margin:0;height:100%;background:#EBD7AE;font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--ink);overflow:hidden}
+  #stage{position:fixed;inset:0;touch-action:none}
   #stage canvas{display:block;width:100%;height:100%;outline:none}
-  body.in-world{overflow:hidden;background:#EBD7AE}
-  body.in-world #banner, body.in-world #app{display:none}
-  body:not(.in-world) .world-ui{display:none !important}
-  .hud-title{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));left:16px;z-index:2;background:rgba(255,248,236,.94);border-radius:18px;
-    padding:11px 18px 12px;box-shadow:0 5px 0 rgba(122,75,46,.16);pointer-events:none}
-  .hud-title h1{margin:0;font-family:'Gowun Batang',serif;font-weight:700;font-size:25px;line-height:1.2}
-  .hud-title p{margin:2px 0 0;font-size:13px;color:#5A4A3C}
-  .hud-right{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:16px;z-index:3;display:flex;gap:8px}
-  .hud-right button,.hud-room button{border:0;border-radius:999px;background:rgba(255,248,236,.94);color:#2F3642;font:inherit;font-size:14px;
-    padding:10px 16px;min-height:44px;cursor:pointer;box-shadow:0 4px 0 rgba(122,75,46,.16)}
-  .hud-room{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(112px + env(safe-area-inset-bottom,0px));z-index:3;display:flex;gap:8px;
-    flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 32px)}
-  .hud-room #rm-out{background:#2F6E69;color:#FFF8EC;box-shadow:0 4px 0 #1F4F4B}
-  .hud-help{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2;background:rgba(255,248,236,.9);
-    border-radius:999px;padding:9px 18px;font-size:14px;color:#5A4A3C;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;pointer-events:none}
-  .hud-help b{color:#2F3642;font-weight:400;background:#F1E2C8;border-radius:6px;padding:1px 6px;margin:0 2px}
-  #hud-act{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:3;border:0;border-radius:999px;
-    background:#2F6E69;color:#FFF8EC;font:inherit;font-size:16px;padding:12px 22px;min-height:44px;cursor:pointer;box-shadow:0 5px 0 #1F4F4B;white-space:nowrap}
-  #hud-act:focus-visible,.hud-right button:focus-visible,.hud-room button:focus-visible,.world-dialog button:focus-visible{outline:3px solid #F2C14E;outline-offset:3px}
-  .world-dialog{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:4;width:min(560px,calc(100vw - 32px));
-    box-sizing:border-box;background:#FFF8EC;border-radius:26px;padding:18px 22px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 0 rgba(122,75,46,.22)}
-  .world-dialog .who{align-self:flex-start;color:#FFF8EC;border-radius:999px;padding:4px 14px;font-size:14px;letter-spacing:.04em}
-  .world-dialog .line{margin:0;font-size:17px;line-height:1.6;text-wrap:pretty}
-  .world-dialog .row{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-  .world-dialog button{border:0;border-radius:999px;font:inherit;font-size:15px;padding:10px 18px;min-height:44px;cursor:pointer;background:#F1E2C8;color:#2F3642}
-  .world-dialog button.primary{background:#2F3642;color:#FFF8EC}
-  .tour-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .tour-count{font-size:13px;color:#5A4A3C}
-  .tour-dots{display:flex;gap:6px}
-  .tour-dot{width:10px;height:10px;border-radius:50%;background:#EFE1C6}
-  .tour-dot.done{background:#2F6E69}
-  .tour-dot.now{background:#E9B44C}
-  #fade{position:fixed;inset:0;background:#FFF8EC;opacity:0;pointer-events:none;transition:opacity .4s ease;z-index:20}
-  #fade.on{opacity:1}
-  .sw-toast{background:#2F3642;color:#FFF8EC;border-radius:999px;z-index:30;bottom:calc(128px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 32px);text-align:center}
-  @media (max-width:560px){ .hud-title h1{font-size:20px} .hud-title{padding:9px 14px} .hud-help{font-size:12.5px;padding:8px 14px}
-    .hud-right button{padding:8px 12px;font-size:13px} }
-  @media (prefers-reduced-motion: reduce){ #fade{transition:none} }
-  [hidden]{display:none !important}
+  .kit-title{position:fixed;top:16px;left:16px;background:var(--panel);border-radius:18px;padding:10px 16px;box-shadow:0 5px 0 rgba(122,75,46,.16)}
+  .kit-title h1{margin:0;font-family:'Gowun Batang',serif;font-size:20px}
+  .kit-title input{margin-top:6px;border:2px solid #E7D3B4;border-radius:10px;padding:6px 10px;font:inherit;font-size:14px;width:180px;background:#FFFDF7}
+  .kit-bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .kit-bar button{border:0;border-radius:999px;background:var(--panel);color:var(--ink);font:inherit;font-size:14px;padding:9px 14px;min-height:40px;cursor:pointer;box-shadow:0 4px 0 rgba(122,75,46,.16)}
+  .kit-bar button.on{background:var(--accent);color:#FFF8EC}
+  .kit-bar button.shot{background:var(--ink);color:#FFF8EC}
+  .kit-help{position:fixed;top:16px;right:16px;background:var(--panel);border-radius:14px;padding:8px 12px;font-size:12.5px;color:var(--soft);max-width:220px}
+  .kit-err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px}
+  @media (max-width:560px){ .kit-help{display:none} .kit-bar button{font-size:13px;padding:8px 11px} }
 </style>
-
 </head>
 <body>
-<div id="banner">
-  🌱 <b>브리핑용 라이브 데모</b> — 실제 Supabase 프로젝트에 연결되어 있어요. 이 화면에서 만든 프로필·미션 참여·동아리는
-  실제 DB에 저장됩니다. 카카오 로그인은 정식 배포 주소에서만 동작해서, 여기서는 게스트로 체험할 수 있어요.
-</div>
-<div id="app"></div>
-<div id="stage" class="world-ui" aria-label="이음 마을 3D 장면. 광장의 분수를 가운데 두고 지원센터, 미션방, 동아리센터, 게임방, 카페, 공원, 내 집으로 걸어갈 수 있다."></div>
-<div class="world-ui hud-title"><h1>이음 마을</h1><p id="hud-sub">광장</p></div>
-<div class="world-ui hud-right"><button type="button" id="hud-view" hidden title="시점을 처음 각도로 되돌려요">↺ 시점</button><button type="button" id="hud-gfx">화질: 높음</button><button type="button" id="hud-logout">로그아웃</button></div>
-<div class="world-ui hud-room" id="hud-room" hidden>
-  <button type="button" id="rm-custom">🎨 캐릭터 꾸미기</button>
-  <button type="button" id="rm-replay">🌱 루미의 마을 소개 다시 보기</button>
-  <button type="button" id="rm-out">🚪 밖으로 나가기</button>
-</div>
-<button type="button" class="world-ui" id="hud-act" hidden>대화하기</button>
-<div class="world-ui hud-help" id="hud-help"></div>
-<div class="world-ui world-dialog" id="tour-panel" role="region" aria-live="polite" aria-label="루미와 마을 투어" hidden></div>
-<div id="fade" aria-hidden="true"></div>
+<div id="stage"></div>
+<div class="kit-title"><h1>이음 마을 · 컨셉 키트</h1><input id="cand" value="후보A" aria-label="후보 이름 (캡처 파일 이름에 들어감)"></div>
+<div class="kit-help">WASD로 걷기 · 끌어서 시점 돌리기 · 휠로 줌<br>아래 장면 버튼을 누르면 기본 각도로 돌아가요 — 비교 컷은 기본 각도로 찍어요</div>
+<div class="kit-bar" id="bar"></div>
+<div class="kit-err" id="err">이 기기에서는 3D(WebGL)를 쓸 수 없어요. 다른 브라우저나 PC에서 열어 주세요.</div>
 
 <script>
+/* ================================================================
+   🎨 THEME — 여기 값만 바꿔도 분위기가 크게 달라진다 (색은 '#RRGGBB')
+   ================================================================ */
+var THEME = {
+  sky:   { top: '#F1C38E', mid: '#F6DDB5', low: '#F4E6C8' },          // 하늘 그라데이션(위·가운데·지평선)
+  fog:   { color: '#EED3A8', near: 30, far: 95 },                      // 먼 곳이 흐려지는 색·거리
+  light: { sky: '#FFE6C4', ground: '#5E7E47', ambient: 0.45,           // 주변광(하늘색·땅 반사색·세기)
+           sun: '#FFD8A2', sunPower: 1.55 },                           // 햇빛 색·세기
+  ground:{ grass: '#7DAA4E', outer: '#6F9E47', plaza: '#E8D8B4',       // 잔디·마을 바깥·광장 바닥
+           path: '#DCC596', hillTop: '#93BC62' },                      // 흙길·언덕 윗면
+  grassBlade: { dark: '#44702F', light: '#98BF5E' },                   // 풀잎 뿌리·끝 색
+  COL: {                                                               // 건물 공통 재료색
+    wall: '#F6E9D3', wallWarm: '#F3DFC0', roof: '#D9774F', teal: '#3F8C86', tealDark: '#2F6E69',
+    wood: '#B7835A', woodDark: '#86603F', ink: '#2F3642', gold: '#E9B44C', glass: '#9CC7D0', lit: '#F7D48E', water: '#6FB9BF'
+  },
+  PAL: {                                                               // 식물 3단 색(어두움·중간·밝음)
+    tree: ['#4E7A3A', '#78A64E', '#B5D27A'], bush: ['#557F3D', '#83B055', '#BFD886'], tomato: ['#3F6B32', '#5E9443', '#94C164'],
+    carrot: ['#4C8A3C', '#77B04E', '#A9D173'], orange: ['#3F6D34', '#5E8F45', '#8FBC5E'], blossom: ['#D9877A', '#F0AE9A', '#FBD9C8']
+  }
+};
+
+/* 캡처용 기본 캐릭터 (프로토타입의 캐릭터 꾸미기 값과 같은 형식) */
+var DEMO_AVATAR = { hair: 'short', hairColor: '#3B2A20', outfit: '#E9B44C', acc: 'none', face: 'smile' };
+
 (function(){
-  "use strict";
-  var SUPABASE_URL = "https://czfsoopkxucizommvcnp.supabase.co";
-  var SUPABASE_ANON_KEY = "sb_publishable_D6jRdP6qgMc_lGoDiVLlsQ_pnoHND02";
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  var SGG_CODES = [
-    { code: "11680", label: "서울시 강남구" },
-    { code: "51110", label: "강원도 춘천시" }
-  ];
-  var AGE_GROUPS = ["10대","20대","30대","40대","50대","60대이상"];
-  var CATEGORIES = ["문화","공연","체육","스터디","기타"];
-
-  // ---------------------------------------------------------------
-  // NPC 대본 — 선택지마다 위험 신호(signal) 태그를 붙인다.
-  //   tags     : 위험 키워드. 고립 척도(UCLA 외로움 척도·De Jong Gierveld 척도·서울시 고립은둔청년
-  //              실태조사)의 문항 주제를 풀어 쓴 것 — 대화상대 부재, 소외감, 사회적 회피, 지속기간
-  //   severity : 0~1 심각도. 대화 1회의 심각도는 선택한 값 중 최댓값
-  //   crisis   : true면 즉시 위기 안내(109) + 지역 단위 위기 기록(user_id 없음)
-  // 대화 원문은 저장하지 않는다. 저장되는 것은 NPC 종류·태그 수·심각도뿐이다.
-  // ---------------------------------------------------------------
-  var NPCS = [
-    { id:"policy", name:"정책추천 NPC", emoji:"📋", color:"#5b8def",
-      tree:{
-        root:{text:"안녕하세요! 저는 정책추천 도우미예요. 무엇을 도와드릴까요?",
-          options:[{label:"청년 주거 지원 정책이 궁금해요", next:"housing"},
-                   {label:"생활비 지원 제도를 알고 싶어요", next:"living", signal:{tags:["생계부담"], severity:0.3}},
-                   {label:"그냥 둘러볼게요", next:"bye"}]},
-        housing:{text:"청년 월세 지원, 전세보증금 대출이자 지원 같은 제도가 있어요. 거주 지역 기준으로 더 정확히 안내해 드릴 수 있어요 (실제 서비스에서는 복지자원 DB와 연동됩니다).",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        living:{text:"청년 생활안정자금, 자립수당 등이 대표적이에요. 자격 요건은 소득·나이 기준에 따라 달라져요.",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        bye:{text:"언제든 다시 찾아주세요! 👋", options:[]}
-      }},
-    { id:"job", name:"취업상담 NPC", emoji:"💼", color:"#2fa86b",
-      tree:{
-        root:{text:"어떤 취업 준비 단계에 계신가요?",
-          options:[{label:"이제 막 구직을 시작했어요", next:"start"},
-                   {label:"면접까지 왔는데 막막해요", next:"interview"},
-                   {label:"오래 준비했는데 계속 떨어져서 지쳤어요", next:"longterm", signal:{tags:["장기구직","무기력"], severity:0.6}},
-                   {label:"그냥 둘러볼게요", next:"bye"}]},
-        start:{text:"좋아요, 시작이 반이에요. 관심 직무 분야를 정하고 청년 취업지원 프로그램부터 알아보는 걸 추천해요.",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        interview:{text:"면접 전 모의면접 프로그램이나 취업 상담 센터를 연계해 드릴 수 있어요 (실제 서비스에서는 복지자원 DB와 연동됩니다).",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        longterm:{text:"그동안 정말 애쓰셨어요. 결과가 안 나오면 나 자신을 탓하게 되기 쉬운데, 그건 노력이 부족해서가 아니에요. 구직을 오래 쉬었던 청년을 위한 도전지원사업도 있고, 마음이 많이 지쳤다면 루미와 먼저 이야기해 보는 것도 좋아요.",
-          options:[{label:"요즘은 아예 아무것도 하기 싫어요", next:"giveup", signal:{tags:["구직단념","사회적회피"], severity:0.7}},
-                   {label:"지원사업 알려주세요", next:"interview"},
-                   {label:"고마워요", next:"bye"}]},
-        giveup:{text:"그럴 수 있어요. 당분간 취업 이야기는 잠시 내려놓아도 괜찮아요. 카페 앞에 있는 루미가 이야기를 들어줄 거예요.",
-          options:[{label:"알겠어요", next:"bye"}]},
-        bye:{text:"응원할게요, 다음에 또 봐요! 💪", options:[]}
-      }},
-    // 루미 — 튜토리얼과 같은 친구 말투(반말)로 통일. 선택지는 유저가 루미에게 하는 말이라 역시 반말
-    { id:"psych", name:"루미", emoji:"🌱", color:"#B56CC0",
-      disclaimer:"AI 친구 · 사람 상담사는 아니야",
-      tree:{
-        root:{text:function(){ return "왔구나, " + ((state.profile && state.profile.nickname) || "친구") + "! 오늘 하루는 어땠어? 편하게 얘기해도 돼."; },
-          options:[{label:"요즘 좀 지치고 힘들어", next:"tired", signal:{tags:["무기력"], severity:0.4}},
-                   {label:"그냥저냥 괜찮아", next:"okay", signal:{tags:[], severity:0.1}},
-                   {label:"그냥 인사하러 왔어", next:"bye"}]},
-        tired:{text:"그랬구나, 많이 힘들었겠다. 요즘 사람들이랑은 어떻게 지내?",
-          options:[{label:"가끔 친구들 만나", next:"social", signal:{tags:[], severity:0.2}},
-                   {label:"속얘기할 사람이 별로 없어", next:"duration", signal:{tags:["대화상대없음","소외감"], severity:0.6}},
-                   {label:"다 귀찮고 혼자 있는 게 편해", next:"duration", signal:{tags:["사회적회피"], severity:0.6}}]},
-        social:{text:"다행이다! 가까운 사람들이랑 보내는 시간이 힘이 될 거야. 지친 마음은 가벼운 활동으로 풀어 보는 것도 좋아. 미션방에 작은 퀘스트들이 있어.",
-          options:[{label:"고마워", next:"bye"}]},
-        duration:{text:"그런 시간이 길어지면 마음이 더 무겁게 느껴질 수 있어. 이런 상태가 얼마나 됐어?",
-          options:[{label:"몇 주 됐어", next:"support", signal:{tags:["고립지속"], severity:0.7}},
-                   {label:"몇 달째야", next:"support", signal:{tags:["고립지속","장기고립"], severity:0.8}},
-                   {label:"사실 다 그만두고 싶을 때가 있어", next:"crisis", signal:{tags:["위기발화"], severity:1.0, crisis:true}}]},
-        support:{text:"말해 줘서 고마워. 혼자 견디지 않았으면 좋겠어. 동아리센터에는 부담 없이 들어갈 수 있는 모임이 있고, 원하면 전문 상담도 같이 찾아볼 수 있어.",
-          options:[{label:"상담은 어디서 받을 수 있어?", next:"counsel"},
-                   {label:"동아리센터 한번 가 볼게", next:"bye"},
-                   {label:"고마워", next:"bye"}]},
-        counsel:{text:"청년 마음건강 바우처로 전문 심리상담을 받을 수 있고, 가까운 정신건강복지센터(정신건강 상담전화 1577-0199)에서도 상담받을 수 있어. 신청 방법은 지원센터 쪽 창구에서 알려 줄 거야.",
-          options:[{label:"고마워", next:"bye"}]},
-        crisis:{crisis:true,
-          text:"그런 마음까지 들었구나. 지금 많이 힘든 상태일 수 있어. 혼자 견디지 말고 지금 바로 전문 상담사랑 이야기해 줘. 24시간 언제든 연결돼. 나도 여기 있을게.",
-          options:[{label:"알겠어", next:"bye"}]},
-        okay:{text:"다행이다! 마음이 무거운 날엔 언제든 카페로 놀러 와.",
-          options:[{label:"다른 얘기도 할래", next:"root"},{label:"고마워", next:"bye"}]},
-        bye:{text:"오늘도 수고 많았어. 또 보자! 🌱", options:[]}
-      }},
-    // 마을이장 — 튜토리얼 1단계 퀘스트 대상. 위험 신호를 수집하지 않는 대화라 npc_sessions에 남기지 않는다
-    { id:"chief", name:"마을이장", emoji:"🎩", color:"#b08a3e", noSignal:true,
-      tree:{
-        root:{text:function(){ return "어서 와요, " + ((state.profile && state.profile.nickname) || "주민") + "님! 이 마을 이장이에요. 우리 마을에 온 걸 환영해요."; },
-          options:[{label:"잘 부탁드려요!", next:"events"}]},
-        events:{text:"이번 주엔 공원에서 같이 걷기 모임이 있어요. 말 안 하고 걷기만 해도 되니까 부담 없이 와요. 궁금한 건 루미한테 물어봐도 되고요.",
-          options:[{label:"네, 가볼게요", next:"bye"},{label:"다음에 볼게요", next:"bye"}]},
-        bye:{text:"언제든 광장에 들러요. 🎩", options:[]}
-      }}
-  ];
-
-  var state = {
-    view: "loading",
-    session: null,
-    profile: null,
-    missions: [],
-    progress: {},
-    clubs: [],
-    myClubIds: {},
-    busy: null,
-    plazaPos: { px:49, py:58 },
-    activeNpc: null,
-    npcNode: "root",
-    npcSession: null,     // 진행 중인 대화의 신호 누적 {npc_type, started_at, tags, maxSev, turns, crisisReported}
-    feedback: null,       // 위험 탐지 에이전트가 내려준 내 코호트 개인화(cohort_feedback)
-    toast: null,
-    showClubForm: false,
-    ob: null,             // 튜토리얼 설문 진행 상태
-    room: null,           // 내 방 상태
-    tutorialCtx: null,    // 설문의 '요즘'·'해보고 싶은 것' — 루미 첫 인사용, 저장 안 함
-    firstQuestDone: false,
-    tour: null            // 루미와 함께 걷는 마을 투어 진행 상태
-  };
-
-  var app = document.getElementById("app");
-  function h(html){ var t = document.createElement("template"); t.innerHTML = html.trim(); return t.content; }
-  function el(sel, root){ return (root||app).querySelector(sel); }
-  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
-  }); }
-
   // ================================================================
   // 3D 마을 엔진 — 이음 마을 3D 컨셉(아티팩트)을 소셜 월드에 옮긴 것
   //   둥근 지평선·바람에 흔들리는 풀·틸트시프트 후처리는 원본 그대로.
@@ -493,7 +93,7 @@
     const isSmall = Math.min(window.innerWidth, window.innerHeight) < 600;
     THREE.ColorManagement.legacyMode = false;
     const stage = document.getElementById('stage');
-    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
     const isGL2 = renderer.capabilities.isWebGL2;
     let DPR = 1;
     renderer.shadowMap.enabled = true;
@@ -502,7 +102,7 @@
     renderer.domElement.setAttribute('tabindex', '0');
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(new THREE.Color('#EED3A8'), 30, 95);
+    scene.fog = new THREE.Fog(new THREE.Color(THEME.fog.color), THEME.fog.near, THEME.fog.far);
     const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 400);
 
     // ---------------- 공통: 둥근 지평선 + 바람 (원본 그대로)
@@ -583,10 +183,7 @@
       const t = new THREE.CanvasTexture(c); if (srgb) t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t;
     }
     const FONT = "'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif";
-    const COL = {
-      wall: '#F6E9D3', wallWarm: '#F3DFC0', roof: '#D9774F', teal: '#3F8C86', tealDark: '#2F6E69',
-      wood: '#B7835A', woodDark: '#86603F', ink: '#2F3642', gold: '#E9B44C', glass: '#9CC7D0', lit: '#F7D48E', water: '#6FB9BF'
-    };
+    const COL = THEME.COL;
 
     // ---------------- 잎 카드
     const leafTex = canvasTex(128, 128, (g, w, h) => {
@@ -635,10 +232,7 @@
       m.userData.depth = foliageDepth;
       return m;
     }
-    const PAL = {
-      tree: ['#4E7A3A', '#78A64E', '#B5D27A'], bush: ['#557F3D', '#83B055', '#BFD886'], tomato: ['#3F6B32', '#5E9443', '#94C164'],
-      carrot: ['#4C8A3C', '#77B04E', '#A9D173'], orange: ['#3F6D34', '#5E8F45', '#8FBC5E'], blossom: ['#D9877A', '#F0AE9A', '#FBD9C8']
-    };
+    const PAL = THEME.PAL;
 
     // ---------------- 접지 그림자
     const blobTex = canvasTex(128, 128, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(30,40,20,1)'); gr.addColorStop(0.55, 'rgba(30,40,20,.45)'); gr.addColorStop(1, 'rgba(30,40,20,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, false);
@@ -666,6 +260,7 @@
       s.scale.set(2.1, 0.82, 1); s.renderOrder = 10; return s;
     }
 
+    // 🎨 [꾸미기 구역] 캐릭터 비율·옷·머리 모양은 자유. 함수 이름과 인자는 유지
     // ---------------- 사람 (큰 머리 2등신) — 원본 + 헤어·표정·소품 확장
     const SKIN = ['#F6D7BD', '#EDC3A0', '#DDAA85', '#F8E0CC'];
     function person(o, parent = scene) {
@@ -788,13 +383,13 @@
       // 하늘·빛
       sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), new THREE.ShaderMaterial({
         side: THREE.BackSide, depthWrite: false, fog: false,
-        uniforms: { top: { value: new THREE.Color('#F1C38E') }, mid: { value: new THREE.Color('#F6DDB5') }, low: { value: new THREE.Color('#F4E6C8') } },
+        uniforms: { top: { value: new THREE.Color(THEME.sky.top) }, mid: { value: new THREE.Color(THEME.sky.mid) }, low: { value: new THREE.Color(THEME.sky.low) } },
         vertexShader: 'varying vec3 vp; void main(){ vp = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
         fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0.1 ? mix(mid, top, smoothstep(0.1, 0.6, h)) : mix(low, mid, smoothstep(-0.1, 0.1, h)); gl_FragColor = vec4(c, 1.0); }'
       }));
       scene.add(sky);
-      scene.add(new THREE.HemisphereLight('#FFE6C4', '#5E7E47', 0.45));
-      sun = new THREE.DirectionalLight('#FFD8A2', 1.55);
+      scene.add(new THREE.HemisphereLight(THEME.light.sky, THEME.light.ground, THEME.light.ambient));
+      sun = new THREE.DirectionalLight(THEME.light.sun, THEME.light.sunPower);
       sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 3.2;
       const SH = 34; Object.assign(sun.shadow.camera, { left: -SH, right: SH, top: SH, bottom: -SH, near: 1, far: 120 });
       sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.035;
@@ -816,7 +411,7 @@
       function onPath(x, z, pad = 0) { for (const p of PATHS) for (let i = 0; i < p.length - 1; i++) if (segDist(x, z, p[i][0], p[i][1], p[i + 1][0], p[i + 1][1]) < PATH_W / 2 + pad) return true; return false; }
       function inTill(x, z, pad = 0) { return TILL.some(t => x > t.x0 - pad && x < t.x1 + pad && z > t.z0 - pad && z < t.z1 + pad); }
       const groundTex = canvasTex(GPX, GPX, (g, w, h) => {
-        g.fillStyle = '#7DAA4E'; g.fillRect(0, 0, w, h);
+        g.fillStyle = THEME.ground.grass; g.fillRect(0, 0, w, h);
         for (let i = 0; i < 900; i++) {
           const x = rnd() * w, y = rnd() * h, r = (20 + rnd() * 90) * S / 20.48;
           const gr = g.createRadialGradient(x, y, 0, x, y, r);
@@ -825,11 +420,11 @@
           g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
         }
         const [pcx, pcy] = toPx(0, 0);
-        g.save(); g.filter = 'blur(3px)'; g.fillStyle = '#E8D8B4'; g.beginPath(); g.arc(pcx, pcy, 9.4 * S, 0, 7); g.fill(); g.restore();
+        g.save(); g.filter = 'blur(3px)'; g.fillStyle = THEME.ground.plaza; g.beginPath(); g.arc(pcx, pcy, 9.4 * S, 0, 7); g.fill(); g.restore();
         g.strokeStyle = 'rgba(190,168,128,.55)'; g.lineWidth = 5 * S / 20.48;
         for (const r of [3.8, 6.2, 8.6]) { g.beginPath(); g.arc(pcx, pcy, r * S, 0, 7); g.stroke(); }
         for (let a = 0; a < 24; a++) { const t = a / 24 * 6.283; g.beginPath(); g.moveTo(pcx + Math.cos(t) * 3.8 * S, pcy + Math.sin(t) * 3.8 * S); g.lineTo(pcx + Math.cos(t) * 9 * S, pcy + Math.sin(t) * 9 * S); g.stroke(); }
-        for (const [lw, col, bl] of [[PATH_W * S * 1.25, 'rgba(196,170,112,.55)', 6], [PATH_W * S, '#DCC596', 3], [PATH_W * S * 0.55, 'rgba(236,218,176,.8)', 5]]) {
+        for (const [lw, col, bl] of [[PATH_W * S * 1.25, 'rgba(196,170,112,.55)', 6], [PATH_W * S, THEME.ground.path, 3], [PATH_W * S * 0.55, 'rgba(236,218,176,.8)', 5]]) {
           g.save(); g.filter = `blur(${bl}px)`; g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round'; g.lineJoin = 'round';
           for (const p of PATHS) { g.beginPath(); p.forEach(([x, z], i) => { const [px, py] = toPx(x, z); i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke(); }
           g.restore();
@@ -848,7 +443,7 @@
       });
       {
         const outer = new THREE.PlaneGeometry(260, 260, 60, 60); outer.rotateX(-Math.PI / 2);
-        mesh(outer, M('#6F9E47'), 0, -0.02, 0).receiveShadow = true;
+        mesh(outer, M(THEME.ground.outer), 0, -0.02, 0).receiveShadow = true;
         const gg = new THREE.PlaneGeometry(2 * G, 2 * G, 160, 160); gg.rotateX(-Math.PI / 2);
         mesh(gg, M('#FFFFFF', { map: groundTex, r: 0.95 }), 0, 0, 0).receiveShadow = true;
       }
@@ -856,7 +451,7 @@
       {
         const bg = new THREE.BufferGeometry();
         const bp = [-0.05, 0, 0, 0.05, 0, 0, -0.035, 0.22, 0.02, 0.035, 0.22, 0.02, -0.018, 0.4, 0.06, 0.018, 0.4, 0.06, 0, 0.55, 0.12];
-        const bc = [], dark = new THREE.Color('#44702F'), lite = new THREE.Color('#98BF5E'), tc = new THREE.Color();
+        const bc = [], dark = new THREE.Color(THEME.grassBlade.dark), lite = new THREE.Color(THEME.grassBlade.light), tc = new THREE.Color();
         for (let i = 0; i < 7; i++) { tc.copy(dark).lerp(lite, bp[i * 3 + 1] / 0.55); bc.push(tc.r, tc.g, tc.b); }
         bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3));
         bg.setAttribute('color', new THREE.Float32BufferAttribute(bc, 3));
@@ -892,11 +487,12 @@
           r.scale.set(1 + (i % 3) * 0.3, 0.6, 0.9); r.rotation.y = i; shade(r);
         }
         const g = new THREE.BoxGeometry(200, 5, 40, 100, 3, 20);
-        const col = [], p = g.attributes.position, nn = g.attributes.normal, top = new THREE.Color('#93BC62'), side = new THREE.Color('#B8845A'), side2 = new THREE.Color('#9C6D4A');
+        const col = [], p = g.attributes.position, nn = g.attributes.normal, top = new THREE.Color(THEME.ground.hillTop), side = new THREE.Color('#B8845A'), side2 = new THREE.Color('#9C6D4A');
         for (let i = 0; i < p.count; i++) { const c = nn.getY(i) > 0.5 ? top : (Math.floor((p.getY(i) + 2.5) * 1.3) % 2 ? side : side2); col.push(c.r, c.g, c.b); }
         g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
         const cliff = mesh(g, M('#FFFFFF', { vc: true }), 0, 2.3, RIVER_Z - 24.5); cliff.receiveShadow = true; cliff.castShadow = true; cliff.customDepthMaterial = depthMat;
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 나무·덤불·꽃
       function tree(x, z, kind = 'round', s = 1, y = 0) {
         const g = new THREE.Group();
@@ -943,6 +539,7 @@
         });
         for (const im of [head, stem]) { im.castShadow = true; im.receiveShadow = true; im.customDepthMaterial = depthMat; scene.add(im); }
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 텃밭
       {
         function cabbage(x, z, s = 1) {
@@ -985,6 +582,7 @@
         for (const y of [0.55, 0.95]) { mesh(rbox(10.8, 0.14, 0.14, 0.05), M('#B98A60'), 8.9, y, 8.2, fence); mesh(rbox(0.14, 0.14, 7.2, 0.05), M('#B98A60'), 14.2, y, 11.75, fence); }
         scene.add(shade(fence)); colliders.push({ r: 0.3, seg: [3.6, 8.2, 14.2, 8.2] }, { r: 0.3, seg: [14.2, 8.2, 14.2, 15.3] });
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 지원센터 (원본 주민센터 건물)
       {
         const x = 0, z = -17, g = new THREE.Group();
@@ -1005,6 +603,7 @@
         signpost(-2.6, -11.4, '지원센터', 0.25);
         places.support = { x: 0, z: -10.6 };
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 미션방
       {
         const x = -17, z = -1, g = new THREE.Group();
@@ -1032,6 +631,7 @@
         signpost(-11.2, -3.2, '미션방', Math.PI / 2 - 0.3);
         places.mission = frontOf(g, 1.1, 4.2);
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 동아리센터 (원본 동아리방 건물)
       {
         const x = 15, z = -11, g = new THREE.Group();
@@ -1049,6 +649,7 @@
         signpost(10.2, -6.4, '동아리센터', -0.9);
         places.club = frontOf(g, 1.9, 4.0);
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 게임방 (원본 미니게임 천막)
       {
         const x = 17.5, z = -1.5, g = new THREE.Group();
@@ -1069,6 +670,7 @@
         signpost(12.6, 1.4, '게임방', -1.2);
         places.game = { x: 12.2, z: -0.4 };
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 카페 (새로 지음 — 광장 북서쪽. 카메라 쪽(남쪽)에 두면 지붕이 캐릭터를 가린다)
       {
         const x = -11.8, z = -10.6, g = new THREE.Group();
@@ -1091,6 +693,7 @@
         places.cafe = frontOf(g, 1.3, 3.8);
         places.lumi = frontOf(g, -1.2, 5.6);
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 공원 (연못·벤치)
       {
         const x = -14, z = 12;
@@ -1118,6 +721,7 @@
         g.position.set(x, 0, z); scene.add(shade(g)); colliders.push({ x, z, r: 0.35 }); blob(x, z, 0.9, 0.3);
       }
       [[-7.8, -7.8], [7.8, -7.8], [-7.8, 7.8], [7.8, 7.8]].forEach(([x, z]) => lamp(x, z));
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 분수 (광장)
       {
         const g = new THREE.Group();
@@ -1131,6 +735,7 @@
         scene.add(shade(g)); colliders.push({ x: 0, z: 0, r: 3.6 }); blob(0, 0, 8.6, 0.28);
         places.plaza = { x: 1.2, z: 5.4 };
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 내 집 (마을 동쪽) — 들어가면 내 방
       {
         const x = 22, z = 12, g = new THREE.Group();
@@ -1146,6 +751,7 @@
         const sp = frontOf(g, 2.9, 3.4); const s = signpost(sp.x, sp.z, '내 집', g.rotation.y); homeSign = s;
         places.home = frontOf(g, 1.0, 3.7);
       }
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 내 방 (실내)
       {
         const g = new THREE.Group(); g.position.set(RX, 0, RZ); scene.add(g);
@@ -1221,6 +827,7 @@
         c.fillStyle = '#3F8C86'; for (let i = -1; i <= 1; i++) { c.beginPath(); c.arc(w / 2 + i * 44, (h - 58) / 2 + 8, 13, 0, 7); c.fill(); }
       }), transparent: true, depthWrite: false }));
       bubble.scale.set(1.3, 0.98, 1); scene.add(bubble);
+      // 🎨 [꾸미기 구역] 모양·색·장식은 자유. 위치(x,z)·크기·문 위치·colliders/places 줄은 유지
       // 이웃 주민·강아지·연기·나비·꽃가루·구름
       const WAYS = [[-6, 8], [6, 6.5], [-8.5, -1], [8.5, 0], [-2, -9.5], [3, -9.5], [-11, 5], [10.5, -4], [1.5, 13], [-1, 17.5], [6, 18.3], [16, 17.5], [-10, -8], [12, -3.5], [-13, 2], [0, -14]];
       villagers = [
@@ -1751,1050 +1358,49 @@
     return api;
   }
 
-  // ---------------- auth / data ----------------
-  function refreshProfile(){
-    if(!state.session) { state.profile = null; return Promise.resolve(); }
-    return sb.from("profiles").select("*").eq("id", state.session.user.id).maybeSingle()
-      .then(function(res){ state.profile = res.data || null; });
-  }
 
-  // ⑩ 환류 — 에이전트가 쓴 "내 코호트" 개인화 지시를 읽는다. RLS가 본인 코호트 행만 돌려준다.
-  // 위험 등급은 이 표에 없다(시민 화면에 등급이 노출될 경로 자체를 두지 않음).
-  function loadFeedback(){
-    if(!state.session || !state.profile) { state.feedback = null; return Promise.resolve(); }
-    return sb.from("cohort_feedback").select("npc_emphasis,priority_missions,updated_at").maybeSingle()
-      .then(function(res){ state.feedback = (res && !res.error) ? res.data : null; })
-      .catch(function(){ state.feedback = null; });
-  }
 
-  function routeAfterAuth(){
-    if(!state.session){ state.view = "login"; render(); return; }
-    refreshProfile().then(loadFeedback).then(function(){
-      if(state.profile && state.profile.onboarded_at){ state.view = "plaza"; render(); }
-      else startSurvey();
-    });
-  }
-
-  sb.auth.getSession().then(function(res){
-    state.session = res.data.session;
-    routeAfterAuth();
-  });
-  sb.auth.onAuthStateChange(function(_e, session){
-    state.session = session;
-  });
-
-  function signInGuest(btn){
-    btn.disabled = true; btn.textContent = "접속 중…";
-    sb.auth.signInAnonymously().then(function(res){
-      if(res.error){ alert("게스트 로그인에 실패했습니다: " + res.error.message); btn.disabled = false; return; }
-      state.session = res.data.session;
-      routeAfterAuth();
-    });
-  }
-
-  // ---------------- render dispatch ----------------
-  function render(){
-    var tut = document.getElementById("tut-backdrop"); if(tut && state.view !== "room") tut.remove();
-    if(state.view === "plaza") return renderPlaza();
-    if(state.view === "room") return renderRoom();
-    hideWorld();
-    if(state.view === "loading") return renderLoading();
-    if(state.view === "survey") return renderSurvey();
-    if(state.view === "character") return renderCharacter();
-    if(state.view === "login") return renderLogin();
-    if(state.view === "mission") return renderMissionRoom();
-    if(state.view === "club") return renderClubRoom();
-  }
-
-  function renderLoading(){
-    app.innerHTML = "";
-    app.appendChild(h('<div class="center-screen"><p>불러오는 중…</p></div>'));
-  }
-
-  // ---------------- login ----------------
-  function renderLogin(){
-    app.innerHTML = "";
-    app.appendChild(h(
-      '<div class="center-screen">' +
-        '<div class="login-card pixel-panel">' +
-          '<div class="login-logo">🌱</div>' +
-          '<h1>소셜 월드</h1>' +
-          '<p class="login-sub">함께 있으면, 덜 외로워요.</p>' +
-          '<button class="btn btn-primary" id="btn-guest">게스트로 체험하기</button>' +
-          '<button class="btn btn-kakao" id="btn-kakao" disabled>카카오로 시작하기 (정식 배포에서 지원)</button>' +
-          '<p class="terms">소셜 월드는 닉네임, 거주 지역·나이대·성별, 캐릭터·관심사만 저장하며, 대화 원문은 저장하지 않습니다.</p>' +
-          '<p class="demo-note">이 페이지는 브리핑용 라이브 데모예요. 실제 socialworld Supabase 프로젝트에 연결되어 있어서, 게스트로 들어가도 온보딩·미션·동아리·NPC 대화 신호가 실제 데이터베이스에 기록됩니다. 대화 원문은 저장하지 않고, 선택지에 붙은 위험 신호 수치만 남습니다.</p>' +
-        '</div>' +
-      '</div>'
-    ));
-    el("#btn-guest").addEventListener("click", function(){ signInGuest(this); });
-  }
-
-  // ================================================================
-  // 튜토리얼 (설계 문서 13절, 2026-09-29)
-  //   ① 사전 설문 8문항 → ② 캐릭터 자동 생성(+직접 꾸미기) → ③ 내 방에서 깨어남 → ④ 루미 소개(대본형)
-  //   "요즘 하루는 어때요?" 답은 루미 첫 인사 말투에만 쓰고 저장하지 않는다.
-  // ================================================================
-  var REGION_CHOICES = [{v:"11680",label:"서울시 강남구"},{v:"51110",label:"강원도 춘천시"},{v:"OTHER",label:"다른 지역"}];
-  var AGE_CHOICES = [{v:"20대",label:"20대"},{v:"30대",label:"30대"},{v:"기타",label:"그 외"}];
-  var GENDER_CHOICES = [{v:"F",label:"여성"},{v:"M",label:"남성"}];
-  var VIBES = [{v:"cozy",label:"아늑한",emoji:"🧣"},{v:"lively",label:"활발한",emoji:"⚡"},
-               {v:"calm",label:"차분한",emoji:"🍃"},{v:"quirky",label:"엉뚱한",emoji:"🌀"}];
-  var COLORS = [{v:"#e76f51",label:"코랄"},{v:"#f4a261",label:"오렌지"},{v:"#e9c46a",label:"노랑"},
-                {v:"#4caf6e",label:"초록"},{v:"#5b8def",label:"파랑"},{v:"#9b72cf",label:"보라"}];
-  var INTERESTS = ["운동","게임","음악","독서","요리","취업","공부","휴식"];
-  var GOALS = [{v:"rest",label:"그냥 쉬고 싶어요"},{v:"talk",label:"이야기 나누고 싶어요"},
-               {v:"meet",label:"새로운 사람을 만나고 싶어요"},{v:"info",label:"필요한 정보를 찾고 싶어요"}];
-  var MOODS = [{v:"relaxed",label:"여유로워요"},{v:"busy",label:"바빠요"},{v:"tired",label:"좀 지쳤어요"},{v:"unsure",label:"잘 모르겠어요"}];
-
-  var SURVEY = [
-    {key:"nickname", type:"text", required:true, q:"소셜 월드에서 쓸 이름을 정해 주세요",
-     sub:"다른 주민에게 보이는 이름이에요. 실명이 아니어도 괜찮아요."},
-    {key:"sgg", type:"single", required:true, choices:REGION_CHOICES, q:"어느 지역에 살고 있나요?",
-     sub:"비슷한 이웃끼리 묶은 통계에만 쓰여요. 다른 지역에 살아도 이용할 수 있어요(통계에는 들어가지 않아요)."},
-    {key:"age", type:"single", required:true, choices:AGE_CHOICES, q:"나이대를 알려 주세요",
-     sub:"또래에게 맞는 활동을 추천하는 데 써요."},
-    {key:"gender", type:"single", required:true, choices:GENDER_CHOICES, q:"성별을 알려 주세요",
-     sub:"또래·지역별 통계를 정확하게 내는 데 필요해요. 다른 주민에게는 보이지 않아요."},
-    {key:"look", type:"look", required:true, q:"어떤 분위기가 좋아요?",
-     sub:"고른 분위기와 색으로 첫 캐릭터를 만들어 드려요. 마음에 안 들면 직접 바꿀 수 있어요."},
-    {key:"interests", type:"multi", max:3, required:false, choices:INTERESTS, q:"요즘 관심 있는 걸 골라 주세요",
-     sub:"최대 3개까지 고를 수 있어요. 어울리는 모임과 활동을 추천할 때 써요."},
-    {key:"goal", type:"single", required:false, choices:GOALS, q:"소셜 월드에서 뭘 해보고 싶어요?",
-     sub:"첫 안내를 여기에 맞춰 드려요."},
-    {key:"mood", type:"single", required:false, choices:MOODS, q:"요즘 하루는 어때요?",
-     sub:"첫 인사 말투만 맞출게요. 이 답은 저장하지 않아요."}
+  // ---------------- 키트 전용: 비교 컷(고정 뷰)과 캡처
+  var VIEWS = [
+    { id:'plaza',   label:'광장 전경' },
+    { id:'support', label:'지원센터' },
+    { id:'mission', label:'미션방' },
+    { id:'club',    label:'동아리센터' },
+    { id:'game',    label:'게임방' },
+    { id:'cafe',    label:'카페·루미' },
+    { id:'park',    label:'공원' },
+    { id:'home',    label:'내 집' },
+    { id:'room',    label:'내 방(실내)' }
   ];
-
-  // ---------------- 캐릭터 (SVG 조합) ----------------
-  var AV_OPTS = {
-    hair:[{v:"short",label:"짧은 머리"},{v:"long",label:"긴 머리"},{v:"curly",label:"곱슬머리"},{v:"bun",label:"묶은 머리"},{v:"spiky",label:"삐죽 머리"}],
-    hairColor:[{v:"#2b2b2b",label:"검정"},{v:"#6b4226",label:"갈색"},{v:"#c28f4b",label:"밝은 갈색"},{v:"#e9c46a",label:"금발"},{v:"#b5475b",label:"와인"},{v:"#5b8def",label:"파랑"}],
-    skin:[{v:"#f6d7b8",label:"밝은 톤"},{v:"#e8b98f",label:"중간 톤"},{v:"#c98e62",label:"구릿빛"},{v:"#8d5a3b",label:"짙은 톤"}],
-    outfit:COLORS,
-    acc:[{v:"none",label:"없음"},{v:"glasses",label:"안경"},{v:"cap",label:"모자"},{v:"beanie",label:"비니"},{v:"headphones",label:"헤드폰"},{v:"flower",label:"꽃핀"}],
-    face:[{v:"smile",label:"미소"},{v:"calm",label:"차분"},{v:"grin",label:"활짝"},{v:"wink",label:"윙크"}]
-  };
-  var PART_ORDER = ["hair","hairColor","skin","outfit","acc","face"];
-  var PART_LABELS = {hair:"머리 모양",hairColor:"머리색",skin:"피부색",outfit:"옷 색",acc:"소품",face:"표정"};
-  // 분위기 → 1차 캐릭터. 설문의 "요즘" 답은 외모에 쓰지 않는다(상태를 겉모습으로 드러내지 않기)
-  var VIBE_PRESET = {
-    cozy:  {hair:"long",  hairColor:"#6b4226", acc:"beanie",     face:"smile"},
-    lively:{hair:"spiky", hairColor:"#2b2b2b", acc:"cap",        face:"grin"},
-    calm:  {hair:"short", hairColor:"#2b2b2b", acc:"glasses",    face:"calm"},
-    quirky:{hair:"curly", hairColor:"#e9c46a", acc:"headphones", face:"wink"}
-  };
-
-  function presetAvatar(vibe, color, seed){
-    var p = VIBE_PRESET[vibe] || VIBE_PRESET.calm;
-    var hsh = 0; seed = seed || "";
-    for(var i=0;i<seed.length;i++) hsh = (hsh*31 + seed.charCodeAt(i)) >>> 0;
-    return { vibe:vibe, color:color, hair:p.hair, hairColor:p.hairColor,
-             skin:AV_OPTS.skin[hsh % AV_OPTS.skin.length].v, outfit:color || "#4caf6e", acc:p.acc, face:p.face };
+  var E = getEngine();
+  if(!E){ document.getElementById('err').style.display = 'flex'; return; }
+  var bar = document.getElementById('bar'), cur = 'plaza';
+  function go(id){
+    cur = id;
+    var P = E.places();
+    if(id === 'room') E.enter('room', { spawnPlace:'roomMid', avatar: DEMO_AVATAR, facing: 0, resetView: true });
+    else if(id === 'cafe') E.enter('village', { spawn: { x: P.lumi.x + 1.4, z: P.lumi.z + 1.2 }, avatar: DEMO_AVATAR, facing: 0, resetView: true });
+    else E.enter('village', { spawnPlace: id, avatar: DEMO_AVATAR, facing: 0, resetView: true });
+    Array.prototype.forEach.call(bar.querySelectorAll('[data-v]'), function(b){ b.classList.toggle('on', b.getAttribute('data-v') === id); });
   }
-
-  function avatarSvg(av, size){
-    av = av || presetAvatar("calm","#4caf6e","");
-    var S = ' stroke="#2b2b2b" stroke-width="2" stroke-linejoin="round"';
-    var hc = av.hairColor, parts = [];
-    if(av.hair === "long") parts.push('<path d="M17 27 Q16 12 32 12 Q48 12 47 27 L48 43 Q44 45 42 41 L42 29 L22 29 L22 41 Q20 45 16 43 Z" fill="'+hc+'"'+S+'/>');
-    parts.push('<path d="M13 64 Q13 44 32 44 Q51 44 51 64 Z" fill="'+av.outfit+'"'+S+'/>');
-    parts.push('<circle cx="32" cy="29" r="14" fill="'+av.skin+'"'+S+'/>');
-    var top = '<path d="M18 27 Q18 13 32 13 Q46 13 46 27 Q40 20 32 21 Q24 20 18 27 Z" fill="'+hc+'"'+S+'/>';
-    if(av.hair === "curly"){
-      top = [20,26,32,38,44].map(function(x,i){ var y=[18,15,14,15,18][i]; return '<circle cx="'+x+'" cy="'+y+'" r="6" fill="'+hc+'"'+S+'/>'; }).join("");
-    } else if(av.hair === "spiky"){
-      top = '<path d="M18 26 L19 14 L25 19 L28 9 L32 17 L36 9 L39 19 L45 14 L46 26 Q40 20 32 21 Q24 20 18 26 Z" fill="'+hc+'"'+S+'/>';
-    } else if(av.hair === "bun"){
-      top = '<circle cx="32" cy="10" r="6" fill="'+hc+'"'+S+'/>' + top;
-    }
-    parts.push(top);
-    parts.push('<circle cx="23" cy="34" r="2.5" fill="#f28ab2" opacity=".45"/><circle cx="41" cy="34" r="2.5" fill="#f28ab2" opacity=".45"/>');
-    var L = ' stroke="#2b2b2b" stroke-width="1.8" stroke-linecap="round" fill="none"';
-    if(av.face === "calm") parts.push('<path d="M25 30 h4 M35 30 h4"'+L+'/><path d="M29 37 h6"'+L+'/>');
-    else if(av.face === "grin") parts.push('<path d="M25 31 Q27 28 29 31 M35 31 Q37 28 39 31"'+L+'/><path d="M26 35 Q32 42 38 35 Z" fill="#fff" stroke="#2b2b2b" stroke-width="1.8" stroke-linejoin="round"/>');
-    else if(av.face === "wink") parts.push('<circle cx="27" cy="30" r="1.8" fill="#2b2b2b"/><path d="M35 30 h4"'+L+'/><path d="M27 36 Q32 40 37 36"'+L+'/>');
-    else parts.push('<circle cx="27" cy="30" r="1.8" fill="#2b2b2b"/><circle cx="37" cy="30" r="1.8" fill="#2b2b2b"/><path d="M27 36 Q32 40 37 36"'+L+'/>');
-    if(av.acc === "glasses") parts.push('<circle cx="27" cy="30" r="4.2"'+L+'/><circle cx="37" cy="30" r="4.2"'+L+'/><path d="M31.2 30 h1.6"'+L+'/>');
-    else if(av.acc === "cap") parts.push('<path d="M17 23 Q18 10 32 10 Q46 10 47 23 Z" fill="'+av.outfit+'"'+S+'/><path d="M40 22 Q52 21 55 24 Q48 26 40 25 Z" fill="'+av.outfit+'"'+S+'/>');
-    else if(av.acc === "beanie") parts.push('<path d="M17 24 Q17 9 32 9 Q47 9 47 24 Z" fill="'+av.outfit+'"'+S+'/><rect x="16" y="20" width="32" height="6" rx="3" fill="#fff" opacity=".55"'+S+'/><circle cx="32" cy="7" r="3.5" fill="#fff"'+S+'/>');
-    else if(av.acc === "headphones") parts.push('<path d="M17 29 Q16 11 32 11 Q48 11 47 29" fill="none" stroke="#333" stroke-width="3"/><rect x="12" y="25" width="7" height="11" rx="3" fill="#333"/><rect x="45" y="25" width="7" height="11" rx="3" fill="#333"/>');
-    else if(av.acc === "flower") parts.push('<g transform="translate(43 16)">' +
-      [[0,-3],[3,0],[0,3],[-3,0]].map(function(d){ return '<circle cx="'+d[0]+'" cy="'+d[1]+'" r="2.6" fill="#f28ab2"/>'; }).join("") +
-      '<circle r="2" fill="#ffd166"/></g>');
-    return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" role="img" aria-label="내 캐릭터">'+parts.join("")+'</svg>';
-  }
-
-  function avatarKey(){ return "sw_avatar_" + (state.session ? state.session.user.id : "guest"); }
-  function currentAvatar(){
-    if(state.profile && state.profile.avatar) return state.profile.avatar;
-    try { var raw = localStorage.getItem(avatarKey()); if(raw) return JSON.parse(raw); } catch(e){}
-    return null;
-  }
-
-  // ---------------- ① 사전 설문 ----------------
-  function startSurvey(){
-    state.ob = { step:0, answers:{ interests:[] }, avatar:null, editOnly:false };
-    state.view = "survey";
-    render();
-  }
-
-  function surveyNext(){
-    if(state.ob.step < SURVEY.length - 1){ state.ob.step += 1; renderSurvey(); }
-    else {
-      var a = state.ob.answers;
-      state.ob.avatar = presetAvatar(a.vibe, a.color, a.nickname);
-      state.view = "character"; render();
-    }
-  }
-
-  function renderSurvey(){
-    app.innerHTML = "";
-    var ob = state.ob, st = SURVEY[ob.step], a = ob.answers;
-    var pct = Math.round((ob.step) / SURVEY.length * 100);
-    var body = "", canNext = false;
-    if(st.type === "text"){
-      body = '<input class="survey-input" id="sv-text" maxlength="20" placeholder="예: 느긋한고양이" value="'+esc(a.nickname||"")+'">';
-    } else if(st.type === "single"){
-      body = '<div class="choice-list">' + st.choices.map(function(c){
-        var on = a[st.key] === c.v;
-        return '<button class="choice'+(on?" on":"")+'" data-v="'+esc(c.v)+'" aria-pressed="'+on+'">'+esc(c.label)+'</button>';
-      }).join("") + '</div>';
-    } else if(st.type === "multi"){
-      var sel = a[st.key] || [];
-      body = '<div class="chips">' + st.choices.map(function(c){
-        var on = sel.indexOf(c) >= 0;
-        return '<button class="chip" data-v="'+esc(c)+'" aria-pressed="'+on+'">'+esc(c)+'</button>';
-      }).join("") + '</div><p class="survey-count">'+sel.length+' / '+st.max+'</p>';
-      canNext = sel.length > 0;
-    } else if(st.type === "look"){
-      body = '<div class="vibe-grid">' + VIBES.map(function(v){
-        var on = a.vibe === v.v;
-        return '<button class="vibe'+(on?" on":"")+'" data-vibe="'+v.v+'" aria-pressed="'+on+'"><span class="vibe-emoji">'+v.emoji+'</span>'+esc(v.label)+'</button>';
-      }).join("") + '</div>' +
-      '<p class="survey-mini">좋아하는 색</p><div class="swatches">' + COLORS.map(function(c){
-        var on = a.color === c.v;
-        return '<button class="swatch'+(on?" on":"")+'" data-color="'+c.v+'" style="background:'+c.v+'" aria-label="'+esc(c.label)+'" aria-pressed="'+on+'"></button>';
-      }).join("") + '</div>';
-      canNext = !!(a.vibe && a.color);
-    }
-    var showNext = st.type === "text" || st.type === "multi" || st.type === "look";
-    app.appendChild(h(
-      '<div class="center-screen">' +
-        '<div class="pixel-panel survey-card">' +
-          '<div class="survey-step"><span>'+(ob.step+1)+' / '+SURVEY.length+'</span><span>'+(st.required?"필수":"건너뛰어도 돼요")+'</span></div>' +
-          '<div class="survey-progress"><span style="width:'+pct+'%"></span></div>' +
-          '<h1 class="survey-q">'+esc(st.q)+'</h1>' +
-          '<p class="survey-sub">'+esc(st.sub)+'</p>' + body +
-          '<div class="survey-nav">' +
-            (ob.step > 0 ? '<button class="btn-ghost" id="sv-back">← 이전</button>' : '<span></span>') +
-            '<div class="survey-nav-right">' +
-              (!st.required ? '<button class="btn-ghost" id="sv-skip">건너뛰기</button>' : '') +
-              (showNext ? '<button class="btn btn-primary btn-auto" id="sv-next"'+(st.type==="text"||canNext?"":" disabled")+'>다음</button>' : '') +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>'
-    ));
-    var back = el("#sv-back"); if(back) back.addEventListener("click", function(){ ob.step -= 1; renderSurvey(); });
-    var skip = el("#sv-skip"); if(skip) skip.addEventListener("click", function(){
-      if(st.type === "multi") a[st.key] = []; else delete a[st.key];
-      surveyNext();
-    });
-    if(st.type === "text"){
-      var inp = el("#sv-text"); inp.focus();
-      var go = function(){
-        var v = inp.value.trim();
-        if(!v){ inp.classList.add("shake"); inp.setAttribute("aria-invalid","true"); inp.placeholder = "이름을 입력해 주세요"; return; }
-        a.nickname = v; surveyNext();
-      };
-      el("#sv-next").addEventListener("click", go);
-      inp.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); go(); } });
-    } else if(st.type === "single"){
-      Array.prototype.forEach.call(app.querySelectorAll(".choice"), function(b){
-        b.addEventListener("click", function(){ a[st.key] = b.getAttribute("data-v"); surveyNext(); });
-      });
-    } else if(st.type === "multi"){
-      Array.prototype.forEach.call(app.querySelectorAll(".chip"), function(b){
-        b.addEventListener("click", function(){
-          var v = b.getAttribute("data-v"), list = a[st.key] || (a[st.key] = []), i = list.indexOf(v);
-          if(i >= 0) list.splice(i,1); else if(list.length < st.max) list.push(v);
-          renderSurvey();
-        });
-      });
-      el("#sv-next").addEventListener("click", surveyNext);
-    } else if(st.type === "look"){
-      Array.prototype.forEach.call(app.querySelectorAll("[data-vibe]"), function(b){
-        b.addEventListener("click", function(){ a.vibe = b.getAttribute("data-vibe"); renderSurvey(); });
-      });
-      Array.prototype.forEach.call(app.querySelectorAll("[data-color]"), function(b){
-        b.addEventListener("click", function(){ a.color = b.getAttribute("data-color"); renderSurvey(); });
-      });
-      el("#sv-next").addEventListener("click", surveyNext);
-    }
-  }
-
-  // ---------------- ② 캐릭터 생성·꾸미기 ----------------
-  function openCustomizer(){
-    state.ob = { step:0, answers:{}, avatar: JSON.parse(JSON.stringify(currentAvatar() || presetAvatar("calm","#4caf6e",""))), editOnly:true };
-    state.view = "character"; render();
-  }
-
-  function renderCharacter(){
-    app.innerHTML = "";
-    var ob = state.ob, av = ob.avatar;
-    var rows = PART_ORDER.map(function(k){
-      var opts = AV_OPTS[k], idx = Math.max(0, opts.map(function(o){return o.v;}).indexOf(av[k]));
-      var val = k === "outfit" || k === "hairColor" || k === "skin"
-        ? '<span class="dot" style="background:'+opts[idx].v+'"></span>'+esc(opts[idx].label) : esc(opts[idx].label);
-      return '<div class="part-row"><span class="part-name">'+PART_LABELS[k]+'</span>' +
-        '<button data-part="'+k+'" data-dir="-1" aria-label="'+PART_LABELS[k]+' 이전">◀</button>' +
-        '<span class="part-val">'+val+'</span>' +
-        '<button data-part="'+k+'" data-dir="1" aria-label="'+PART_LABELS[k]+' 다음">▶</button></div>';
-    }).join("");
-    var intro = ob.editOnly ? "캐릭터를 원하는 대로 바꿔 보세요." :
-      "고른 분위기로 첫 캐릭터를 만들었어요! 마음에 들면 그대로, 아니면 직접 바꿔 보세요.";
-    app.appendChild(h(
-      '<div class="center-screen">' +
-        '<div class="pixel-panel survey-card char-card">' +
-          '<h1 class="survey-q">'+(ob.editOnly ? "캐릭터 꾸미기" : "내 캐릭터")+'</h1>' +
-          '<p class="survey-sub">'+esc(intro)+'</p>' +
-          '<div class="char-preview" id="char-preview" aria-label="내 캐릭터 미리보기"></div>' +
-          '<p class="char-name">'+esc(ob.editOnly ? (state.profile && state.profile.nickname || "") : ob.answers.nickname)+'</p>' +
-          rows +
-          '<div class="survey-nav">' +
-            (ob.editOnly ? '<button class="btn-ghost" id="ch-cancel">취소</button>'
-                         : '<button class="btn-ghost" id="ch-back">← 설문으로</button>') +
-            '<div class="survey-nav-right">' +
-              (ob.editOnly ? '' : '<button class="btn-ghost" id="ch-reset">처음 추천으로</button>') +
-              '<button class="btn btn-primary btn-auto" id="ch-done">'+(ob.editOnly ? "저장하기" : "이 캐릭터로 시작하기")+'</button>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>'
-    ));
-    var E3 = getEngine(), pvBox = el("#char-preview");
-    if(E3) E3.preview(pvBox, av); else pvBox.innerHTML = avatarSvg(av, 150);
-    Array.prototype.forEach.call(app.querySelectorAll("[data-part]"), function(b){
-      b.addEventListener("click", function(){
-        var k = b.getAttribute("data-part"), dir = Number(b.getAttribute("data-dir")), opts = AV_OPTS[k];
-        var i = opts.map(function(o){return o.v;}).indexOf(av[k]);
-        av[k] = opts[(i + dir + opts.length) % opts.length].v;
-        renderCharacter();
-      });
-    });
-    var back = el("#ch-back"); if(back) back.addEventListener("click", function(){ ob.step = SURVEY.length - 1; state.view = "survey"; render(); });
-    var reset = el("#ch-reset"); if(reset) reset.addEventListener("click", function(){
-      ob.avatar = presetAvatar(ob.answers.vibe, ob.answers.color, ob.answers.nickname); renderCharacter();
-    });
-    var cancel = el("#ch-cancel"); if(cancel) cancel.addEventListener("click", function(){ openRoom(false); });
-    el("#ch-done").addEventListener("click", function(){
-      var btn = this; btn.disabled = true; btn.textContent = "저장 중…";
-      (ob.editOnly ? saveAvatarOnly(av) : saveProfileFromSurvey()).then(function(ok){
-        if(!ok){ btn.disabled = false; btn.textContent = "다시 시도"; return; }
-        openRoom(!ob.editOnly);
-      });
+  function shot(){
+    var c = E.renderer.domElement, name = (document.getElementById('cand').value || '후보').replace(/[\\/:*?"<>|\s]+/g, '_');
+    requestAnimationFrame(function(){
+      var a = document.createElement('a');
+      a.download = name + '_' + cur + '.png'; a.href = c.toDataURL('image/png'); a.click();
     });
   }
-
-  // 저장 — 팀 DB에 03_world_update.sql(avatar·interests·join_goal 칸)이 아직 없으면
-  // 기본 칸만 저장하고 캐릭터는 이 브라우저에 보관한다(프로토타입 폴백).
-  function isMissingColumn(err){ return err && /column|schema cache/i.test(err.message || ""); }
-  function keepAvatarLocally(av){ try { localStorage.setItem(avatarKey(), JSON.stringify(av)); } catch(e){} }
-
-  function saveProfileFromSurvey(){
-    var a = state.ob.answers, av = state.ob.avatar;
-    state.tutorialCtx = { mood: a.mood || null, goal: a.goal || null, interests: a.interests || [] };   // 말투용 — 저장 안 함
-    var base = { id: state.session.user.id, nickname: a.nickname, sgg_code: a.sgg, age_group: a.age,
-                 gender: a.gender, onboarded_at: new Date().toISOString() };
-    var full = Object.assign({}, base, { avatar: av, interests: a.interests || [], join_goal: a.goal || null });
-    return sb.from("profiles").upsert(full).then(function(res){
-      if(!res.error) return true;
-      if(!isMissingColumn(res.error)){ alert("저장에 실패했습니다: " + res.error.message); return false; }
-      console.warn("profiles에 튜토리얼 칸이 없어 기본 정보만 저장합니다(03_world_update.sql 적용 전).");
-      keepAvatarLocally(av);
-      return sb.from("profiles").upsert(base).then(function(r2){
-        if(r2.error){ alert("저장에 실패했습니다: " + r2.error.message); return false; }
-        return true;
-      });
-    }).then(function(ok){
-      if(!ok) return false;
-      return refreshProfile().then(loadFeedback).then(function(){ return true; });
-    });
-  }
-
-  function saveAvatarOnly(av){
-    return sb.from("profiles").update({ avatar: av }).eq("id", state.session.user.id).then(function(res){
-      if(res.error && !isMissingColumn(res.error)){ alert("저장에 실패했습니다: " + res.error.message); return false; }
-      if(res.error) keepAvatarLocally(av);
-      return refreshProfile().then(function(){ return true; });
-    });
-  }
-
-  // ================================================================
-  // 3D 마을 ↔ 앱 연결 — 광장·내 방·루미와 걷는 투어 (2026-09-29)
-  // ================================================================
-  var STUB_MSG = {
-    support: "🏛️ 지원센터는 준비 중이에요. 하루가 곧 이사 와요 — 지금은 분수 옆 정책추천·취업상담 창구를 이용해 주세요.",
-    park: "🌳 공원 산책로·러닝 챌린지는 준비 중이에요. 연못가 벤치에서 쉬어 가도 돼요.",
-    game: "🎮 게임방은 준비 중이에요. 곧 같이 하는 미니게임이 열려요.",
-    cafe: "☕ 카페 안은 준비 중이에요. 루미는 카페 앞에 있어요!"
-  };
-  function npcName(id){ var n = NPCS.filter(function(x){ return x.id === id; })[0]; return n ? n.name : ""; }
-  function worldBlocked(){ return !!document.querySelector(".modal-backdrop"); }
-  function hud(id){ return document.getElementById(id); }
-
-  function showWorld(mode, opt){
-    var E = getEngine();
-    app.innerHTML = "";
-    if(!E){ renderNoWebGL(); return false; }
-    E.hooks.blocked = worldBlocked;
-    E.hooks.near = function(t){ state.near = t; updateHud(); };
-    E.hooks.action = onWorldAction;
-    E.hooks.tick = onWorldTick;
-    E.hooks.view = function(changed){ var b = document.getElementById("hud-view"); if(b) b.hidden = !changed; };
-    E.bubbleNpc = (state.feedback && state.feedback.npc_emphasis) || "psych";
-    opt = opt || {};
-    opt.avatar = currentAvatar() || presetAvatar("calm", "#4caf6e", nick());
-    E.enter(mode, opt);
-    E.setHomeName(nick());
-    E.setNpcVisible("psych", !state.tour);
-    if(!state.tour){ E.setMarker(null); }
-    updateHud();
-    return true;
-  }
-  function hideWorld(){ if(ENGINE) ENGINE.leave(); document.body.classList.remove("in-world"); }
-
-  function renderNoWebGL(){
-    app.innerHTML = "";
-    app.appendChild(h(
-      '<div class="center-screen"><div class="pixel-panel survey-card">' +
-        '<h1 class="survey-q">이 기기에서는 3D 마을을 열 수 없어요</h1>' +
-        '<p class="survey-sub">브라우저의 하드웨어 가속(WebGL)이 꺼져 있거나 지원되지 않아요. 미션방과 동아리센터는 그대로 이용할 수 있어요.</p>' +
-        '<button class="btn btn-primary" id="nw-mission">📮 미션방</button><button class="btn" id="nw-club">🎸 동아리센터</button>' +
-      '</div></div>'));
-    el("#nw-mission").addEventListener("click", loadMissionRoom);
-    el("#nw-club").addEventListener("click", loadClubRoom);
-  }
-
-  function updateHud(){
-    var E = ENGINE; if(!E || !E.isRunning()) return;
-    var inRoom = state.view === "room";
-    hud("hud-sub").textContent = inRoom ? nick() + "의 방" : (state.tour ? "루미와 마을 한 바퀴" : "광장 · " + nick() + "님");
-    var busyRoom = inRoom && state.room && state.room.phase !== "free";
-    hud("hud-room").hidden = !inRoom || busyRoom;
-    hud("hud-help").hidden = !!state.tour || busyRoom;
-    hud("hud-help").innerHTML = inRoom
-      ? '<b>WASD</b> 이동 · <b>끌기</b> 시점 · 문 앞에서 <b>E</b>'
-      : '<b>WASD</b> 이동 · <b>끌기</b> 시점 돌리기 · <b>휠</b> 줌 · 가까이서 <b>E</b>';
-    var act = hud("hud-act"), t = state.near;
-    if(state.tour || busyRoom || !t){ act.hidden = true; }
-    else {
-      act.hidden = false;
-      act.textContent = t.type === "npc" ? npcName(t.id) + " — 대화하기 (E)"
-        : t.id === "room-door" ? "🚪 밖으로 나가기 (E)" : t.label + " 들어가기 (E)";
-    }
-    hud("hud-gfx").textContent = E.gfxHigh() ? "화질: 높음" : "화질: 가벼움";
-    drawTour();
-  }
-
-  function onWorldAction(t){
-    if(state.tour){
-      if(state.tour.arrived) tourAdvance();
-      else showToast("루미를 따라가 보세요 — '루미 따라가기'를 누르면 자동으로 걸어가요");
-      return;
-    }
-    if(state.view === "room" && state.room && state.room.phase !== "free") return;
-    if(!t) return;
-    if(t.type === "npc") openNpc(t.id);
-    else doorAction(t.id);
-  }
-
-  function doorAction(id){
-    var P = ENGINE.places();
-    if(id === "mission"){ state.spawn = P.mission; loadMissionRoom(); }
-    else if(id === "club"){ state.spawn = P.club; loadClubRoom(); }
-    else if(id === "home"){ openRoom(false); }
-    else if(id === "room-door"){ state.spawn = P.home; state.view = "plaza"; render(); }
-    else if(STUB_MSG[id]) showToast(STUB_MSG[id]);
-  }
-
-  function renderPlaza(){
-    var spawn = state.spawn || { x: 0.6, z: 7.4 };
-    state.spawn = null;
-    if(!showWorld("village", { spawn: spawn })) return;
-    if(state.activeNpc) renderNpcModal();
-  }
-
-  // ---------------- ③ 내 방 (3D 실내) ----------------
-  function openRoom(withTutorial){
-    state.room = { phase: withTutorial ? "wake" : "free", dialog: null };
-    state.view = "room"; render();
-  }
-
-  function renderRoom(){
-    var tutorial = state.room.phase === "wake";
-    if(!showWorld("room", tutorial ? { spawnPlace: "bedside", seated: true, sleeping: true } : { spawnPlace: "roomMid", facing: 0 })) return;
-    var E = ENGINE;
-    if(tutorial){
-      var token = state.room;
-      setTimeout(function(){ if(state.room !== token || state.view !== "room") return; E.wake(); }, 1700);
-      setTimeout(function(){ if(state.room !== token || state.view !== "room") return; lumiEntersRoom(); }, 2400);
-    } else if(state.room.dialog){ renderTutorial(); }
-  }
-
-  // 루미가 문을 두드리고 걸어 들어온다
-  function lumiEntersRoom(){
-    var E = ENGINE, P = E.places(), token = state.room;
-    token.phase = "knock"; updateHud();
-    E.guideShow(P.roomDoor.x, P.roomDoor.z, -Math.PI / 2);
-    E.guideWalk(P.roomDoor.x, P.roomDoor.z, null, { knock: true });
-    setTimeout(function(){
-      if(state.room !== token || state.view !== "room") return;
-      E.guideWalk(P.roomMid.x, P.roomMid.z, function(){
-        if(state.room !== token || state.view !== "room") return;
-        openTutorial();
-      }, { direct: true, speed: 2.4 });
-    }, 1000);
-  }
-
-  // ---------------- 루미와 함께 걷는 마을 투어 ----------------
-  var TOUR_STOPS = {
-    plaza:  { label:"광장", go:"먼저 광장 한가운데, 분수 앞으로 가자!",
-              text:function(){ return "여기가 광장! 마을 한가운데라 어디든 금방 가. 분수 옆에 계신 분이 마을이장님이야 — 이따 인사하러 가자."; } },
-    mission:{ label:"미션방", go:"미션방으로 가자!",
-              text:function(){ return "📮 미션방이야. 1단계부터 4단계까지 퀘스트가 있어. 1단계는 아주 쉬워서 오늘 바로 할 수 있어."; } },
-    park:   { label:"공원", go:"연못 있는 공원으로 가자!",
-              text:function(c){ return "🌳 공원! 연못가 벤치에서 쉬거나 산책·러닝 챌린지를 할 수 있어. 이장님이 가끔 같이 걷기 모임도 여셔." + (c.goal === "rest" ? " 쉬고 싶을 때 딱이야." : ""); } },
-    support:{ label:"지원센터", go:"저 위 지원센터로 가자!",
-              text:function(){ return "🏛️ 지원센터야. 하루가 청년 정책·취업·주거 지원을 찾아 줘. 신청은 네가 직접 하고, 하루는 어디서 어떻게 하는지 알려 줘. 하루가 이사 오기 전까지는 분수 옆 정책추천·취업상담 창구를 쓰면 돼."; } },
-    game:   { label:"게임방", go:"줄무늬 천막, 게임방으로 가자!",
-              text:function(){ return "🎮 게임방! 다른 주민들이랑 가볍게 게임하는 곳이야. 말 안 하고 같이 있기만 해도 괜찮아."; } },
-    cafe:   { label:"카페", go:"지원센터 왼쪽, 카페로 가자! 내 자리야.",
-              text:function(){ return "☕ 여기가 카페, 내 자리야! 오늘 있었던 일, 별거 아닌 얘기도 다 좋아. 말하기 싫은 날엔 그냥 앉아만 있다 가도 돼."; } },
-    club:   { label:"동아리센터", go:"동아리센터로 가자!",
-              text:function(c){ var it = (c.interests && c.interests.length) ? c.interests.join("·") : "관심사";
-                return "🎸 동아리센터야. 코코가 네 " + it + "에 맞는 모임을 골라 줘. 마음에 드는 동아리에 응원 스티커도 남길 수 있어."; } },
-    chief:  { label:"마을이장님", go:"마지막으로 마을이장님께 가자!", final:true,
-              text:function(){ return state.tour && state.tour.route.length === 1 ? "여기가 마을이장님이야! 첫 퀘스트는 이장님께 인사하기. 가서 인사해 봐, 내가 옆에 있을게." : "마지막으로 마을이장님이야! 첫 퀘스트는 이장님께 인사하기. 가서 인사해 봐, 내가 옆에 있을게."; } }
-  };
-  var TOUR_ROUTE = ["mission","park","cafe","club","game","support"];
-  var GOAL_FIRST = { rest:"park", talk:"cafe", meet:"club", info:"support" };
-
-  function tourRoute(){
-    var first = GOAL_FIRST[tctx().goal], rest = TOUR_ROUTE.filter(function(k){ return k !== first; });
-    return ["plaza"].concat(first ? [first] : [], rest, ["chief"]);
-  }
-  function tourKey(){ return state.tour.route[state.tour.i]; }
-  function tourStop(){ return TOUR_STOPS[tourKey()]; }
-  // 루미가 서는 자리(입구에서 광장 쪽으로 조금)와 금색 표시가 뜨는 자리
-  function tourSpots(key){
-    var P = ENGINE.places(), p = P[key];
-    var l = Math.hypot(p.x, p.z) || 1, k = key === "plaza" || key === "chief" ? 0 : 1.2;
-    var lumi = { x: p.x - p.x / l * k, z: p.z - p.z / l * k };
-    var mark = key === "plaza" ? { x: 0, z: 0 } : key === "chief" ? { x: -4.2, z: 4.6 } : p;
-    return { lumi: lumi, mark: mark };
-  }
-
-  function startTour(short){
-    var old = document.getElementById("tut-backdrop"); if(old) old.remove();
-    state.room.dialog = null;
-    var fade = document.getElementById("fade"); fade.classList.add("on");
-    setTimeout(function(){
-      var P = ENGINE.places();
-      state.tour = { route: short ? ["chief"] : tourRoute(), i: 0, arrived: false, intro: true };
-      state.spawn = P.home; state.view = "plaza"; render();
-      // 문을 나서자마자 루미가 바로 옆에 있다
-      var l = Math.hypot(P.home.x, P.home.z) || 1;
-      ENGINE.guideShow(P.home.x - P.home.x / l * 1.5 + 0.6, P.home.z - P.home.z / l * 1.5 + 0.9);
-      ENGINE.guideWalk(ENGINE.guidePos().x, ENGINE.guidePos().z, null, { hello: true });
-      fade.classList.remove("on");
-      var token = state.tour;
-      setTimeout(function(){ if(state.tour !== token) return; token.intro = false; goStop(); }, 2200);
-    }, 450);
-  }
-
-  function goStop(){
-    var t = state.tour, s = tourSpots(tourKey());
-    t.arrived = false; t.walkTarget = s.lumi;
-    ENGINE.guideWalk(s.lumi.x, s.lumi.z, null, { speed: 3.1, leash: 7 });   // 7칸 넘게 멀어지면 멈춰서 기다린다
-    ENGINE.setMarker(s.mark);
-    updateHud();
-  }
-
-  function onWorldTick(){
-    var t = state.tour;
-    if(!t || t.arrived || t.intro || !ENGINE) return;
-    var g = ENGINE.guidePos(), p = ENGINE.playerPos();
-    if(!g || ENGINE.guideMoving()) return;
-    if(Math.hypot(p.x - g.x, p.z - g.z) < 2.9){
-      t.arrived = true; ENGINE.stopAuto(); updateHud();
-      var b = hud("tour-next") || hud("tour-chief"); if(b) b.focus({ preventScroll: true });
-    }
-  }
-
-  function tourAdvance(){
-    var t = state.tour; if(!t || !t.arrived) return;
-    if(tourStop().final){
-      // 이장님과 인사하는 동안에도 루미는 옆에 있다. 대화가 끝나면 루미가 마무리 인사를 한다
-      state.tour = null; state.tourOutro = true;
-      ENGINE.setMarker(null); ENGINE.stopAuto();
-      updateHud(); openNpc("chief"); return;
-    }
-    t.i += 1; goStop();
-  }
-
-  function followLumi(){
-    var t = state.tour; if(!t || t.arrived) return;
-    var s = t.walkTarget; ENGINE.autoWalkTo(s.x, s.z + 1.4);
-    drawTour.key = ""; updateHud();
-  }
-
-  // 투어 그만하기 — 루미가 인사하고 카페로 간다
-  function endTour(){
-    if(!state.tour) return;
-    state.tour = null;
-    ENGINE.setMarker(null); ENGINE.stopAuto();
-    updateHud();
-    showLumiOutro("skip");
-  }
-
-  var OUTRO = {
-    done1:{ text:"첫 퀘스트 완료! 🎉 이장님 좋으시지? 오늘 마을 같이 돌아 줘서 고마워.", options:[{ label:"나도 고마워!", next:"done2" }] },
-    done2:{ text:"난 카페 앞에 있을게. 심심하거나 이야기하고 싶을 때 언제든 와. 미션방에 2단계 퀘스트도 기다리고 있어!", options:[{ label:"응, 또 보자!", next:"END" }] },
-    skip1:{ text:"알겠어, 여기까지 하자! 나머지는 천천히 둘러봐도 돼. 첫 퀘스트는 분수 옆 마을이장님께 인사하기야. 난 카페 앞에 있을게!", options:[{ label:"응, 고마워!", next:"END" }] }
-  };
-  function showLumiOutro(kind){ renderLumiOutro(kind === "skip" ? "skip1" : "done1"); }
-  function renderLumiOutro(key){
-    var old = document.getElementById("tut-backdrop"); if(old) old.remove();
-    if(key === "END"){ lumiGoHome(); return; }
-    var node = OUTRO[key];
-    var back = document.createElement("div");
-    back.className = "modal-backdrop"; back.id = "tut-backdrop";
-    back.innerHTML =
-      '<div class="npc-modal pixel-panel" role="dialog" aria-label="루미와의 대화">' +
-        '<div class="npc-modal-header"><span class="npc-modal-emoji" style="background:#B56CC0">🌱</span>' +
-        '<div><div class="npc-modal-name">루미</div><div class="npc-modal-disclaimer">AI 친구 · 사람 상담사는 아니야</div></div></div>' +
-        '<p class="npc-modal-text">' + esc(node.text) + '</p>' +
-        '<div class="npc-modal-options">' + node.options.map(function(o, i){ return '<button class="btn btn-option" data-oopt="' + i + '">' + esc(o.label) + '</button>'; }).join("") + '</div>' +
-      '</div>';
-    document.body.appendChild(back);
-    Array.prototype.forEach.call(back.querySelectorAll("[data-oopt]"), function(b){
-      b.addEventListener("click", function(){ renderLumiOutro(node.options[Number(b.getAttribute("data-oopt"))].next); });
-    });
-    var f = back.querySelector("[data-oopt]"); if(f) f.focus();
-  }
-  function lumiGoHome(){
-    var E = ENGINE, L = E.places().lumi;
-    E.guideWalk(L.x, L.z, function(){ E.guideHide(); E.setNpcVisible("psych", true); }, { speed: 3.6 });
-    updateHud();
-  }
-
-  function drawTour(){
-    var panel = hud("tour-panel"), t = state.tour;
-    if(!t || !ENGINE || !ENGINE.isRunning()){ panel.hidden = true; drawTour.key = ""; return; }
-    panel.hidden = false;
-    var key = t.i + "|" + t.arrived + "|" + ENGINE.isAuto() + "|" + !!t.intro;
-    if(key === drawTour.key) return;      // 같은 내용이면 다시 그리지 않는다(버튼 포커스 유지)
-    drawTour.key = key;
-    var stop = tourStop(), c = tctx(), n = t.route.length;
-    var dots = t.route.map(function(k, i){ return '<span class="tour-dot' + (i < t.i ? " done" : i === t.i ? " now" : "") + '" title="' + esc(TOUR_STOPS[k].label) + '"></span>'; }).join("");
-    var body, btns;
-    if(t.intro){
-      body = t.route.length === 1 ? "짜잔, 여기가 우리 이음 마을이야! 이장님은 분수 옆에 계셔. 내가 앞장설 테니까 따라와!" : "짜잔, 여기가 우리 이음 마을이야! 내가 앞장설 테니까 잘 따라와.";
-      btns = "";
-    } else if(!t.arrived){
-      var lead = (t.i === 1 && GOAL_FIRST[c.goal] === t.route[1]) ? "네가 해보고 싶다던 거 하기 좋은 곳부터! " : "";
-      body = lead + stop.go + " 금색 표시 쪽으로 가는 나를 따라와 줘. 너무 멀어지면 기다릴게!";
-      btns = '<button type="button" id="tour-follow">' + (ENGINE.isAuto() ? "따라가는 중…" : "🚶 루미 따라가기") + '</button>';
-    } else {
-      body = stop.text(c);
-      btns = stop.final ? '<button type="button" class="primary" id="tour-chief">🎩 이장님께 인사하기 (E)</button>'
-                        : '<button type="button" class="primary" id="tour-next">다음 장소로 (E)</button>';
-    }
-    panel.innerHTML =
-      '<div class="tour-head"><span class="who" style="background:#B56CC0">🌱 루미</span><span class="tour-count">' + (t.i + 1) + ' / ' + n + ' · ' + esc(stop.label) + '</span></div>' +
-      '<div class="tour-dots">' + dots + '</div>' +
-      '<p class="line">' + esc(body) + '</p>' +
-      '<div class="row"><button type="button" id="tour-skip">투어 그만하기</button>' + btns + '</div>';
-    var f = hud("tour-follow"); if(f) f.addEventListener("click", followLumi);
-    var nx = hud("tour-next"); if(nx) nx.addEventListener("click", tourAdvance);
-    var ch = hud("tour-chief"); if(ch) ch.addEventListener("click", tourAdvance);
-    hud("tour-skip").addEventListener("click", function(){ endTour(); });
-  }
-
-  // HUD 버튼 (한 번만 연결)
-  (function bindHud(){
-    hud("hud-act").addEventListener("click", function(){ onWorldAction(state.near); });
-    hud("hud-gfx").addEventListener("click", function(){ if(ENGINE){ ENGINE.toggleGfx(); updateHud(); } });
-    hud("hud-view").addEventListener("click", function(){ if(ENGINE) ENGINE.resetView(); });
-    hud("hud-logout").addEventListener("click", function(){
-      state.tour = null; hideWorld();
-      sb.auth.signOut().then(function(){ state.session = null; state.profile = null; state.view = "login"; render(); });
-    });
-    hud("rm-custom").addEventListener("click", openCustomizer);
-    hud("rm-replay").addEventListener("click", function(){ if(state.room && state.room.phase === "free") lumiEntersRoom(); });
-    hud("rm-out").addEventListener("click", function(){ doorAction("room-door"); });
-  })();
-
-  // 테스트·디버그용 (콘솔에서 __sw().engine 등으로 확인)
-  window.__sw = function(){ return { state: state, engine: ENGINE, openRoom: openRoom, openNpc: openNpc }; };
-
-  // ---------------- ④ 루미의 월드 소개 (대본형, LLM 없음) ----------------
-  function tctx(){ return state.tutorialCtx || { mood:null, goal: state.profile && state.profile.join_goal, interests: (state.profile && state.profile.interests) || [] }; }
-  function nick(){ return (state.profile && state.profile.nickname) || "주민"; }
-
-  var TUT = {
-    hello:{ text:function(c){
-        var m = { relaxed:" 오늘 표정이 여유로워 보여서 나도 기분 좋다!", busy:" 바쁜 와중에 와줘서 고마워. 소개는 짧게 할게!",
-                  tired:" 천천히 둘러봐도 돼. 여기선 서두를 일이 하나도 없어." }[c.mood] || " 편하게 둘러보면 돼.";
-        return "똑똑! 일어났구나, " + nick() + "! 나는 루미야. 이 마을에 온 걸 환영해 🌱" + m; },
-      options:[{label:"안녕, 루미!", next:"about"}] },
-    about:{ details:true,
-      text:"먼저 나를 소개할게. 나는 AI 친구라서 사람 상담사는 아니야. 우리가 나눈 말은 저장하지 않아. 대화 분위기만 이름 없이 모아서, 우리 동네에 어떤 모임이나 지원이 있으면 좋을지 찾는 데 써. 혹시 더 큰 도움이 필요해 보이면, 믿을 만한 곳을 같이 찾아볼게.",
-      options:[{label:"응, 알겠어", next:"choose"},{label:"마을 소개는 나중에 들을래", next:"skip"}] },
-    choose:{ text:function(c){
-        return { rest:"쉬러 왔구나! 그럼 쉬기 좋은 곳부터 보여줄게.", talk:"이야기 나누고 싶구나. 그럼 내가 있는 곳부터 보여줄게!",
-                 meet:"새로운 사람을 만나고 싶구나! 사람들이 모이는 곳부터 보여줄게.", info:"필요한 정보가 있구나. 그럼 도와줄 친구가 있는 곳부터 보여줄게." }[c.goal]
-          || "그럼 마을 한 바퀴 같이 돌아보자!"; },
-      options:[{label:"좋아!", next:"tourGo"}] },
-    tourGo:{ text:"말로 설명하는 것보다 같이 걸어보는 게 빠르지! 나랑 같이 나가 보자 🚪 내가 앞장설 테니까 따라와.",
-      options:[{label:"좋아, 가자!", next:"TOUR"}] },
-    skip:{ text:"알겠어! 마을 구경은 나중에 해도 돼. 그래도 첫 퀘스트는 같이 하자 — 광장에 계신 마을이장님께 인사하러 가는 거야. 내가 데려다줄게!",
-      options:[{label:"좋아, 같이 가자", next:"TOUR_SHORT"}] }
-  };
-
-  function openTutorial(){ state.room.dialog = "hello"; state.room.phase = "talk"; updateHud(); renderTutorial(); }
-
-  function renderTutorial(){
-    var old = document.getElementById("tut-backdrop"); if(old) old.remove();
-    var key = state.room.dialog;
-    if(key === "TOUR"){ startTour(false); return; }
-    if(key === "TOUR_SHORT"){ startTour(true); return; }
-    if(!key || key === "END"){
-      state.room.dialog = null; state.room.phase = "free";
-      if(ENGINE){ var P = ENGINE.places(); ENGINE.guideWalk(P.roomDoor.x, P.roomDoor.z, function(){ ENGINE.guideHide(); }, { direct: true, speed: 2.6 }); }
-      updateHud(); return;
-    }
-    var node = TUT[key], c = tctx();
-    var text = typeof node.text === "function" ? node.text(c) : node.text;
-    var extra = "";
-    if(node.details) extra = '<details class="tut-details"><summary>ⓘ 자세히 보기</summary><ul>' +
-      '<li>지금 체험판의 루미는 정해진 대본으로 대답해요. 정식 버전에서는 루미의 답을 AI(OpenAI)가 만들고, 답을 만들기 위해 입력한 글이 AI 서비스로 전달돼요.</li>' +
-      '<li>전화번호·이메일 같은 개인정보는 보내기 전에 가려요.</li>' +
-      '<li>대화 원문은 저장하지 않아요. "요즘 기운이 없음" 같은 분위기 표시만 이름 없이 남고, 같은 동네·또래가 충분히 모였을 때만 통계로 쓰여요.</li>' +
-      '<li>이 통계는 지자체가 청년 모임·지원 프로그램을 준비하는 데 쓰여요.</li></ul></details>';
-    var back = document.createElement("div");
-    back.className = "modal-backdrop"; back.id = "tut-backdrop";
-    back.innerHTML =
-      '<div class="npc-modal pixel-panel" role="dialog" aria-label="루미와의 대화">' +
-        '<div class="npc-modal-header">' +
-          '<span class="npc-modal-emoji" style="background:#B56CC0">🌱</span>' +
-          '<div><div class="npc-modal-name">루미</div><div class="npc-modal-disclaimer">AI 친구 · 사람 상담사는 아니야</div></div>' +
-        '</div>' +
-        '<p class="npc-modal-text">'+esc(text)+'</p>' + extra +
-        '<div class="npc-modal-options">' + node.options.map(function(o,i){
-          return '<button class="btn btn-option" data-topt="'+i+'">'+esc(o.label)+'</button>'; }).join("") + '</div>' +
-      '</div>';
-    document.body.appendChild(back);
-    Array.prototype.forEach.call(back.querySelectorAll("[data-topt]"), function(b){
-      b.addEventListener("click", function(){ state.room.dialog = node.options[Number(b.getAttribute("data-topt"))].next; renderTutorial(); });
-    });
-    var first = back.querySelector("[data-topt]"); if(first) first.focus();
-  }
-
-  // 1단계 첫 퀘스트 — 광장에서 마을이장에게 인사하면 '광장 방문하기' 완료
-  function completeFirstQuest(){
-    if(state.firstQuestDone) return;
-    state.firstQuestDone = true;
-    showToast("🎉 첫 퀘스트 완료 — 이장님께 인사하기");
-    sb.from("missions").select("id,title").eq("title","광장 방문하기").maybeSingle().then(function(res){
-      if(!res || res.error || !res.data) return;   // 03_world_update.sql 적용 전이면 기록 없이 넘어간다
-      sb.from("mission_progress").upsert(
-        { user_id: state.session.user.id, mission_id: res.data.id, status:"done", completed_at: new Date().toISOString() },
-        { onConflict: "user_id,mission_id" }
-      ).then(function(r){ if(r.error) console.warn("퀘스트 기록 실패:", r.error.message); });
-    });
-  }
-
-  function showToast(msg){
-    var t = document.createElement("div"); t.className = "sw-toast"; t.setAttribute("role","status"); t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(function(){ t.remove(); }, 3200);
-  }
-
-  // ---------------- topbar ----------------
-  function topbarHtml(title){
-    var nick = state.profile ? '<span class="topbar-nick">'+esc(state.profile.nickname)+'님</span>' : "";
-    return '<div class="topbar"><div class="topbar-title"><span>🌱</span><span>'+esc(title)+'</span></div>' +
-      '<div class="topbar-right">'+nick+'<button class="btn-ghost" id="btn-logout">로그아웃</button></div></div>';
-  }
-  function bindTopbar(){
-    el("#btn-logout").addEventListener("click", function(){
-      if(state.tour && state.tour.walking) clearInterval(state.tour.walking); state.tour = null;
-      sb.auth.signOut().then(function(){ state.session = null; state.profile = null; state.view = "login"; render(); });
-    });
-  }
-
-  // ---------------- npc modal ----------------
-  function openNpc(id){
-    if(state.tour){ showToast("투어 중이에요 — 루미를 따라가 보세요"); return; }
-    state.near = null;
-    state.activeNpc = NPCS.filter(function(n){ return n.id===id; })[0];
-    state.npcNode = "root";
-    state.npcSession = { npc_type: id, started_at: new Date().toISOString(), tags: {}, maxSev: 0, turns: 0, crisisReported: false };
-    renderNpcModal();
-  }
-
-  // 대화 1회를 npc_sessions에 남긴다 — 원문 없이 신호 수치만. 선택을 한 번도 안 했으면 남기지 않는다.
-  function saveNpcSession(){
-    var sess = state.npcSession;
-    state.npcSession = null;
-    if(!sess || sess.turns === 0 || !state.session) return;
-    if(state.activeNpc && state.activeNpc.noSignal) return;
-    var tags = Object.keys(sess.tags);
-    sb.from("npc_sessions").insert({
-      npc_type: sess.npc_type,
-      started_at: sess.started_at,
-      ended_at: new Date().toISOString(),
-      risk_keyword_count: tags.length,
-      severity_score: Math.round(sess.maxSev * 100) / 100,
-      keyword_tags: tags
-    }).then(function(res){
-      if(res.error) console.warn("대화 신호 저장 실패:", res.error.message);
-    });
-  }
-
-  function closeNpc(){
-    var wasChief = state.activeNpc && state.activeNpc.id === "chief";
-    saveNpcSession();
-    if(wasChief) completeFirstQuest();
-    if(wasChief && state.tourOutro){ state.tourOutro = false; setTimeout(function(){ showLumiOutro("done"); }, 350); }
-    state.activeNpc = null;
-    var existing = document.getElementById("npc-modal-backdrop");
-    if(existing) existing.remove();
-  }
-
-  function chooseOption(opt){
-    var sess = state.npcSession;
-    if(sess){
-      sess.turns += 1;
-      if(opt.signal){
-        (opt.signal.tags || []).forEach(function(t){ sess.tags[t] = true; });
-        sess.maxSev = Math.max(sess.maxSev, opt.signal.severity || 0);
-        // 가드레일(8-1) — 위기 발화는 모든 NPC 공통으로 즉시 기록. 지역·NPC 종류만 남고 user_id는 저장하지 않는다.
-        if(opt.signal.crisis && !sess.crisisReported){
-          sess.crisisReported = true;
-          sb.rpc("report_crisis", { p_npc_type: sess.npc_type }).then(function(res){
-            if(res.error) console.warn("위기 기록 실패:", res.error.message);
-          });
-        }
-      }
-    }
-    state.npcNode = opt.next;
-    renderNpcModal();
-  }
-
-  function renderNpcModal(){
-    var existing = document.getElementById("npc-modal-backdrop");
-    if(existing) existing.remove();
-    var npc = state.activeNpc;
-    var node = npc.tree[state.npcNode];
-    var optionsHtml = node.options.length
-      ? node.options.map(function(o,i){ return '<button class="btn btn-option" data-opt="'+i+'">'+esc(o.label)+'</button>'; }).join("")
-      : '<button class="btn btn-primary" id="npc-bye">대화 마치기</button>';
-    var disclaimerHtml = npc.disclaimer ? '<div class="npc-modal-disclaimer">'+esc(npc.disclaimer)+'</div>' : "";
-    var crisisHtml = node.crisis
-      ? '<div class="crisis-box" role="alert">' +
-          '<div class="crisis-title">지금 바로 이야기할 수 있는 곳</div>' +
-          '<div class="crisis-line"><b>자살예방 상담전화</b> <span class="crisis-num">109</span> <span class="crisis-sub">24시간 · 무료</span></div>' +
-          '<div class="crisis-line"><b>정신건강 상담전화</b> <span class="crisis-num">1577-0199</span></div>' +
-          '<div class="crisis-sub">' + (npc.id === "psych" ? "위급하면 바로 112나 119에 연락해." : "위급하면 112 또는 119에 바로 연락하세요.") + '</div>' +
-        '</div>'
-      : "";
-    var backdrop = document.createElement("div");
-    backdrop.className = "modal-backdrop"; backdrop.id = "npc-modal-backdrop";
-    backdrop.innerHTML =
-      '<div class="npc-modal pixel-panel" style="border-color:'+npc.color+'">' +
-        '<div class="npc-modal-header">' +
-          '<span class="npc-modal-emoji" style="background:'+npc.color+'">'+npc.emoji+'</span>' +
-          '<div><div class="npc-modal-name">'+esc(npc.name)+'</div>'+disclaimerHtml+'</div>' +
-          '<button class="btn-ghost npc-modal-close" id="npc-close">✕</button>' +
-        '</div>' +
-        '<p class="npc-modal-text">'+esc(typeof node.text === "function" ? node.text() : node.text)+'</p>' +
-        crisisHtml +
-        '<div class="npc-modal-options">'+optionsHtml+'</div>' +
-      '</div>';
-    backdrop.addEventListener("click", function(e){ if(e.target===backdrop){ closeNpc(); } });
-    document.body.appendChild(backdrop);
-    el("#npc-close", backdrop).addEventListener("click", closeNpc);
-    var byeBtn = el("#npc-bye", backdrop);
-    if(byeBtn) byeBtn.addEventListener("click", closeNpc);
-    Array.prototype.forEach.call(backdrop.querySelectorAll("[data-opt]"), function(btn){
-      btn.addEventListener("click", function(){ chooseOption(node.options[Number(btn.getAttribute("data-opt"))]); });
-    });
-  }
-
-  // ---------------- mission room ----------------
-  function loadMissionRoom(){
-    state.view = "mission";
-    render();
-    Promise.all([
-      sb.from("missions").select("*").eq("is_active", true).order("id"),
-      sb.from("mission_progress").select("*").eq("user_id", state.session.user.id)
-    ]).then(function(results){
-      state.missions = results[0].data || [];
-      var map = {};
-      (results[1].data || []).forEach(function(r){ map[r.mission_id] = r; });
-      state.progress = map;
-      renderMissionRoom();
-    });
-  }
-
-  function renderMissionRoom(){
-    app.innerHTML = "";
-    var itemsHtml;
-    if(state.missions === undefined){
-      itemsHtml = "<p>불러오는 중…</p>";
-    } else if(state.missions.length === 0){
-      itemsHtml = "<p>등록된 미션이 없어요.</p>";
-    } else {
-      // ⑩ 환류 — 에이전트가 추천한 미션을 맨 위로 올리고 '추천' 표시
-      var prio = (state.feedback && state.feedback.priority_missions) || [];
-      var ordered = state.missions.slice().sort(function(a,b){
-        var ia = prio.indexOf(a.title), ib = prio.indexOf(b.title);
-        ia = ia < 0 ? 99 : ia; ib = ib < 0 ? 99 : ib;
-        return ia - ib || a.id - b.id;
-      });
-      itemsHtml = '<ul class="mission-list">' + ordered.map(function(m){
-        var p = state.progress[m.id];
-        var isRec = prio.indexOf(m.title) >= 0;
-        var actionHtml;
-        if(p && p.status === "done") actionHtml = '<span class="badge-done">완료됨 ✅</span>';
-        else if(p) actionHtml = '<button class="btn btn-primary btn-auto" data-complete="'+m.id+'">완료하기</button>';
-        else actionHtml = '<button class="btn btn-option btn-auto" data-join="'+m.id+'">참여하기</button>';
-        return '<li class="mission-item pixel-panel"><div class="mission-item-main">' +
-          '<div class="mission-title">'+esc(m.title)+'<span class="mission-reward">+'+m.reward_point+'P</span>' +
-            (isRec ? '<span class="mission-rec">추천</span>' : '') + '</div>' +
-          (m.description ? '<p class="mission-desc">'+esc(m.description)+'</p>' : '') +
-          '</div><div class="mission-actions">'+actionHtml+'</div></li>';
-      }).join("") + '</ul>';
-    }
-    app.appendChild(h(
-      topbarHtml("미션방") +
-      '<div class="room-wrap">' +
-        '<button class="btn-ghost" id="btn-back">← 광장으로</button>' +
-        '<p class="room-desc">꾸준히 사회 활동을 이어갈 수 있도록 작은 미션들을 준비했어요. 완료하면 포인트를 받을 수 있어요.</p>' +
-        itemsHtml +
-      '</div>'
-    ));
-    bindTopbar();
-    el("#btn-back").addEventListener("click", function(){ state.view = "plaza"; render(); });
-    Array.prototype.forEach.call(app.querySelectorAll("[data-join]"), function(btn){
-      btn.addEventListener("click", function(){
-        var id = Number(btn.getAttribute("data-join"));
-        btn.disabled = true;
-        sb.from("mission_progress").insert({ user_id: state.session.user.id, mission_id: id, status:"in_progress" })
-          .then(function(res){ if(res.error){ alert("참여에 실패했습니다."); } loadMissionRoom(); });
-      });
-    });
-    Array.prototype.forEach.call(app.querySelectorAll("[data-complete]"), function(btn){
-      btn.addEventListener("click", function(){
-        var id = Number(btn.getAttribute("data-complete"));
-        btn.disabled = true;
-        sb.from("mission_progress").update({ status:"done", completed_at: new Date().toISOString() })
-          .eq("user_id", state.session.user.id).eq("mission_id", id)
-          .then(function(res){ if(res.error){ alert("완료 처리에 실패했습니다."); } loadMissionRoom(); });
-      });
-    });
-  }
-
-  // ---------------- club room ----------------
-  function loadClubRoom(){
-    state.view = "club";
-    render();
-    Promise.all([
-      sb.from("clubs").select("*, member_count:club_members(count)").order("created_at", { ascending:false }),
-      sb.from("club_members").select("club_id").eq("user_id", state.session.user.id)
-    ]).then(function(results){
-      state.clubs = results[0].data || [];
-      var ids = {};
-      (results[1].data || []).forEach(function(r){ ids[r.club_id] = true; });
-      state.myClubIds = ids;
-      renderClubRoom();
-    });
-  }
-
-  function renderClubRoom(){
-    app.innerHTML = "";
-    var catOptions = CATEGORIES.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join("");
-    var formHtml = state.showClubForm ? (
-      '<form class="pixel-panel club-form" id="club-form">' +
-        '<label>동아리 이름<input id="cf-name" maxlength="30" placeholder="예: 퇴근 후 러닝 크루"></label>' +
-        '<label>카테고리<select id="cf-category">'+catOptions+'</select></label>' +
-        '<label>소개<textarea id="cf-desc" maxlength="200" rows="3" placeholder="어떤 모임인지 짧게 소개해 주세요"></textarea></label>' +
-        '<button class="btn btn-primary btn-auto" type="submit">개설하기</button>' +
-      '</form>'
-    ) : "";
-    var listHtml;
-    if(state.clubs.length === 0){
-      listHtml = "<p>아직 개설된 동아리가 없어요. 첫 동아리를 만들어 보세요!</p>";
-    } else {
-      listHtml = '<ul class="club-list">' + state.clubs.map(function(c){
-        var joined = !!state.myClubIds[c.id];
-        var count = (c.member_count && c.member_count[0] && c.member_count[0].count) || 0;
-        var actionHtml = joined ? '<span class="badge-done">가입됨 ✅</span>' : '<button class="btn btn-option btn-auto" data-join-club="'+c.id+'">가입하기</button>';
-        return '<li class="club-item pixel-panel"><div class="club-item-main">' +
-          '<div class="mission-title">'+esc(c.name)+'<span class="club-category">'+esc(c.category||"")+'</span></div>' +
-          (c.description ? '<p class="mission-desc">'+esc(c.description)+'</p>' : '') +
-          '<p class="club-member-count">멤버 '+count+'명</p>' +
-          '</div><div class="mission-actions">'+actionHtml+'</div></li>';
-      }).join("") + '</ul>';
-    }
-    app.appendChild(h(
-      topbarHtml("동아리센터") +
-      '<div class="room-wrap">' +
-        '<button class="btn-ghost" id="btn-back">← 광장으로</button>' +
-        '<div class="room-header-row"><p class="room-desc">관심사가 비슷한 사람들과 문화·공연·체육 활동을 함께 해보세요.</p>' +
-        '<button class="btn btn-primary btn-auto" id="btn-toggle-form">'+(state.showClubForm?"닫기":"+ 동아리 개설")+'</button></div>' +
-        formHtml + listHtml +
-      '</div>'
-    ));
-    bindTopbar();
-    el("#btn-back").addEventListener("click", function(){ state.view = "plaza"; render(); });
-    el("#btn-toggle-form").addEventListener("click", function(){ state.showClubForm = !state.showClubForm; renderClubRoom(); });
-    var form = el("#club-form");
-    if(form){
-      form.addEventListener("submit", function(ev){
-        ev.preventDefault();
-        var name = el("#cf-name").value.trim();
-        if(!name){ alert("동아리 이름을 입력해 주세요."); return; }
-        sb.from("clubs").insert({
-          name: name, category: el("#cf-category").value,
-          description: el("#cf-desc").value.trim() || null,
-          owner_id: state.session.user.id
-        }).select().single().then(function(res){
-          if(res.error || !res.data){ alert("동아리 개설에 실패했습니다."); return; }
-          sb.from("club_members").insert({ club_id: res.data.id, user_id: state.session.user.id }).then(function(){
-            state.showClubForm = false;
-            loadClubRoom();
-          });
-        });
-      });
-    }
-    Array.prototype.forEach.call(app.querySelectorAll("[data-join-club]"), function(btn){
-      btn.addEventListener("click", function(){
-        var id = Number(btn.getAttribute("data-join-club"));
-        btn.disabled = true;
-        sb.from("club_members").insert({ club_id: id, user_id: state.session.user.id })
-          .then(function(res){ if(res.error){ alert("가입에 실패했습니다."); } loadClubRoom(); });
-      });
-    });
-  }
-
-  render();
+  bar.innerHTML = VIEWS.map(function(v){ return '<button type="button" data-v="' + v.id + '">' + v.label + '</button>'; }).join('') +
+    '<button type="button" id="gfx">화질: 높음</button><button type="button" class="shot" id="shot">📸 이 화면 저장</button>';
+  Array.prototype.forEach.call(bar.querySelectorAll('[data-v]'), function(b){ b.addEventListener('click', function(){ go(b.getAttribute('data-v')); }); });
+  document.getElementById('shot').addEventListener('click', shot);
+  var gb = document.getElementById('gfx');
+  gb.addEventListener('click', function(){ gb.textContent = '화질: ' + (E.toggleGfx() ? '높음' : '가벼움'); });
+  E.hooks.action = function(){};
+  go('plaza');
+  gb.textContent = '화질: ' + (E.gfxHigh() ? '높음' : '가벼움');
+  window.__kit = { engine: E, go: go, THEME: THEME };
 })();
 </script>
-
 </body>
 </html>
