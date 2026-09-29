@@ -6,12 +6,52 @@
 
 ---
 
+> 처음이라면 먼저 [`ONBOARDING.md`](ONBOARDING.md)를 읽어 주세요. 이 문서는 요청문·규칙을 모아 둔 **참고서**예요.
+
+## 0. 빠른 시작 (복사해서 그대로 실행)
+
+Windows는 **Git Bash**에서 실행해요. `minsu`·`겨울마을`만 내 이름·컨셉으로 바꾸면 돼요.
+
+```bash
+# ① 처음 한 번만 — 저장소 받기
+git clone https://github.com/Team-Backpropagation/social-world.git
+cd social-world
+
+# ② 작업 시작 — 최신 main에서 내 브랜치 만들기
+git switch main && git pull
+git switch -c concept/minsu
+
+# ③ 키트 복사본 만들기 (원본 village-scene.html은 고치지 않아요)
+mkdir -p social_world/concept_kit/candidates/minsu
+cp social_world/concept_kit/village-scene.html social_world/concept_kit/candidates/minsu/concept_minsu_겨울마을.html
+
+# ④ AI 작업 → 복사본에 반영 (아래 3장 요청문 사용)
+
+# ⑤ 브라우저로 열어 확인·캡처 (파일 탐색기에서 더블클릭해도 돼요)
+start social_world/concept_kit/candidates/minsu/concept_minsu_겨울마을.html
+#    이름 칸에 "민수_겨울마을" → 화질: 높음 → 9개 장면마다 📸 → 다운로드 폴더에서 옮기기
+mv ~/Downloads/민수_겨울마을_*.png social_world/concept_kit/candidates/minsu/
+
+# ⑥ 올리기
+git add social_world/concept_kit/candidates/minsu
+git commit -m "컨셉 후보: 민수 - 겨울마을"
+git push -u origin concept/minsu
+#    → GitHub에서 [Compare & pull request] → base: main → 대표 캡처 1~2장 + 한 줄 설명
+```
+
+- 후보를 하나 더 만들 땐 같은 폴더에 파일 이름만 바꿔서(`concept_minsu_네온밤.html`) ③~⑥ 반복
+- 작업 중 main이 바뀌었으면 내 브랜치에서 `git pull origin main`
+- 결과 화면이 하얗다 → AI가 파일 중간을 생략한 것. 3-1 방식으로 돌아가거나 끝부분을 다시 요청
+
+---
+
 ## 1. 준비물
 
 | 파일 | 설명 |
 |---|---|
 | `village-scene.html` | 이 파일 하나를 브라우저로 열면 마을이 바로 떠요(로그인·튜토리얼 없음) |
-| `CONCEPT_BRIEF.md` | 지금 보고 있는 문서 |
+| `ONBOARDING.md` | 전체 과정·일정·역할·결정 방법 안내 (처음 읽는 문서) |
+| `CONCEPT_BRIEF.md` | 지금 보고 있는 문서 (요청문·규칙 참고서) |
 | 내 컨셉 자료 | 레퍼런스 이미지, 무드보드, 또는 글로 쓴 컨셉("밤의 네온 마을", "겨울 눈 마을" 등) |
 
 ## 2. 진행 순서
@@ -19,9 +59,9 @@
 1. `village-scene.html`을 열어 원본 모습을 먼저 확인해요. 아래 버튼으로 9개 장면(광장 전경 ~ 내 방)을 볼 수 있고,
    마우스로 끌면 시점을 돌려 볼 수 있어요(휠: 줌). 장면 버튼을 누르면 비교용 기본 각도로 돌아가요.
 2. AI에게 **요청문(3장)** + `village-scene.html` + 컨셉 자료를 줘요.
-3. 받은 HTML을 `concept_<이름>_<컨셉>.html`로 저장하고 브라우저로 열어요. 예: `concept_민수_겨울마을.html`
+3. 받은 HTML을 `concept_<이름>_<컨셉>.html`로 저장하고 브라우저로 열어요. 예: `concept_minsu_겨울마을.html`
 4. 왼쪽 위 입력칸에 후보 이름을 적고, 9개 장면마다 **📸 이 화면 저장**을 눌러요. 파일은 `후보이름_장면.png`로 저장돼요.
-5. HTML과 캡처 9장을 공유 폴더(`social_world/concept_kit/candidates/<이름>/`)에 올려요.
+5. HTML과 캡처 9장을 `social_world/concept_kit/candidates/<이름>/`에 넣어 PR로 올려요(git이 낯설면 공유 드라이브에 올리고 담당자가 대신 커밋).
 6. 팀이 같은 장면끼리 나란히 놓고 비교해 투표해요. 고른 안은 본 프로토타입에 옮겨요(5장).
 
 > 비교할 때는 되도록 **화질: 높음**으로 찍어요. 휴대폰은 기본값이 '가벼움'이라 버튼으로 바꿔 주세요.

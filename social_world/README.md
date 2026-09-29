@@ -74,6 +74,7 @@ npm run dev
 - 순환의 반대편: `risk_agent/README.md`
 
 ## 컨셉아트 키트 (`concept_kit/`)
+- `ONBOARDING.md` — 팀원 온보딩: 후보 만들기 → 제출(PR) → 비교 회의 → 투표 → 적용까지 전체 과정 (처음 읽는 문서)
 - `village-scene.html` — 프로토타입과 같은 3D 엔진으로 마을 장면만 띄우는 파일(로그인 없음). 9개 고정 장면 + 캡처 버튼
 - `CONCEPT_BRIEF.md` — 팀원이 각자 AI 도구에 붙여 넣을 요청문(THEME만 / 꾸미기 구역까지), 체크리스트, 평가 기준
 - `candidates/<이름>/` — 후보 HTML과 캡처를 올리는 곳
