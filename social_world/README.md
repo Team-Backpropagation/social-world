@@ -72,3 +72,8 @@ npm run dev
 - 화면 번호(SW-01~09): `docs/planning/03_화면기획서.docx`
 - DB: `database/README.md`, `database/DB_연결_단계별_실행가이드.md`
 - 순환의 반대편: `risk_agent/README.md`
+
+## 컨셉아트 키트 (`concept_kit/`)
+- `village-scene.html` — 프로토타입과 같은 3D 엔진으로 마을 장면만 띄우는 파일(로그인 없음). 9개 고정 장면 + 캡처 버튼
+- `CONCEPT_BRIEF.md` — 팀원이 각자 AI 도구에 붙여 넣을 요청문(THEME만 / 꾸미기 구역까지), 체크리스트, 평가 기준
+- `candidates/<이름>/` — 후보 HTML과 캡처를 올리는 곳
