@@ -28,3 +28,6 @@ Thumbs.db
 
 # 전달용 압축본
 *.zip
+
+# Claude 작업 캡처·임시 결과물
+Claude outputs/

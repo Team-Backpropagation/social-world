@@ -331,6 +331,58 @@ RLS: `profiles`의 본인 지역·연령대·성별과 같은 행만 select.
 
 ---
 
+## 12. 새 맵·NPC 캐릭터·월드 리포트 반영 (2026-09-29)
+
+실행 파일은 `03_world_update.sql`(여러 번 실행해도 안전). 설계 근거는 `docs/planning/소셜월드_게임흐름_NPC_설계.md`.
+
+### 12-1. NPC 코드 — 내부 코드는 그대로, 화면 이름만 바뀐다
+
+| 코드 | 화면 이름 | 비고 |
+|---|---|---|
+| `psych` | 루미 | 위험 키워드·심각도 |
+| `policy` · `job` · `civil` | 하루 | 세 코드를 모두 하루로 표시. 어떤 분야였는지는 그대로 남는다 |
+| `coco` | 코코 | 신규 |
+| `chief` | 마을이장 | 신규 |
+
+`npc_sessions` · `npc_chat_metrics` · `cohort_feedback`의 허용값 제약을 이름 있는 제약(`*_npc_type_chk`, `cohort_feedback_npc_emphasis_chk`)으로 다시 만들었다.
+
+### 12-2. 기존 테이블 변경
+
+| 테이블 | 변경 | 설명 |
+|---|---|---|
+| `cohort_feedback` | `event_theme text` 추가 | 마을이장이 받는 환류. 이벤트 주제만 — 등급·점수 없음 |
+| `profiles` | `avatar jsonb`, `interests text[]`, `join_goal text`(rest·talk·meet·info) 추가 | 튜토리얼 사전 설문·캐릭터. "요즘 하루" 답은 저장하지 않음. 지역 `OTHER`·나이대 `기타`는 집계 제외 |
+| `missions` | `stage smallint`(1~4) 추가 + 퀘스트 시드 11개 | 퀘스트 1~4단계. 기존 미션 6개도 단계 배정. 제목은 `priority_missions` 키라서 바꾸지 않음 |
+
+### 12-3. 새 테이블
+
+| 테이블 | 단위 | 누가 읽나 | 내용 |
+|---|---|---|---|
+| `club_cheers` | 개인 | 본인만 | 응원 스티커(clap·want·cheer·slow). 같은 동아리 하루 1회 |
+| `world_events` | 이벤트 | 에이전트·관리자만 | 이장 이벤트. `target_*`(먼저 보여줄 코호트)·`reason_note`(근거)는 관리자 전용 |
+| `event_participation` | 개인 | 본인만 | 이벤트 참여 |
+| `npc_demand_logs` | 개인 | 본인만 | 하루·코코 수요: view·recommend·apply_click·self_reported·ineligible |
+| `world_activity_metrics` | 코호트×주 | 에이전트만 | 활동 인원, 단계별 퀘스트 완료, 이벤트 참여 인원, 스티커 수 |
+| `npc_demand_metrics` | 코호트×주×NPC×분야 | 에이전트만 | 수요 집계. `ineligible` = 제도 사각지대 근거 |
+| `world_reports` | 코호트×주 | 에이전트·관리자만 | 이장 월드 리포트. 전체 요약은 `ALL/ALL/U`. `stats`에 문장 속 숫자 원본 |
+
+### 12-4. 뷰·함수
+
+| 이름 | 종류 | 설명 |
+|---|---|---|
+| `club_cheer_counts` | 뷰(로그인 사용자) | 동아리별 스티커 개수만. 누가 남겼는지는 안 보임 |
+| `world_events_public` | 뷰(로그인 사용자) | 진행 중 이벤트의 공개 컬럼 + `featured`(내게 먼저 보여줄지, 정렬용). 대상 코호트·근거는 안 나감 |
+| `aggregate_world_activity()` | 함수(service_role) | 퀘스트·이벤트·스티커 → `world_activity_metrics`(live) |
+| `aggregate_npc_demand()` | 함수(service_role) | 수요 로그 → `npc_demand_metrics`(live) |
+
+두 뷰는 테이블 소유자 권한으로 실행돼 RLS를 우회한다(의도한 동작 — 개수·공개 컬럼만 내보내기 위함). Supabase 린터가 "security definer view" 경고를 띄울 수 있다.
+
+### 12-5. 남은 것
+
+- 집계 함수는 k-익명성을 적용하지 않고 `user_count`만 저장한다(02와 같은 방식). 5명 미만 코호트 숨김은 에이전트·대시보드에서 한다
+- `featured`로 시민이 "내 집단이 이벤트 대상"임을 추정할 수는 있다. 이벤트 문구가 중립이라 위험 정보는 드러나지 않지만, 필요하면 노출 순서만 섞는 방식으로 바꿀 수 있다
+- 합성 배경(`source='synthetic'`) 생성은 아직 `npc_chat_metrics`만 있다. 시연용으로 월드 활동·수요 합성 배경이 필요하면 `risk_agent/synth_micro.py`에 추가
+
 ## 부록. 테이블 전체 목록
 
 | 모듈 | 테이블 | 용도 |

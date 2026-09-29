@@ -6,17 +6,19 @@
 |---|---|---|
 | `01_socialworld_base.sql` | 소셜 월드 기본 5개 테이블(profiles·missions·mission_progress·clubs·club_members) + RLS + 시연용 미션 4개 | ✅ 적용됨 |
 | `02_loop_schema.sql` | 위험 탐지 에이전트와의 순환: npc_sessions(신호 컬럼), npc_chat_metrics(live/synthetic), escalations, cohort_feedback, 함수 2개, 환류용 미션 2개 | ✅ 적용됨 |
+| `03_world_update.sql` | 새 맵·NPC 캐릭터·월드 리포트(2026-09-29): NPC 코드에 coco·chief 추가, cohort_feedback.event_theme, missions.stage(퀘스트 1~4단계)+시드 11개, profiles.avatar·interests·join_goal(튜토리얼), 새 테이블 8개(club_cheers·world_events·event_participation·npc_demand_logs·world_activity_metrics·npc_demand_metrics·world_reports) + 뷰 2개 + 집계 함수 2개 | ❌ 아직 적용 안 함 — 팀 확인 후 실행 |
 | `full_schema_reference.sql` | 목표 설계 전체(테이블 31·뷰 3·RLS 44). 관제 대시보드의 케이스·보고서·권한까지 포함 | ❌ 참고용 — 아직 적용 안 함 |
 | `DB_테이블_정의서.md` | 전체 설계의 원칙·ERD·테이블 정의 + **11장 순환 연결로 실제 구현된 것** | |
 | `DB_연결_단계별_실행가이드.md` | Supabase 프로젝트 생성, 카카오 로그인, React 연결 + **13장 순환 연결 절차** | |
 | `04_DB테이블정의서.docx` | 정의서의 2026-09-22 공유용 사본(11장 없음) | |
 
 01·02는 **여러 번 실행해도 안전**하다(`if not exists`, `drop policy if exists`, 시드 중복 방지). 로컬 PostgreSQL 16에서 01→02→01→02 순서로 두 번 돌려 오류 없이 테이블 9개·미션 6개가 되는 것을 확인했다.
+03도 같다. 01→02→03→03→02→03 순서로 돌려 오류가 없고, 시민 역할에서 집계·이벤트 원본 테이블이 막히는 것, 응원 스티커 하루 1회 제한, 집계 함수 3개 결과를 확인했다(Supabase `auth` 스키마는 스텁으로 대체).
 
 ## 새 Supabase 프로젝트에 처음부터 세팅하기
 
 1. Supabase 대시보드 → **SQL Editor** → New query → `01_socialworld_base.sql` 전체 붙여넣기 → Run
-2. 같은 방법으로 `02_loop_schema.sql` → Run
+2. 같은 방법으로 `02_loop_schema.sql` → Run, 이어서 `03_world_update.sql` → Run
 3. **Authentication → Sign In / Providers → Anonymous Sign-Ins** 켜기
    (소셜 월드 데모의 "게스트로 들어가기"가 익명 로그인을 쓴다. 카카오 로그인은 `DB_연결_단계별_실행가이드.md` 5장)
 4. 키 두 종류를 구분한다
