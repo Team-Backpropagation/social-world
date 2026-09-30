@@ -15,7 +15,7 @@
   1. **위험 탐지 에이전트**(관리자용) — 통신·카드로 지역×성별×연령대 코호트의 고립 위험을 5단계로 판단 → 원인 분해 → 복지자원 추천 → 공무원 행동 제안 → 보고서 초안.
   2. **소셜 월드**(시민용, 청년 20~30대) — 마을형 웹게임. NPC 대화 신호가 익명 집계되어 에이전트로 들어가고, 에이전트 판단이 다시 게임 내 추천(NPC·미션)으로 돌아온다.
 - **현재 상태**: 전처리 → 위험 탐지 ①~⑩ → Supabase 순환 → 관리자 대시보드까지 **끝에서 끝까지 한 번 실제로 돈다**(규칙 기반·대본형 NPC). LLM·RAG·주민센터·케이스관리·외부 공공데이터·KOSIS 검증은 아직.
-- **바로 돌려보려면**: 4장. 6단계로 전처리부터 소셜 월드 순환까지 돈다. Supabase 없이 관리자 대시보드까지만 보려면 1 → 4(`--supabase` 없이) → 5단계, 약 2분 반.
+- **바로 돌려보려면**: 4-A. Supabase·`.env` 없이 명령어 몇 줄로 관리자 대시보드까지 나온다(약 2분 반). 소셜 월드 순환까지는 4-B.
 - **가장 중요한 주의**: 실제 청년 데이터에서는 **뚜렷한 고립 신호가 나오지 않았다.** 분위수 등급 때문에 "위험"이 표시될 뿐이므로 이를 고립 발견으로 보고하면 안 된다.
 
 ---
@@ -117,11 +117,49 @@ SSTeamProject/
 
 ## 4. 실행 방법
 
-전처리부터 소셜 월드 순환까지 **6단계**다. 1·4·5단계는 2026-09-30 실제 실행으로 확인했다.
-Supabase가 걸린 0·2·3·6단계는 팀 프로젝트 키가 필요해 이 문서 작성 환경에서는 검증하지 못했다
-(명령어는 `risk_agent/README.md`와 코드에서 확인한 것).
+목적에 따라 경로가 둘이다. **처음이면 4-A부터.**
 
-### 0단계 — 최초 한 번만
+| 경로 | 필요한 것 | 결과 |
+|---|---|---|
+| **4-A. 대시보드까지** | 원본 데이터만. **Supabase·`.env` 불필요** | 관리자 대시보드 |
+| **4-B. 소셜 월드 순환까지** | 4-A + Supabase 프로젝트 + `.env` | 게임 대화 → 에이전트 → 게임 추천 |
+
+### 4-A. 대시보드까지 — Supabase 없이 (약 2분 반)
+
+`.env`를 만들 필요가 없다. 2026-09-30에 `.env`를 지운 상태로 실행해 대시보드 생성까지 확인했다.
+
+```bash
+cd data_preprocessing
+pip install -r requirements.txt
+python run_pipeline.py --check          # 원본 19개 파일 점검
+python run_pipeline.py                  # 50/50 검증 통과해야 정상
+
+cd ..\risk_agent                        # macOS/리눅스는 cd ../risk_agent
+pip install pandas numpy
+python run_pipeline.py --youth          # --supabase 붙이지 않는다
+python build_dashboard.py outputs_youth
+```
+
+`risk_agent\outputs_youth\dashboard.html`을 **Chrome이나 Edge로** 연다.
+
+여기까지 되면 4-B는 소셜 월드 순환을 직접 돌려볼 때만 하면 된다.
+
+---
+
+### 4-B. 소셜 월드 순환까지 — 6단계
+
+1·4·5단계는 2026-09-30 실제 실행으로 확인했다. Supabase가 걸린 0·2·3·6단계는 팀 프로젝트
+키가 필요해 이 문서 작성 환경에서는 검증하지 못했다(명령어는 `risk_agent/README.md`와
+코드에서 확인한 것).
+
+**개인 Supabase 프로젝트로 돌릴 때 주의**: 연결 정보가 **두 군데**에 따로 있다.
+`risk_agent/.env`(에이전트용 URL + secret 키)와 `social_world/socialworld-demo.html`
+352~353줄(게임용 URL + anon 키). **둘 다** 자기 프로젝트 것으로 바꿔야 한다. `.env`만 바꾸면
+게임은 팀 DB에, 에이전트는 개인 DB에 붙어서 **에러 없이 순환이 끊긴다.** 또 새 프로젝트는
+Authentication → Sign In / Providers → **Anonymous Sign-Ins를 켜야** 게스트 입장이 된다.
+팀장의 secret 키를 받아 쓰지 말 것 — 그러면 개인용이 아니라 팀 공용 DB에 쓰게 된다.
+
+#### 0단계 — 최초 한 번만
 
 팀 공용 Supabase를 이미 쓰고 있으면 SQL은 건너뛴다. Supabase 대시보드 → SQL Editor →
 New query에 순서대로 붙여넣고 Run. 여러 번 실행해도 안전하다.
@@ -136,14 +174,19 @@ database/03_world_update.sql         3D 마을·캐릭터·퀘스트
 
 ```bash
 cd risk_agent
-cp .env.example .env
+copy .env.example .env          # Windows 명령 프롬프트(cmd)
+cp .env.example .env            # PowerShell · macOS · 리눅스
 ```
+
+**Windows cmd에서 `cp`를 쓰면 "내부 또는 외부 명령이 아닙니다" 오류가 난다.** cmd는 `copy`다.
+탐색기에서 직접 복사해도 되지만, 탐색기는 `.`으로 시작하는 파일 이름을 거부하거나 확장자를
+숨겨 `.env.txt`로 저장하는 경우가 있으니 명령어를 권한다.
 
 `SUPABASE_URL`과 `SUPABASE_SECRET_KEY`를 채운다. Project Settings → API Keys →
 **Secret keys**의 `sb_secret_...` 값이다. `sb_publishable_...`은 여기서 동작하지 않는다.
 **이 키는 커밋·공유 금지.** 브라우저에 들어가는 anon key와 다르다.
 
-### 1단계 — 전처리 (약 2분)
+#### 1단계 — 전처리 (약 2분)
 
 ```bash
 cd data_preprocessing
@@ -154,7 +197,7 @@ python run_pipeline.py              # clean/ 12개 생성
 
 `검증 요약: 50/50 항목 일치`가 떠야 정상. `clean/youth_master_daily.csv`가 다음 단계 입력이다.
 
-### 2단계 — 연결 확인과 배경 데이터 (최초 한 번)
+#### 2단계 — 연결 확인과 배경 데이터 (최초 한 번)
 
 ```bash
 cd ../risk_agent
@@ -166,7 +209,7 @@ python supabase_sync.py seed        # 청년 8코호트 × 6개월 합성 배경
 `seed`가 필요한 이유: 시연에서 대화 1~2건만으로는 코호트 집계가 움직이지 않는다.
 배경을 깔아두고 그 위에 실제 대화를 얹어야 변화가 보인다.
 
-### 3단계 — 게임에서 대화 남기기
+#### 3단계 — 게임에서 대화 남기기
 
 `social_world/socialworld-demo.html`을 브라우저로 연다. 설치 없이 팀 Supabase에 바로 붙는다.
 
@@ -177,7 +220,7 @@ python supabase_sync.py seed        # 청년 8코호트 × 6개월 합성 배경
 로컬 테스트 기준 3건부터 해당 코호트의 환류가 바뀐다. NPC 창을 닫을 때 `npc_sessions`에
 1행 저장되고 **대화 원문은 저장되지 않는다.**
 
-### 4단계 — 에이전트 실행 (약 10초)
+#### 4단계 — 에이전트 실행 (약 10초)
 
 ```bash
 cd risk_agent
@@ -187,7 +230,7 @@ python run_pipeline.py --youth --supabase
 `--supabase`가 통신·카드에 NPC 대화 신호를 합쳐 돌리고 결과를 `cohort_feedback`에 다시 쓴다.
 **이 플래그가 없으면 순환이 끊긴다**(통신·카드만 사용). 출력에 코호트별 세션 수와 쓴 환류가 표시된다.
 
-### 5단계 — 대시보드 생성
+#### 5단계 — 대시보드 생성
 
 ```bash
 python build_dashboard.py outputs_youth
@@ -195,7 +238,7 @@ python build_dashboard.py outputs_youth
 
 `outputs_youth/dashboard.html`을 **Chrome 또는 Edge로** 연다.
 
-### 6단계 — 순환 확인
+#### 6단계 — 순환 확인
 
 소셜 월드를 새로고침한다. 세 가지가 보이면 한 바퀴 돈 것이다.
 
@@ -208,7 +251,7 @@ python build_dashboard.py outputs_youth
 
 ---
 
-### 두 번째 실행부터
+#### 두 번째 실행부터
 
 0·2단계는 끝났으므로 짧아진다.
 
@@ -242,6 +285,8 @@ python build_dashboard.py outputs_youth
 
 **대시보드가 빈 화면** → VS Code 미리보기나 탐색기 미리보기 창으로 열었다. JavaScript를
 실행하지 않는다. **Chrome이나 Edge로 열어야 한다.**
+
+**`.env` 만들다 오류가 난다** → 대시보드까지만 볼 거라면 `.env`가 필요 없다. 4-A로 가면 된다. 순환까지 해야 한다면 Windows cmd에서는 `cp`가 아니라 `copy .env.example .env`.
 
 **폴더를 못 찾는다** → 전처리 폴더가 `preprocessing`에서 **`data_preprocessing`으로 바뀌었다.**
 

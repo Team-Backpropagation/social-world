@@ -206,7 +206,7 @@ var DEMO_AVATAR = { hair: 'short', hairColor: '#3B2A20', outfit: '#E9B44C', acc:
       const key = color + JSON.stringify(o, (k, v) => (v && v.isTexture ? v.uuid : v));
       if (matCache.has(key)) return matCache.get(key);
       const m = patch(new THREE.MeshToonMaterial({
-        color, gradientMap: TOON, flatShading: !!o.flat,
+        color, gradientMap: TOON,
         emissive: o.em || '#000000', emissiveIntensity: o.ei ?? 0,
         transparent: !!o.transparent, opacity: o.opacity ?? 1, map: o.map || null, vertexColors: !!o.vc,
         alphaTest: o.alphaTest || 0, side: o.double ? THREE.DoubleSide : THREE.FrontSide
