@@ -1824,7 +1824,28 @@
   function refreshProfile(){
     if(!state.session) { state.profile = null; return Promise.resolve(); }
     return sb.from("profiles").select("*").eq("id", state.session.user.id).maybeSingle()
-      .then(function(res){ state.profile = res.data || null; });
+      .then(function(res){ state.profile = res.data || null; return syncLocalProfile(); });
+  }
+
+  // DB에 캐릭터·관심사·가입목표 칸(03_world_update.sql)이 없던 시절 이 브라우저에만 남겨둔 값을,
+  // 칸이 생긴 뒤 처음 들어올 때 DB로 옮긴다. DB에 이미 값이 있으면 덮어쓰지 않는다.
+  function syncLocalProfile(){
+    var p = state.profile;
+    if(!p || !("avatar" in p)) return Promise.resolve();          // 칸이 아직 없으면 그대로 둔다
+    var patch = {}, localAv = null, extra = null;
+    try { var r1 = localStorage.getItem(avatarKey()); if(r1) localAv = JSON.parse(r1); } catch(e){}
+    try { var r2 = localStorage.getItem(extraKey());  if(r2) extra   = JSON.parse(r2); } catch(e){}
+    if(!p.avatar && localAv) patch.avatar = localAv;
+    if(extra){
+      if((!p.interests || !p.interests.length) && extra.interests && extra.interests.length) patch.interests = extra.interests;
+      if(!p.join_goal && extra.join_goal) patch.join_goal = extra.join_goal;
+    }
+    if(!Object.keys(patch).length) return Promise.resolve();
+    return sb.from("profiles").update(patch).eq("id", p.id).then(function(res){
+      if(res.error){ console.warn("브라우저 보관값을 DB로 옮기지 못했습니다(다음 접속 때 다시 시도):", res.error.message); return; }
+      Object.assign(p, patch);
+      try { localStorage.removeItem(avatarKey()); localStorage.removeItem(extraKey()); } catch(e){}
+    });
   }
 
   // ⑩ 환류 — 에이전트가 쓴 "내 코호트" 개인화 지시를 읽는다. RLS가 본인 코호트 행만 돌려준다.
@@ -2167,9 +2188,12 @@
   }
 
   // 저장 — 팀 DB에 03_world_update.sql(avatar·interests·join_goal 칸)이 아직 없으면
-  // 기본 칸만 저장하고 캐릭터는 이 브라우저에 보관한다(프로토타입 폴백).
+  // 기본 칸만 DB에 저장하고 캐릭터·관심사·가입목표는 이 브라우저에 보관한다(프로토타입 폴백).
+  // 칸이 생긴 뒤 첫 접속 때 syncLocalProfile()이 DB로 옮긴다.
   function isMissingColumn(err){ return err && /column|schema cache/i.test(err.message || ""); }
   function keepAvatarLocally(av){ try { localStorage.setItem(avatarKey(), JSON.stringify(av)); } catch(e){} }
+  function extraKey(){ return "sw_profile_extra_" + (state.session ? state.session.user.id : "guest"); }
+  function keepExtraLocally(x){ try { localStorage.setItem(extraKey(), JSON.stringify(x)); } catch(e){} }
 
   function saveProfileFromSurvey(){
     var a = state.ob.answers, av = state.ob.avatar;
@@ -2180,8 +2204,10 @@
     return sb.from("profiles").upsert(full).then(function(res){
       if(!res.error) return true;
       if(!isMissingColumn(res.error)){ alert("저장에 실패했습니다: " + res.error.message); return false; }
-      console.warn("profiles에 튜토리얼 칸이 없어 기본 정보만 저장합니다(03_world_update.sql 적용 전).");
+      console.warn("profiles에 튜토리얼 칸이 없어 기본 정보만 DB에 저장합니다(03_world_update.sql 적용 전).");
       keepAvatarLocally(av);
+      keepExtraLocally({ interests: a.interests || [], join_goal: a.goal || null });
+      showToast("캐릭터·관심사는 이 브라우저에 임시 보관했어요. DB 준비가 끝나면 다음 접속 때 자동으로 옮겨져요.");
       return sb.from("profiles").upsert(base).then(function(r2){
         if(r2.error){ alert("저장에 실패했습니다: " + r2.error.message); return false; }
         return true;

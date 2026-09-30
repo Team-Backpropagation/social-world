@@ -81,6 +81,11 @@ class SupabaseRest:
             hint = ""
             if e.code in (401, 403):
                 hint = "\n→ 키가 틀렸거나 publishable 키를 넣었을 수 있습니다. secret 키인지 확인하세요."
+            elif "PGRST204" in detail or "column" in detail:
+                # 테이블은 있는데 컬럼이 없다 = DB 스키마가 코드보다 오래됨
+                hint = ("\n→ 테이블은 있지만 컬럼이 없습니다. DB에 적용된 스키마가 지금 코드보다 오래된 버전입니다."
+                        "\n  database/02_loop_schema.sql(최신)을 SQL Editor에서 다시 실행하세요. 여러 번 실행해도 안전합니다."
+                        "\n  그래도 같은 오류면 SQL Editor에서  notify pgrst, 'reload schema';  를 한 번 실행하세요.")
             elif e.code == 404 or "Could not find" in detail:
                 hint = "\n→ 테이블·함수가 없습니다. database/02_loop_schema.sql을 Supabase SQL Editor에서 먼저 실행하세요 (database/README.md 참고)."
             raise SystemExit(f"Supabase {method} {path} 실패 ({e.code}): {detail}{hint}")

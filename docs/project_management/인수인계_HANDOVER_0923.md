@@ -152,23 +152,22 @@ python build_dashboard.py outputs_youth
 키가 필요해 이 문서 작성 환경에서는 검증하지 못했다(명령어는 `risk_agent/README.md`와
 코드에서 확인한 것).
 
-**개인 Supabase 프로젝트로 돌릴 때 주의**: 연결 정보가 **두 군데**에 따로 있다.
-`risk_agent/.env`(에이전트용 URL + secret 키)와 `social_world/socialworld-demo.html`
-352~353줄(게임용 URL + anon 키). **둘 다** 자기 프로젝트 것으로 바꿔야 한다. `.env`만 바꾸면
-게임은 팀 DB에, 에이전트는 개인 DB에 붙어서 **에러 없이 순환이 끊긴다.** 또 새 프로젝트는
-Authentication → Sign In / Providers → **Anonymous Sign-Ins를 켜야** 게스트 입장이 된다.
-팀장의 secret 키를 받아 쓰지 말 것 — 그러면 개인용이 아니라 팀 공용 DB에 쓰게 된다.
+#### 0단계 — 스키마 맞추기 (SQL 파일이 바뀔 때마다)
 
-#### 0단계 — 최초 한 번만
-
-팀 공용 Supabase를 이미 쓰고 있으면 SQL은 건너뛴다. Supabase 대시보드 → SQL Editor →
-New query에 순서대로 붙여넣고 Run. 여러 번 실행해도 안전하다.
+Supabase는 **팀 공용 프로젝트 하나**만 쓴다. `database/`의 SQL 파일이 바뀌면 팀 DB에 다시
+적용해야 한다. Supabase 대시보드 → SQL Editor → New query에 순서대로 붙여넣고 Run.
+`if not exists`로 짜여 있어 여러 번 실행해도 기존 데이터는 안전하다.
 
 ```
-database/01_socialworld_base.sql     새 프로젝트일 때만
+database/01_socialworld_base.sql     팀 DB에는 이미 적용됨 (새로 만들 때만)
 database/02_loop_schema.sql          순환용 테이블 4개 + 함수 2개
-database/03_world_update.sql         3D 마을·캐릭터·퀘스트
+database/03_world_update.sql         캐릭터·관심사·가입목표 칸, 3D 마을 테이블
 ```
+
+**2026-09-30 사고 기록**: 팀 DB에 02가 옛 버전, 03이 미적용인 채로 몇 주가 지났다. 그 결과
+`seed`가 `keyword_tags` 칸이 없다는 오류(PGRST204)로 멈췄고, 그 사이 가입한 테스터 11명의
+관심사·가입목표는 게임이 조용히 버려 **복구할 수 없게** 됐다. SQL을 고친 사람은 팀 DB 적용까지
+하고 팀에 알릴 것.
 
 그다음 키를 넣는다.
 
@@ -299,7 +298,7 @@ python build_dashboard.py outputs_youth
 빼고 돌렸거나, 2단계 `seed`를 하지 않아 배경이 없다.
 
 **캐릭터가 DB에 저장되지 않는다** → 팀 Supabase에 `03_world_update.sql`이 적용되지 않았다.
-이때는 기본 정보만 저장되고 캐릭터는 그 브라우저에만 남는다(퀘스트 기록 건너뜀).
+이때는 기본 정보만 DB에 저장되고 캐릭터·관심사·가입목표는 그 브라우저에 임시 보관된다(화면에 안내가 뜸). 03을 적용한 뒤 같은 브라우저로 다시 들어오면 자동으로 DB로 옮겨진다.
 
 ### 선택 — 합성 데이터로 탐지 성능 채점
 
