@@ -15,6 +15,7 @@
   1. **위험 탐지 에이전트**(관리자용) — 통신·카드로 지역×성별×연령대 코호트의 고립 위험을 5단계로 판단 → 원인 분해 → 복지자원 추천 → 공무원 행동 제안 → 보고서 초안.
   2. **소셜 월드**(시민용, 청년 20~30대) — 마을형 웹게임. NPC 대화 신호가 익명 집계되어 에이전트로 들어가고, 에이전트 판단이 다시 게임 내 추천(NPC·미션)으로 돌아온다.
 - **현재 상태**: 전처리 → 위험 탐지 ①~⑩ → Supabase 순환 → 관리자 대시보드까지 **끝에서 끝까지 한 번 실제로 돈다**(규칙 기반·대본형 NPC). LLM·RAG·주민센터·케이스관리·외부 공공데이터·KOSIS 검증은 아직.
+- **바로 돌려보려면**: 4장. 6단계로 전처리부터 소셜 월드 순환까지 돈다. Supabase 없이 관리자 대시보드까지만 보려면 1 → 4(`--supabase` 없이) → 5단계, 약 2분 반.
 - **가장 중요한 주의**: 실제 청년 데이터에서는 **뚜렷한 고립 신호가 나오지 않았다.** 분위수 등급 때문에 "위험"이 표시될 뿐이므로 이를 고립 발견으로 보고하면 안 된다.
 
 ---
@@ -49,7 +50,7 @@ SSTeamProject/
 ├─ social_world/
 │   ├─ socialworld-demo.html      단일 HTML 데모 — 순환 연결 ✅
 │   └─ react_app/                 Vite + React 19 + Supabase — 순환 미연결
-├─ database/                      01_socialworld_base.sql, 02_loop_schema.sql, full_schema_reference.sql(참고용), 정의서·연결가이드
+├─ database/                      01_socialworld_base.sql, 02_loop_schema.sql, 03_world_update.sql, full_schema_reference.sql(참고용), 정의서·연결가이드
 └─ docs/
     ├─ planning/                  통합기획서(.md가 기준), 서비스·기능(F-01~46)·화면(SW-01~09) 기획서 docx, 지표 설계 노트
     ├─ project_management/        구현_현황표.md, WBS 전체안(43작업)·축소안, 로드맵(9/17), 현황판(9/23 html)
@@ -114,31 +115,167 @@ SSTeamProject/
 
 ---
 
-## 4. 실행 방법 (저장소 루트에서)
+## 4. 실행 방법
+
+전처리부터 소셜 월드 순환까지 **6단계**다. 1·4·5단계는 2026-09-30 실제 실행으로 확인했다.
+Supabase가 걸린 0·2·3·6단계는 팀 프로젝트 키가 필요해 이 문서 작성 환경에서는 검증하지 못했다
+(명령어는 `risk_agent/README.md`와 코드에서 확인한 것).
+
+### 0단계 — 최초 한 번만
+
+팀 공용 Supabase를 이미 쓰고 있으면 SQL은 건너뛴다. Supabase 대시보드 → SQL Editor →
+New query에 순서대로 붙여넣고 Run. 여러 번 실행해도 안전하다.
+
+```
+database/01_socialworld_base.sql     새 프로젝트일 때만
+database/02_loop_schema.sql          순환용 테이블 4개 + 함수 2개
+database/03_world_update.sql         3D 마을·캐릭터·퀘스트
+```
+
+그다음 키를 넣는다.
 
 ```bash
-# 1) 전처리 — DATA/ 19개 파일 준비 후 (약 2분, 검증 항목 전부 OK)
-cd data_preprocessing && pip install -r requirements.txt
-python run_pipeline.py --check      # 파일 점검
-python run_pipeline.py              # clean/ 생성
-python -c "from src import merge_youth as m; m.save(m.build_youth_master())"   # 청년 마스터
-cd ..
-
-# 2) 위험 탐지 에이전트
 cd risk_agent
-python run_pipeline.py              # 합성 24코호트 → outputs/
-python validate.py                  # 심은 원형 회수 채점
-python run_pipeline.py --youth      # 실제 청년 8코호트 → outputs_youth/
-python build_dashboard.py outputs_youth   # dashboard.html은 Chrome/Edge로 (VS Code 미리보기 X)
+cp .env.example .env
+```
 
-# 3) 순환까지 (risk_agent/.env에 SUPABASE_SECRET_KEY 필요)
-python supabase_sync.py check       # 테이블 4개 ✓
-python supabase_sync.py seed        # 시연용 합성 배경(source='synthetic')
+`SUPABASE_URL`과 `SUPABASE_SECRET_KEY`를 채운다. Project Settings → API Keys →
+**Secret keys**의 `sb_secret_...` 값이다. `sb_publishable_...`은 여기서 동작하지 않는다.
+**이 키는 커밋·공유 금지.** 브라우저에 들어가는 anon key와 다르다.
+
+### 1단계 — 전처리 (약 2분)
+
+```bash
+cd data_preprocessing
+pip install -r requirements.txt
+python run_pipeline.py --check      # 원본 19개 파일 점검
+python run_pipeline.py              # clean/ 12개 생성
+```
+
+`검증 요약: 50/50 항목 일치`가 떠야 정상. `clean/youth_master_daily.csv`가 다음 단계 입력이다.
+
+### 2단계 — 연결 확인과 배경 데이터 (최초 한 번)
+
+```bash
+cd ../risk_agent
+pip install pandas numpy
+python supabase_sync.py check       # 테이블 4개 ✓ 떠야 다음으로
+python supabase_sync.py seed        # 청년 8코호트 × 6개월 합성 배경(source='synthetic')
+```
+
+`seed`가 필요한 이유: 시연에서 대화 1~2건만으로는 코호트 집계가 움직이지 않는다.
+배경을 깔아두고 그 위에 실제 대화를 얹어야 변화가 보인다.
+
+### 3단계 — 게임에서 대화 남기기
+
+`social_world/socialworld-demo.html`을 브라우저로 연다. 설치 없이 팀 Supabase에 바로 붙는다.
+
+게스트로 체험하기 → 사전 설문에서 **지역·나이대·성별을 반드시 채운다**(성별을 비우면
+코호트가 특정되지 않아 집계에 들어가지 않는다) → 튜토리얼 → 광장 → 심리상담 NPC와 대화.
+
+무거운 선택지로 **3회 정도** — "지치고 힘들어요 → 속얘기할 사람이 별로 없어요 → 몇 달째예요".
+로컬 테스트 기준 3건부터 해당 코호트의 환류가 바뀐다. NPC 창을 닫을 때 `npc_sessions`에
+1행 저장되고 **대화 원문은 저장되지 않는다.**
+
+### 4단계 — 에이전트 실행 (약 10초)
+
+```bash
+cd risk_agent
+python run_pipeline.py --youth --supabase
+```
+
+`--supabase`가 통신·카드에 NPC 대화 신호를 합쳐 돌리고 결과를 `cohort_feedback`에 다시 쓴다.
+**이 플래그가 없으면 순환이 끊긴다**(통신·카드만 사용). 출력에 코호트별 세션 수와 쓴 환류가 표시된다.
+
+### 5단계 — 대시보드 생성
+
+```bash
+python build_dashboard.py outputs_youth
+```
+
+`outputs_youth/dashboard.html`을 **Chrome 또는 Edge로** 연다.
+
+### 6단계 — 순환 확인
+
+소셜 월드를 새로고침한다. 세 가지가 보이면 한 바퀴 돈 것이다.
+
+1. 광장의 심리상담 NPC 머리 위 "💬 오늘 이야기 나눠요" 말풍선
+2. 미션방에서 추천 미션이 맨 위 + "추천" 배지
+3. 대시보드에서 같은 코호트의 '심리상담 신호' 막대 상승
+
+시민 화면에는 위험 등급·점수가 노출되지 않는다. `cohort_feedback`에 등급 컬럼 자체가 없어
+구조적으로 막혀 있다.
+
+---
+
+### 두 번째 실행부터
+
+0·2단계는 끝났으므로 짧아진다.
+
+```bash
+# 게임에서 대화 남긴 뒤
+cd risk_agent
 python run_pipeline.py --youth --supabase
 python build_dashboard.py outputs_youth
 ```
 
-**시연 시나리오**(실연 확인됨): `socialworld-demo.html` 열기 → 게스트 입장 → 강남구·20대·여성(성별 필수) → 심리상담 NPC와 무거운 선택지로 3회 대화 → `run_pipeline.py --youth --supabase` → 새로고침 시 심리상담 NPC 말풍선·추천 미션 상단 → 대시보드에서 해당 코호트 심리상담 신호 상승 확인.
+원본 데이터가 바뀌지 않으면 전처리를 다시 돌릴 필요 없다. 업종 분류나 탐지 임계값만
+바꿨다면 `cd data_preprocessing && python run_pipeline.py --only youth` (약 1초).
+
+### 왜 이 순서인가
+
+`run_pipeline.py --youth`의 입력이 전처리 산출물이므로 1단계를 건너뛰면 에이전트가 멈춘다.
+반대로 전처리만 하면 위험 등급·추천이 없어 대시보드에 채울 내용이 없다. 4·5단계가 분리된
+이유는 에이전트가 CSV·JSON을 만들고 `build_dashboard.py`가 그것을 HTML에 채우는 구조이기 때문이다.
+3단계가 4단계보다 앞인 것도 같은 이유 — 대화가 DB에 있어야 에이전트가 그것을 읽는다.
+
+### 단계별 정상 출력
+
+| 단계 | 이것이 나와야 정상 |
+|---|---|
+| 1 전처리 | `검증 요약: 50/50 항목 일치` · `clean/`에 CSV 12개 |
+| 2 연결 | 테이블 4개에 ✓ |
+| 4 에이전트 | `[2/10 정합] split 라벨과 1,472행 전부 일치` · `[7/10 우선순위] Lv.3 이상 5개 코호트` |
+| 5 대시보드 | `dashboard.html 생성 (46 KB)` |
+
+### 여기서 막힌다 (실제로 겪은 것들)
+
+**대시보드가 빈 화면** → VS Code 미리보기나 탐색기 미리보기 창으로 열었다. JavaScript를
+실행하지 않는다. **Chrome이나 Edge로 열어야 한다.**
+
+**폴더를 못 찾는다** → 전처리 폴더가 `preprocessing`에서 **`data_preprocessing`으로 바뀌었다.**
+
+**에이전트가 입력을 못 찾는다** → `--youth`는 `../data_preprocessing/clean/`을 자동 탐색한다.
+위치가 다르면 직접 준다: `python run_pipeline.py --youth <csv 경로>`
+
+**전처리 검증이 50개보다 적게 끝난다** → 구버전 코드다. 41개로 끝나면 청년 단계(7·8)가 없는 버전.
+
+**대화를 3회 했는데 환류가 안 바뀐다** → 사전 설문에서 성별을 비웠거나, `--supabase`를
+빼고 돌렸거나, 2단계 `seed`를 하지 않아 배경이 없다.
+
+**캐릭터가 DB에 저장되지 않는다** → 팀 Supabase에 `03_world_update.sql`이 적용되지 않았다.
+이때는 기본 정보만 저장되고 캐릭터는 그 브라우저에만 남는다(퀘스트 기록 건너뜀).
+
+### 선택 — 합성 데이터로 탐지 성능 채점
+
+실제 청년 데이터에는 정답 라벨이 없다. 그래서 합성 데이터에 고립 원형을 심어두고 에이전트가
+그것을 되찾는지 채점한다. 심사에서 탐지 성능을 보일 때 쓴다.
+
+```bash
+cd risk_agent
+python run_pipeline.py              # 합성 24코호트 → outputs/
+python validate.py                  # 심은 원형 회수 채점 (실패 시 exit 1)
+python build_dashboard.py           # outputs/dashboard.html
+```
+
+### 참고
+
+`react_app/`은 `npm install && npm run dev`로 돌아가지만 **순환에 아직 연결되지 않았다.**
+시연은 단일 HTML 데모로 한다.
+
+위기 선택지("사실 다 그만두고 싶을 때가 있어요")를 고르면 109·1577-0199 안내가 즉시 뜨고
+`escalations`에 지역·시각·NPC 종류만 남는다(user_id 없음). 관리자 대시보드 상단 알림에 뜨므로
+시연에서 일부러 보여줄 수 있다.
 
 ---
 

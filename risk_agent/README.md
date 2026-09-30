@@ -37,7 +37,7 @@ python build_dashboard.py
 
 ```bash
 cd ../data_preprocessing
-python -c "from src import merge_youth as m; m.save(m.build_youth_master())"
+python run_pipeline.py --only youth
 ```
 
 ## 전체 순환 — 소셜 월드 ↔ 위험 탐지 에이전트 (Supabase)
