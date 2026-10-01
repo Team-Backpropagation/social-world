@@ -288,7 +288,9 @@
   body.in-world{overflow:hidden;background:#EBD7AE}
   body.in-world #banner, body.in-world #app{display:none}
   body:not(.in-world) .world-ui{display:none !important}
-  .hud-title{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));left:16px;z-index:2;background:rgba(255,248,236,.94);border-radius:18px;
+  #hud-minimap{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));left:16px;z-index:2;width:150px;height:150px;border-radius:50%;
+    opacity:.8;pointer-events:none;box-shadow:0 5px 0 rgba(122,75,46,.18),0 0 0 3px rgba(255,248,236,.9)}
+  .hud-title{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));left:182px;z-index:2;background:rgba(255,248,236,.94);border-radius:18px;
     padding:11px 18px 12px;box-shadow:0 5px 0 rgba(122,75,46,.16);pointer-events:none}
   .hud-title h1{margin:0;font-family:'Gowun Batang',serif;font-weight:700;font-size:25px;line-height:1.2}
   .hud-title p{margin:2px 0 0;font-size:13px;color:#5A4A3C}
@@ -320,7 +322,7 @@
   #fade{position:fixed;inset:0;background:#FFF8EC;opacity:0;pointer-events:none;transition:opacity .4s ease;z-index:20}
   #fade.on{opacity:1}
   .sw-toast{background:#2F3642;color:#FFF8EC;border-radius:999px;z-index:30;bottom:calc(128px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 32px);text-align:center}
-  @media (max-width:560px){ .hud-title h1{font-size:20px} .hud-title{padding:9px 14px} .hud-help{font-size:12.5px;padding:8px 14px}
+  @media (max-width:560px){ #hud-minimap{width:108px;height:108px} .hud-title{left:16px;top:calc(136px + env(safe-area-inset-top,0px))} .hud-title h1{font-size:20px} .hud-title{padding:9px 14px} .hud-help{font-size:12.5px;padding:8px 14px}
     .hud-right button{padding:8px 12px;font-size:13px} }
   @media (prefers-reduced-motion: reduce){ #fade{transition:none} }
   [hidden]{display:none !important}
@@ -334,6 +336,7 @@
 </div>
 <div id="app"></div>
 <div id="stage" class="world-ui" aria-label="이음 마을 3D 장면. 광장의 분수를 가운데 두고 지원센터, 미션방, 동아리센터, 게임방, 카페, 공원, 내 집으로 걸어갈 수 있다."></div>
+<canvas id="hud-minimap" class="world-ui" role="img" aria-label="미니맵: 가운데 빨간 화살표가 나, 색 점은 주민, 색 네모는 건물"></canvas>
 <div class="world-ui hud-title"><h1>이음 마을</h1><p id="hud-sub">광장</p></div>
 <div class="world-ui hud-right"><button type="button" id="hud-view" hidden title="시점을 처음 각도로 되돌려요">↺ 시점</button><button type="button" id="hud-gfx">화질: 높음</button><button type="button" id="hud-logout">로그아웃</button></div>
 <div class="world-ui hud-room" id="hud-room" hidden>
@@ -765,11 +768,12 @@
 
     // ---------------- 세계를 한 번만 짓는다 (처음 들어갈 때)
     const colliders = [];
+    const MAPDATA = { paths: [], pathW: 2.4, lakes: [], till: [], trees: [], riverZ: -24 };   // 미니맵용 지도 정보
     const places = {};        // 문·장소 → 서는 위치 {x,z}
     const doors = [];         // 근처 판정용 {id,label,x,z,r,area}
     let sky, sun, SUN_DIR, fountainJets = [], flags = [], chimneyPos, smoke = [], butterflies = [], petals, petalGeo, PN = 0;
     let npcObjs = [], villagers = [], dog, dogLegs = [], tail, dogBlob, bubble, homeSign = null, roomLight;
-    const RX = 0, RZ = 64;     // 내 방 실내 위치 (마을과 멀리 떨어진 곳)
+    const RX = 0, RZ = 110;     // 내 방 실내 위치 (마을과 멀리 떨어진 곳)
     let built = false;
 
     function frontOf(g, lx, lz) { const v = new THREE.Vector3(lx, 0, lz); g.updateMatrixWorld(); g.localToWorld(v); return { x: v.x, z: v.z }; }
@@ -822,16 +826,21 @@
       SUN_DIR = new THREE.Vector3(-0.85, 0.95, -0.55).normalize();
 
       // 땅
-      const G = 50, GPX = LITE ? 1024 : 2048, S = GPX / (2 * G);
+      const G = 62, GPX = LITE ? 1024 : 2048, S = GPX / (2 * G);   // 넓어진 마을(가로 약 104, 세로 약 71)을 덮는 땅
       const toPx = (x, z) => [(x + G) * S, (z + G) * S];
       const RIVER_Z = -24;
       const PATHS = [
         [[0, -8.5], [0, -13]], [[-8.5, 0], [-13.5, -1]], [[6.5, -6], [11, -9]], [[8.8, 1.5], [13, -1]],
         [[-4, 8.5], [-5.2, 11]], [[5.5, 6.8], [3, 9.5], [2.6, 17], [9, 17.8], [15, 17.2]], [[0, -17], [0, -28]], [[-13.5, -1], [-12, 9]],
-        [[7.5, 5.5], [15, 5.8], [18.5, 10.6]]
+        [[7.5, 5.5], [15, 5.8], [18.5, 10.6]],
+        // 넓어진 마을 산책로: 남쪽 호수, 서쪽 숲길, 동쪽 꽃 언덕·들판을 한 바퀴로 잇는다
+        [[-5.2, 11], [-6, 22], [-2, 31], [3.5, 37.5]], [[15, 17.2], [26, 20.5], [33, 29], [27, 39.5], [17.5, 43.5]],
+        [[-12, 9], [-22, 15.5], [-33, 17.5], [-42, 8], [-41, -5], [-29, -8.5], [-21, -6.5]], [[-22, 15.5], [-26, 29], [-15, 39], [3.5, 40]],
+        [[18.5, 10.6], [29, 6], [38.5, -3.5], [37, -13]]
       ];
       const PATH_W = 2.4;
       const TILL = [{ x0: 4.2, z0: 8.9, x1: 13.6, z1: 15.8 }];
+      MAPDATA.paths = PATHS; MAPDATA.pathW = PATH_W; MAPDATA.till = TILL; MAPDATA.riverZ = RIVER_Z;
       function segDist(px, pz, ax, az, bx, bz) { const vx = bx - ax, vz = bz - az, t = Math.max(0, Math.min(1, ((px - ax) * vx + (pz - az) * vz) / (vx * vx + vz * vz))); return Math.hypot(px - ax - vx * t, pz - az - vz * t); }
       function onPath(x, z, pad = 0) { for (const p of PATHS) for (let i = 0; i < p.length - 1; i++) if (segDist(x, z, p[i][0], p[i][1], p[i + 1][0], p[i + 1][1]) < PATH_W / 2 + pad) return true; return false; }
       function inTill(x, z, pad = 0) { return TILL.some(t => x > t.x0 - pad && x < t.x1 + pad && z > t.z0 - pad && z < t.z1 + pad); }
@@ -882,11 +891,11 @@
         bg.setAttribute('color', new THREE.Float32BufferAttribute(bc, 3));
         bg.setAttribute('normal', new THREE.Float32BufferAttribute([0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0], 3));
         bg.setIndex([0, 1, 2, 1, 3, 2, 2, 3, 4, 3, 5, 4, 4, 5, 6]);
-        const N = LITE ? 2500 : isSmall ? 16000 : 34000, im = new THREE.InstancedMesh(bg, M('#FFFFFF', { vc: true, double: true, wind: 0.16, r: 1 }), N);
+        const N = LITE ? 4200 : isSmall ? 26000 : 58000, im = new THREE.InstancedMesh(bg, M('#FFFFFF', { vc: true, double: true, wind: 0.16, r: 1 }), N);
         const o = new THREE.Object3D(), tint = new THREE.Color(); let k = 0;
         for (let tries = 0; k < N && tries < N * 4; tries++) {
-          const x = (rnd() - 0.5) * 70, z = -21 + rnd() * 48;
-          if (Math.hypot(x, z) < 9.6 || onPath(x, z, -0.2) || inTill(x, z, -0.3) || Math.abs(z - RIVER_Z) < 4.4 || Math.hypot(x + 14, z - 12) < 4.2) continue;
+          const x = (rnd() - 0.5) * 110, z = -21 + rnd() * 76;
+          if (Math.hypot(x, z) < 9.6 || Math.hypot(x - 10, z - 44) < 7.2 || onPath(x, z, -0.2) || inTill(x, z, -0.3) || Math.abs(z - RIVER_Z) < 4.4 || Math.hypot(x + 14, z - 12) < 4.2) continue;
           if (Math.hypot(x - 22, z - 12) < 3.2 || Math.hypot(x + 11.8, z + 10.6) < 3.2) continue;
           o.position.set(x, 0, z); o.rotation.set(0, rnd() * 6.28, (rnd() - 0.5) * 0.4);
           const s = 0.55 + rnd() * 0.45; o.scale.set(s, s * (0.7 + rnd() * 0.45), s); o.updateMatrix();
@@ -919,6 +928,7 @@
       }
       // 나무·덤불·꽃
       function tree(x, z, kind = 'round', s = 1, y = 0) {
+        if (!y) MAPDATA.trees.push([x, z]);
         const g = new THREE.Group();
         if (kind === 'pine') {
           mesh(new THREE.CylinderGeometry(0.22, 0.3, 1.2, 8), M(COL.woodDark), 0, 0.6, 0, g);
@@ -1244,6 +1254,37 @@
         c.fillStyle = '#3F8C86'; for (let i = -1; i <= 1; i++) { c.beginPath(); c.arc(w / 2 + i * 44, (h - 58) / 2 + 8, 13, 0, 7); c.fill(); }
       }), transparent: true, depthWrite: false }));
       bubble.scale.set(1.3, 0.98, 1); scene.add(bubble);
+      // ── 넓어진 마을: 남쪽 호수 · 서쪽 숲길 · 동쪽 들판 · 동남쪽 꽃 언덕 (산책로로 한 바퀴 이어짐)
+      {
+        const beside = (x, z, pad = 1.35) => { for (let r = 0; r < 7; r += 0.4) for (let a = 0; a < 6.28; a += 0.5) { const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r; if (!onPath(px, pz, pad)) return [px, pz]; } return [x, z]; };
+        // 남쪽 호수 + 나무 데크
+        const lx = 10, lz = 44, lr = 6.2;
+        mesh(new THREE.CylinderGeometry(lr + 0.6, lr + 0.8, 0.3, 40), M('#D8C8A4'), lx, 0.1, lz);
+        mesh(new THREE.CylinderGeometry(lr, lr, 0.32, 40), M(COL.water, { r: 0.25, em: '#5FA9B0', ei: 0.12 }), lx, 0.14, lz).receiveShadow = true;
+        for (let i = 0; i < 26; i++) { const a = i / 26 * 6.28; if (Math.abs(a - Math.PI) < 0.3) continue; const r = mesh(new THREE.DodecahedronGeometry(0.46, 0), M(i % 2 ? '#C9BBA0' : '#B5A688', { flat: true }), lx + Math.cos(a) * (lr + 0.65), 0.25, lz + Math.sin(a) * (lr + 0.65)); r.scale.y = 0.6; shade(r); }
+        for (const [dx, dz] of [[1.8, -1.2], [-1.6, 2.1], [2.6, 2.4], [-0.6, -2.8], [3.4, -0.2]]) { mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.05, 14), M('#7FA35A'), lx + dx, 0.33, lz + dz); mesh(new THREE.SphereGeometry(0.12, 8, 6), M('#F4A6A0'), lx + dx + 0.15, 0.4, lz + dz); }
+        { const d = new THREE.Group(); for (let i = 0; i < 6; i++) mesh(rbox(0.62, 0.16, 1.7, 0.04), M(i % 2 ? COL.wood : '#C08E62'), -lr - 0.9 + i * 0.66, 0.46, 0, d);
+          for (const [px, pz] of [[-lr - 1.1, -0.75], [-lr - 1.1, 0.75], [-lr + 2.3, -0.75], [-lr + 2.3, 0.75]]) mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.9, 8), M(COL.woodDark), px, 0.2, pz, d);
+          d.position.set(lx, 0, lz); scene.add(shade(d)); }
+        colliders.push({ x: lx, z: lz, r: lr + 0.5 }); blob(lx, lz, lr * 2.4, 0.18);
+        MAPDATA.lakes.push({ x: lx, z: lz, r: lr, n: '호수' }, { x: -14, z: 12, r: 3.2, n: '' });
+        // 서쪽 숲
+        { let n = 0; for (let t = 0; t < 500 && n < (LITE ? 12 : 30); t++) { const x = -50 + rnd() * 25, z = -14 + rnd() * 62; if (onPath(x, z, 1.5) || Math.hypot(x + 14, z - 12) < 6 || (x > -24 && z < 6)) continue; tree(x, z, rnd() < 0.45 ? 'pine' : 'round', 0.95 + rnd() * 0.35); n++; } }
+        // 동쪽 들판: 나무·꽃 덤불
+        { let n = 0; for (let t = 0; t < 500 && n < (LITE ? 8 : 18); t++) { const x = 29 + rnd() * 21, z = -16 + rnd() * 32; if (onPath(x, z, 1.5) || Math.hypot(x - 22, z - 12) < 5.5 || Math.hypot(x - 17.5, z + 1.5) < 6) continue; if (n % 3) tree(x, z, n % 5 ? 'round' : 'blossom', 0.9 + rnd() * 0.3); else bush(x, z, 1, ['#F4A6A0', '#F6D06A', '#FFFFFF'][n % 3]); n++; } }
+        // 남서쪽 가장자리 나무
+        { let n = 0; for (let t = 0; t < 300 && n < (LITE ? 5 : 12); t++) { const x = -24 + rnd() * 22, z = 30 + rnd() * 20; if (onPath(x, z, 1.5) || Math.hypot(x - 10, z - 44) < 8.5) continue; tree(x, z, rnd() < 0.5 ? 'round' : 'blossom', 0.9 + rnd() * 0.3); n++; } }
+        // 동남쪽 꽃 언덕
+        { const pts = [], palette = ['#F4A6A0', '#F6D06A', '#FFFFFF', '#E5877A', '#C9A4E0'];
+          for (let i = 0; i < 22; i++) { const bx = 22 + rnd() * 26, bz = 22 + rnd() * 28; if (onPath(bx, bz, 1.8) || Math.hypot(bx - 10, bz - 44) < 8.5) continue; for (let k = 0; k < (LITE ? 10 : 26); k++) { const a = rnd() * 6.28, r = Math.sqrt(rnd()) * 1.9; pts.push([bx + Math.cos(a) * r, bz + Math.sin(a) * r]); } }
+          const o = new THREE.Object3D(), c = new THREE.Color();
+          const head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.13, 8, 6), M('#FFFFFF', { r: 0.7 }), pts.length), stem = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.025, 0.025, 0.36, 4), M('#5E8F45'), pts.length);
+          pts.forEach(([x, z], i) => { o.position.set(x, 0.38, z); o.scale.set(1, 0.7, 1); o.updateMatrix(); head.setMatrixAt(i, o.matrix); c.set(palette[(i * 7) % palette.length]); head.setColorAt(i, c); o.position.set(x, 0.18, z); o.scale.set(1, 1, 1); o.updateMatrix(); stem.setMatrixAt(i, o.matrix); });
+          for (const im of [head, stem]) { im.castShadow = true; im.receiveShadow = true; im.customDepthMaterial = depthMat; scene.add(im); } }
+        // 산책로 벤치·가로등 (길 바로 옆)
+        [[-6.4, 25], [-31, 17.2], [-40.6, 1], [32.4, 27], [31, 5.4], [-3.5, 39.6]].forEach(([x, z]) => { const [bx, bz] = beside(x, z, 1.6); bench(bx, bz); });
+        [[-4.8, 31], [-23, 15], [-41.5, 7], [27.5, 20.3], [38, -3.2], [-20, 34], [22, 42]].forEach(([x, z]) => { const [px, pz] = beside(x, z, 1.4); lamp(px, pz); });
+      }
       // 이웃 주민·강아지·연기·나비·꽃가루·구름
       const WAYS = [[-6, 8], [6, 6.5], [-8.5, -1], [8.5, 0], [-2, -9.5], [3, -9.5], [-11, 5], [10.5, -4], [1.5, 13], [-1, 17.5], [6, 18.3], [16, 17.5], [-10, -8], [12, -3.5], [-13, 2], [0, -14]];
       villagers = [
@@ -1392,8 +1433,8 @@
     // ---------------- 길찾기: 0.5칸 격자 A* + 직선 당기기 (건물·울타리·벤치를 돌아간다)
     let grid = null;
     function buildGrid() {
-      const cs = 0.5, x0 = -30, z0 = -19, nx = 121, nz = 87, blocked = new Uint8Array(nx * nz), pad = 0.5;
-      const cols = colliders.filter(c => (c.seg ? c.seg[1] < 40 : c.z < 40));
+      const cs = 0.5, x0 = -54, z0 = -19, nx = 217, nz = 149, blocked = new Uint8Array(nx * nz), pad = 0.5;
+      const cols = colliders.filter(c => (c.seg ? c.seg[1] < 60 : c.z < 60));
       for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
         const x = x0 + i * cs, z = z0 + j * cs;
         for (const c of cols) {
@@ -1534,7 +1575,7 @@
     }
 
     // ---------------- 이동·충돌
-    const VB = { x0: -30, x1: 30, z0: -19, z1: 24 };
+    const VB = { x0: -52, x1: 52, z0: -19, z1: 52 };
     const RB = { x0: RX - 4.8, x1: RX + 4.8, z0: RZ - 3.8, z1: RZ + 3.9 };
     function collide(pos, r) {
       for (const c of colliders) {
@@ -1553,6 +1594,70 @@
     }
     function turnToward(obj, dx, dz, dt, rate = 10) { let d = Math.atan2(dx, dz) - obj.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); obj.rotation.y += d * Math.min(1, dt * rate); }
 
+
+    // ---------------- 미니맵 — 좌측 상단 원형. 내 위치가 가운데, 화면 위쪽 = 카메라가 보는 방향
+    const MAP_B = { x0: -58, x1: 58, z0: -34, z1: 58 }, MAP_S = 4, MAP_SPAN = 30;
+    const MAP_BUILD = [
+      { n: '지원센터', x: 0, z: -17, w: 11, d: 7.5, c: '#4FB9A8' }, { n: '미션방', x: -17, z: -1, w: 6, d: 6, c: '#FF8F7A' },
+      { n: '동아리센터', x: 15, z: -11, w: 7, d: 5.5, c: '#A98BF0' }, { n: '게임방', x: 17.5, z: -1.5, r: 4.4, c: '#FFB45C' },
+      { n: '카페', x: -11.8, z: -10.6, w: 6, d: 5, c: '#FF8FB3' }, { n: '내 집', x: 22, z: 12, w: 5.6, d: 5, c: '#6FB6F2' }
+    ];
+    const MAP_AREA = [{ n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
+    const NPC_DOT = { psych: '#B56CC0', policy: '#3F7FD6', job: '#2F9E8F', chief: '#E0A020', coco: '#2E6B4F' };
+    let mm = null;
+    function mmBase() {
+      const W = (MAP_B.x1 - MAP_B.x0) * MAP_S, H = (MAP_B.z1 - MAP_B.z0) * MAP_S, c = document.createElement('canvas'); c.width = W; c.height = H;
+      const g = c.getContext('2d'), P = (x, z) => [(x - MAP_B.x0) * MAP_S, (z - MAP_B.z0) * MAP_S];
+      g.fillStyle = '#9BD27A'; g.fillRect(0, 0, W, H);
+      const [, ry] = P(0, MAPDATA.riverZ); g.fillStyle = '#7FBF62'; g.fillRect(0, 0, W, ry - 2.7 * MAP_S); g.fillStyle = '#6FC7E4'; g.fillRect(0, ry - 2.7 * MAP_S, W, 5.4 * MAP_S);
+      { const [bx0, bz0] = P(VB.x0, VB.z0), [bx1, bz1] = P(VB.x1, VB.z1); g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 3; g.setLineDash([10, 8]); g.strokeRect(bx0, bz0, bx1 - bx0, bz1 - bz0); g.setLineDash([]); }
+      g.fillStyle = 'rgba(46,120,60,.45)'; for (const [x, z] of MAPDATA.trees) { const [px, py] = P(x, z); g.beginPath(); g.arc(px, py, 1.2 * MAP_S, 0, 7); g.fill(); }
+      g.strokeStyle = '#F4E2B8'; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = MAPDATA.pathW * MAP_S;
+      for (const p of MAPDATA.paths) { g.beginPath(); p.forEach(([x, z], i) => { const [px, py] = P(x, z); i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke(); }
+      { const [px, py] = P(0, 0); g.fillStyle = '#F6E7C6'; g.beginPath(); g.arc(px, py, 9.4 * MAP_S, 0, 7); g.fill(); g.fillStyle = '#7FD0EA'; g.beginPath(); g.arc(px, py, 3.2 * MAP_S, 0, 7); g.fill(); }
+      for (const l of MAPDATA.lakes) { const [px, py] = P(l.x, l.z); g.fillStyle = '#7FD0EA'; g.beginPath(); g.arc(px, py, l.r * MAP_S, 0, 7); g.fill(); }
+      for (const t of MAPDATA.till) { const [a, b] = P(t.x0, t.z0), [c2, d] = P(t.x1, t.z1); g.fillStyle = '#B98B5E'; g.fillRect(a, b, c2 - a, d - b); }
+      for (const b of MAP_BUILD) { const [px, py] = P(b.x, b.z); g.fillStyle = b.c; g.strokeStyle = '#3E4454'; g.lineWidth = 3; g.beginPath();
+        if (b.r) g.arc(px, py, b.r * MAP_S, 0, 7); else if (g.roundRect) g.roundRect(px - b.w * MAP_S / 2, py - b.d * MAP_S / 2, b.w * MAP_S, b.d * MAP_S, 8); else g.rect(px - b.w * MAP_S / 2, py - b.d * MAP_S / 2, b.w * MAP_S, b.d * MAP_S);
+        g.fill(); g.stroke(); }
+      return c;
+    }
+    function drawMinimap() {
+      if (!mm || !player || mode !== 'village') return;
+      if (!mm.base) mm.base = mmBase();
+      { const cw = mm.canvas.clientWidth; if (cw && cw !== mm.size) attachMinimap(mm.canvas); }
+      const dpr = mm.dpr, Sz = mm.size, R = Sz / 2, k = R / MAP_SPAN, g = mm.ctx, yaw = view.yaw, px = player.position.x, pz = player.position.z;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, Sz, Sz);
+      g.save(); g.beginPath(); g.arc(R, R, R - 1.5, 0, 7); g.clip(); g.fillStyle = '#7FBF62'; g.fillRect(0, 0, Sz, Sz);
+      g.translate(R, R); g.rotate(yaw); g.scale(k / MAP_S, k / MAP_S); g.drawImage(mm.base, -(px - MAP_B.x0) * MAP_S, -(pz - MAP_B.z0) * MAP_S); g.restore();
+      const cy = Math.cos(yaw), sy = Math.sin(yaw), W2M = (x, z) => { const dx = (x - px) * k, dz = (z - pz) * k; return [R + dx * cy - dz * sy, R + dx * sy + dz * cy]; }, inside = ([x, y], m = 6) => Math.hypot(x - R, y - R) < R - m;
+      g.save(); g.beginPath(); g.arc(R, R, R - 1.5, 0, 7); g.clip();
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+      const label = (t, x, y, size, col) => { g.font = `700 ${size}px ${FONT}`; g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.95)'; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
+      const fs = Sz / 150;   // 작은 화면(모바일)에서는 글자를 줄이고 구역 이름은 생략
+      if (Sz >= 130) for (const a of MAP_AREA) { const q = W2M(a.x, a.z); if (inside(q, 14)) label(a.n, q[0], q[1], 9, '#4A6B3A'); }
+      for (const b of MAP_BUILD) { const q = W2M(b.x, b.z); if (inside(q, 10 * fs)) label(b.n, q[0], q[1], Math.max(8, Math.round(10 * fs)), '#2F3642'); }
+      const dot = (x, z, col, r, ring) => { const q = W2M(x, z); if (!inside(q, 3)) return; g.beginPath(); g.arc(q[0], q[1], r, 0, 7); g.fillStyle = col; g.fill(); g.lineWidth = ring ? 2 : 1.4; g.strokeStyle = '#FFFFFF'; g.stroke(); };
+      for (const v of villagers) if (v.obj.visible !== false) dot(v.obj.position.x, v.obj.position.z, '#8A8F9C', 2.6);
+      for (const n of npcObjs) if (n.visible) dot(n.obj.position.x, n.obj.position.z, NPC_DOT[n.id] || '#5A6070', 4.2, true);
+      if (guide && guide.visible) dot(guide.position.x, guide.position.z, NPC_DOT.psych, 4.6, true);
+      g.restore();
+      // 나 — 가운데 화살표 (바라보는 방향)
+      const fx = Math.sin(player.rotation.y), fz = Math.cos(player.rotation.y), ang = Math.atan2(fx * sy + fz * cy, fx * cy - fz * sy);
+      g.save(); g.translate(R, R); g.rotate(ang); g.beginPath(); g.moveTo(8, 0); g.lineTo(-5, 5.5); g.lineTo(-2.5, 0); g.lineTo(-5, -5.5); g.closePath();
+      g.fillStyle = '#FF5A4E'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#FFFFFF'; g.stroke(); g.restore();
+      // 북쪽 표시
+      const nq = [R + (0 * cy - (-1) * sy) * (R - 11), R + (0 * sy + (-1) * cy) * (R - 11)];
+      label('N', nq[0], nq[1], 10, '#2F3642');
+      g.beginPath(); g.arc(R, R, R - 1.5, 0, 7); g.lineWidth = 3; g.strokeStyle = 'rgba(255,248,236,.95)'; g.stroke();
+    }
+    function attachMinimap(canvas) {
+      if (!canvas) return;
+      const size = canvas.clientWidth || 150, dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(size * dpr); canvas.height = Math.round(size * dpr);
+      mm = { canvas, ctx: canvas.getContext('2d'), size, dpr, base: mm && mm.base, frame: 0 };
+    }
+    window.addEventListener('resize', () => { if (mm) attachMinimap(mm.canvas); });
     // ---------------- 카메라·루프
     const camOffV = new THREE.Vector3(0, 13.7, 16.8), camOffR = new THREE.Vector3(0, 8.6, 9.2);
     const camFocus = new THREE.Vector3();
@@ -1681,6 +1786,7 @@
         camera.position.set(camFocus.x + sy * Math.cos(view.pitch) * D, camFocus.y + Math.sin(view.pitch) * D, camFocus.z + cy * Math.cos(view.pitch) * D);
         camera.lookAt(camFocus.x - sy * ah, 0.9, camFocus.z - cy * ah); }
       sun.position.copy(camFocus).addScaledVector(SUN_DIR, 50); sun.target.position.copy(camFocus); sun.target.updateMatrixWorld();
+      if (mm && (mm.frame++ % 2 === 0)) drawMinimap();
       sky.position.copy(camera.position);
       tmpV.set(player.position.x, 0.9 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
       finalMat.uniforms.focusY.value += ((tmpV.y * 0.5 + 0.5) - finalMat.uniforms.focusY.value) * Math.min(1, dt * 5);
@@ -1764,6 +1870,8 @@
       setMarker(p) { ensureMarker(); if (!p) { marker.visible = false; return; } marker.visible = true; marker.position.set(p.x, 3.2, p.z); },
       setHomeName(name) { if (!homeSign || !name) return; const tex = signTex(name.length > 5 ? '내 집' : name + '네 집'); homeSign.front.material = M('#FFFFFF', { map: tex }); homeSign.back.material = homeSign.front.material; },
       toggleGfx() { setGfx(!gfxHigh); return gfxHigh; },
+      attachMinimap,
+      minimapInfo: () => mm ? { size: mm.size, span: MAP_SPAN } : null,
       resetView() { resetView(false); },
       viewChanged,
       view: () => ({ yaw: view.yaw, pitch: view.pitch, zoom: view.zoom }),
@@ -2202,6 +2310,7 @@
     E.hooks.action = onWorldAction;
     E.hooks.tick = onWorldTick;
     E.hooks.view = function(changed){ var b = document.getElementById("hud-view"); if(b) b.hidden = !changed; };
+    var mmc = document.getElementById("hud-minimap"); if(mmc && E.attachMinimap && !mmc.__on){ mmc.__on = true; mmc.hidden = false; E.attachMinimap(mmc); }
     E.bubbleNpc = (state.feedback && state.feedback.npc_emphasis) || "psych";
     opt = opt || {};
     opt.avatar = currentAvatar() || presetAvatar("calm", "#4caf6e", nick());
@@ -2232,6 +2341,7 @@
     hud("hud-sub").textContent = inRoom ? nick() + "의 방" : (state.tour ? "루미와 마을 한 바퀴" : "광장 · " + nick() + "님");
     var busyRoom = inRoom && state.room && state.room.phase !== "free";
     hud("hud-room").hidden = !inRoom || busyRoom;
+    var mmc = hud("hud-minimap"); if(mmc) mmc.hidden = inRoom;
     hud("hud-help").hidden = !!state.tour || busyRoom;
     hud("hud-help").innerHTML = inRoom
       ? '<b>WASD</b> 이동 · <b>끌기</b> 시점 · 문 앞에서 <b>E</b>'
