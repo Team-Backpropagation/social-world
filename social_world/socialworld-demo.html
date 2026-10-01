@@ -346,6 +346,8 @@
 <div class="world-ui world-dialog" id="tour-panel" role="region" aria-live="polite" aria-label="루미와 마을 투어" hidden></div>
 <div id="fade" aria-hidden="true"></div>
 
+<!-- 코코(활동 추천) 대화창 모듈 — social_world/coco/. 배포 때 한 파일로 합칠 예정 -->
+<script src="coco/coco.js"></script>
 <script>
 (function(){
   "use strict";
@@ -439,7 +441,10 @@
         events:{text:"이번 주엔 공원에서 같이 걷기 모임이 있어요. 말 안 하고 걷기만 해도 되니까 부담 없이 와요. 궁금한 건 루미한테 물어봐도 되고요.",
           options:[{label:"네, 가볼게요", next:"bye"},{label:"다음에 볼게요", next:"bye"}]},
         bye:{text:"언제든 광장에 들러요. 🎩", options:[]}
-      }}
+      }},
+    // 코코 — 활동 추천. 대본 트리 대신 coco/coco.js 대화창을 연다(openNpc 참고).
+    // 위험 신호가 아니라 수요 신호라 npc_sessions에 남기지 않고, coco.js가 npc_demand_logs에 기록한다
+    { id:"coco", name:"코코", emoji:"🎈", color:"#2E6B4F", noSignal:true, external:true }
   ];
 
   var state = {
@@ -1063,6 +1068,7 @@
         colliders.push({ x, z, r: 3.7 }); blob(x, z, 8.5, 0.3);
         signpost(10.2, -6.4, '동아리센터', -0.9);
         places.club = frontOf(g, 1.9, 4.0);
+        places.coco = frontOf(g, -2.3, 4.3);
       }
       // 게임방 (원본 미니게임 천막)
       {
@@ -1216,7 +1222,8 @@
         policy: { x: -5, z: -3.2, color: '#5B7DB1', look: { shirt: '#FFFDF7', bottom: '#5B7DB1', hair: '#3B2E2A', skin: SKIN[1], style: 'short' } },
         job:    { x: 5.2, z: -3.6, color: '#E08A4A', look: { shirt: '#F6E3C4', bottom: '#E08A4A', hair: '#2E2622', skin: SKIN[3], hat: '#8E6242', style: 'short' } },
         psych:  { x: places.lumi.x, z: places.lumi.z, color: '#B56CC0', look: LUMI_LOOK },
-        chief:  { x: -4.2, z: 4.6, color: '#B08A3E', look: { shirt: '#B08A3E', bottom: '#5A4A3C', hair: '#B9B4AA', skin: SKIN[0], hat: '#6B4A36', style: 'short' } }
+        chief:  { x: -4.2, z: 4.6, color: '#B08A3E', look: { shirt: '#B08A3E', bottom: '#5A4A3C', hair: '#B9B4AA', skin: SKIN[0], hat: '#6B4A36', style: 'short' } },
+        coco:   { x: places.coco.x, z: places.coco.z, color: '#2E6B4F', look: { shirt: '#F4B942', bottom: '#2E6B4F', hair: '#3B2E2A', skin: SKIN[2], hat: '#2E6B4F', style: 'short' } }
       };
       npcObjs = Object.keys(NPC_LOOK).map(id => {
         const n = NPC_LOOK[id], p = person({ ...n.look, scale: 1.1 }); p.position.set(n.x, 0, n.z); p.rotation.y = Math.atan2(-n.x, -n.z);
@@ -1224,6 +1231,7 @@
         if (id === 'policy') mesh(rbox(0.3, 0.38, 0.05, 0.03), M('#FFF8EC'), 0.32, 0.55, 0.22, p);
         if (id === 'job') mesh(rbox(0.42, 0.3, 0.14, 0.05), M('#6B4A36'), 0.38, 0.36, 0.05, p);
         if (id === 'psych') mesh(rbox(0.26, 0.3, 0.26, 0.06), M('#FCE3A6', { em: '#F7C66A', ei: 1.2 }), 0.4, 0.42, 0.1, p);
+        if (id === 'coco') mesh(new THREE.SphereGeometry(0.16, 14, 10), M('#E0654A'), 0.36, 0.5, 0.14, p);  // 공 — 활동 담당
         const col = { x: n.x, z: n.z, r: 0.7, npc: true }; colliders.push(col);
         return { id, x: n.x, z: n.z, obj: p, marker: mk, col, visible: true };
       });
@@ -2182,7 +2190,7 @@
     cafe: "☕ 카페 안은 준비 중이에요. 루미는 카페 앞에 있어요!"
   };
   function npcName(id){ var n = NPCS.filter(function(x){ return x.id === id; })[0]; return n ? n.name : ""; }
-  function worldBlocked(){ return !!document.querySelector(".modal-backdrop"); }
+  function worldBlocked(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop"); }
   function hud(id){ return document.getElementById(id); }
 
   function showWorld(mode, opt){
@@ -2580,11 +2588,29 @@
   // ---------------- npc modal ----------------
   function openNpc(id){
     if(state.tour){ showToast("투어 중이에요 — 루미를 따라가 보세요"); return; }
+    if(id === "coco"){ openCoco(); return; }
     state.near = null;
     state.activeNpc = NPCS.filter(function(n){ return n.id===id; })[0];
     state.npcNode = "root";
     state.npcSession = { npc_type: id, started_at: new Date().toISOString(), tags: {}, maxSev: 0, turns: 0, crisisReported: false };
     renderNpcModal();
+  }
+
+  // 코코 — 추천 계산은 DB(recommend_activities), 화면은 coco/coco.js. 자유 입력·LLM 없음
+  var cocoDialog = null;
+  function openCoco(){
+    if(cocoDialog) return;
+    if(!window.Coco){ showToast("코코가 잠깐 자리를 비웠어요 (coco/coco.js를 불러오지 못함)"); return; }
+    state.near = null;
+    cocoDialog = window.Coco.open({
+      sb: sb,
+      onOpenClub: function(){
+        if(cocoDialog){ var d = cocoDialog; cocoDialog = null; d.close(); }
+        state.spawn = ENGINE.places().club;
+        loadClubRoom();
+      },
+      onClose: function(){ cocoDialog = null; }
+    });
   }
 
   // 대화 1회를 npc_sessions에 남긴다 — 원문 없이 신호 수치만. 선택을 한 번도 안 했으면 남기지 않는다.
