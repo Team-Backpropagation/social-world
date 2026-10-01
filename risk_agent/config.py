@@ -153,3 +153,13 @@ def stable_seed(*parts) -> int:
     import zlib
     key = "|".join(str(p) for p in parts).encode("utf-8")
     return (zlib.crc32(key) ^ RNG_SEED) & 0xFFFFFFFF
+
+
+# ------------------------------------------------------------------
+# 마을이장 v1 (risk_agent/chief.py) — 소셜월드_게임흐름_NPC_설계.md 3-2·7절
+# ------------------------------------------------------------------
+CHIEF_MODEL_VERSION = "chief-v1-2026.10.01"
+CHIEF_MAX_ACTIVE = 3            # 동시에 열려 있는(초안+공개) 이벤트 최대 개수
+CHIEF_AUTO_PUBLISH = False      # False: 초안으로 저장 → 담당자가 `python chief.py approve <id>`로 공개
+                                # True : 금칙어 검사만 통과하면 바로 공개 (문제없이 운영된 뒤 전환)
+CHIEF_ACTIVITY_WEEKS = 4        # 퀘스트 진행 정도(이벤트 부담 수준)를 볼 최근 주 수

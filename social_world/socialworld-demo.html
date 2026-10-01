@@ -351,6 +351,8 @@
 
 <!-- 코코(활동 추천) 대화창 모듈 — social_world/coco/. 배포 때 한 파일로 합칠 예정 -->
 <script src="coco/coco.js"></script>
+<!-- 마을이장(광장 이벤트) 대화창 모듈 — social_world/chief/ -->
+<script src="chief/chief.js"></script>
 <script>
 (function(){
   "use strict";
@@ -437,6 +439,7 @@
         bye:{text:"오늘도 수고 많았어. 또 보자! 🌱", options:[]}
       }},
     // 마을이장 — 튜토리얼 1단계 퀘스트 대상. 위험 신호를 수집하지 않는 대화라 npc_sessions에 남기지 않는다
+    // chief/chief.js가 있으면 그 대화창(이번 주 이벤트·참여)을 쓰고, 이 대본 트리는 모듈을 못 불러왔을 때의 대체용이다
     { id:"chief", name:"마을이장", emoji:"🎩", color:"#b08a3e", noSignal:true,
       tree:{
         root:{text:function(){ return "어서 와요, " + ((state.profile && state.profile.nickname) || "주민") + "님! 이 마을 이장이에요. 우리 마을에 온 걸 환영해요."; },
@@ -2298,7 +2301,7 @@
     cafe: "☕ 카페 안은 준비 중이에요. 루미는 카페 앞에 있어요!"
   };
   function npcName(id){ var n = NPCS.filter(function(x){ return x.id === id; })[0]; return n ? n.name : ""; }
-  function worldBlocked(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop"); }
+  function worldBlocked(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop"); }
   function hud(id){ return document.getElementById(id); }
 
   function showWorld(mode, opt){
@@ -2699,6 +2702,7 @@
   function openNpc(id){
     if(state.tour){ showToast("투어 중이에요 — 루미를 따라가 보세요"); return; }
     if(id === "coco"){ openCoco(); return; }
+    if(id === "chief" && window.Chief){ openChief(); return; }
     state.near = null;
     state.activeNpc = NPCS.filter(function(n){ return n.id===id; })[0];
     state.npcNode = "root";
@@ -2720,6 +2724,23 @@
         loadClubRoom();
       },
       onClose: function(){ cocoDialog = null; }
+    });
+  }
+
+  // 마을이장 — 이벤트는 risk_agent/chief.py가 정하고 담당자가 승인한 것만 보인다(world_events_public).
+  // 대화를 마치면 대본 트리 때와 똑같이 첫 퀘스트 완료 + (튜토리얼 마지막이면) 루미 마무리 인사
+  var chiefDialog = null;
+  function openChief(){
+    if(chiefDialog) return;
+    state.near = null;
+    chiefDialog = window.Chief.open({
+      sb: sb,
+      nickname: state.profile && state.profile.nickname,
+      onClose: function(){
+        chiefDialog = null;
+        completeFirstQuest();
+        if(state.tourOutro){ state.tourOutro = false; setTimeout(function(){ showLumiOutro("done"); }, 350); }
+      }
     });
   }
 
