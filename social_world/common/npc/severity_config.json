@@ -1,0 +1,23 @@
+{
+  "_note": "루미 심각도 설정. 근거: docs/planning/소셜월드_게임흐름_NPC_설계.md 8-3, docs/planning/위험사전_근거_매핑표.md 2·3절. status=draft — 10/2 킥오프에서 확정",
+  "status": "draft",
+  "weights": { "keyword": 0.5, "tone": 0.5 },
+  "bands": { "suggest": 0.5, "crisis": 0.8 },
+  "persistence": { "repeat_count": 3, "bonus": 0.1 },
+  "keyword": {
+    "extra_tag_bonus": 0.05,
+    "mitigation_penalty": 0.1,
+    "idiom_factor": 0.5
+  },
+  "base_severity": {
+    "무기력": 0.4,
+    "소외감": 0.4,
+    "대화상대없음": 0.5,
+    "장기구직": 0.4,
+    "구직단념": 0.6,
+    "사회적회피": 0.5,
+    "생계부담": 0.3,
+    "고립지속": 0.6,
+    "장기고립": 0.8
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "ieum-npc-common",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test tests/npc_common.test.mjs" }
+}
