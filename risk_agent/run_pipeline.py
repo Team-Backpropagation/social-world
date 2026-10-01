@@ -175,7 +175,7 @@ def main():
         S.push_feedback(sb, persona_table, feedback)
         print(f"[10/10 환류] Supabase cohort_feedback 갱신 완료 — 소셜 월드를 새로고침하면 반영됩니다")
         for cid, fb in feedback.items():
-            print(f"            {cid:<14} → {fb['npc_emphasis']} NPC 강조, 미션: {', '.join(fb['priority_missions'])}")
+            print(f"            {cid:<14} → {fb['npc_emphasis']} NPC 강조, 이장 이벤트 주제 {fb['event_theme']}, 미션: {', '.join(fb['priority_missions'])}")
 
     # ---- CSV 산출물 저장 (DB_테이블_정의서.md 스키마명에 최대한 맞춤) ----
     flow_df.to_csv(os.path.join(OUT, "flow_cohort_monthly.csv"), index=False)

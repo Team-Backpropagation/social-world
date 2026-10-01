@@ -381,7 +381,22 @@ RLS: `profiles`의 본인 지역·연령대·성별과 같은 행만 select.
 
 - 집계 함수는 k-익명성을 적용하지 않고 `user_count`만 저장한다(02와 같은 방식). 5명 미만 코호트 숨김은 에이전트·대시보드에서 한다
 - `featured`로 시민이 "내 집단이 이벤트 대상"임을 추정할 수는 있다. 이벤트 문구가 중립이라 위험 정보는 드러나지 않지만, 필요하면 노출 순서만 섞는 방식으로 바꿀 수 있다
-- 합성 배경(`source='synthetic'`) 생성은 아직 `npc_chat_metrics`만 있다. 시연용으로 월드 활동·수요 합성 배경이 필요하면 `risk_agent/synth_micro.py`에 추가
+- 합성 배경(`source='synthetic'`): 대화는 `supabase_sync.py seed`, 월드 활동은 `chief.py seed-world`(10/1 추가). 수요(`npc_demand_metrics`) 합성 배경은 아직 없다
+
+## 13. 마을이장 v1 (2026-10-01)
+
+실행 파일은 `05_chief.sql`(03 다음, 여러 번 실행해도 안전). 사용법은 `social_world/chief/README.md`.
+
+| 대상 | 변경 | 설명 |
+|---|---|---|
+| `world_events` | `status`(draft·published·rejected·closed, 기본 draft), `template_key`, `theme`, `approved_at`, `closed_at` | 이장(`risk_agent/chief.py`)이 초안을 만들고 담당자가 승인해야 공개. 대상 코호트(`target_*`)·근거(`reason_note`)는 그대로 관리자 전용 |
+| `world_events_public` (뷰) | `status='published'` 조건 + `joined` 칸 | 시민은 공개·진행 중 이벤트만, 내가 참여했는지까지 본다. 근거·대상 칸은 여전히 없음 |
+| `event_participation` | 03의 "본인 참여 생성" 정책 제거 | 직접 insert 불가 → 초안·반려·종료 이벤트 id를 알아도 참여 기록을 못 남김 |
+| `join_world_event(p_event_id)` | 함수(authenticated) | 공개·진행 중일 때만 참여 기록. 새로 참여 true / 이미 참여 false |
+| `chief_interest_counts(p_k)` | 함수(service_role) | 코호트별 관심사 분포. 관심사를 고른 사람이 p_k명 미만인 코호트는 행을 돌려주지 않음. 다른 지역·기타 나이대 제외, user_id 없음 |
+| `cohort_feedback.event_theme` | 값 정의 | 주제 코드(outdoor_walk·free_activity·info_support·small_talk). 등급 없음 |
+
+검증: `database/tests/run_chief.sh` — 실제 01→02→03→04→05를 로컬 PostgreSQL 16에 올리고(05 재실행·03→05 재적용 포함) 시민 노출·참여 차단·집계·k=5 등 27항목.
 
 ## 부록. 테이블 전체 목록
 

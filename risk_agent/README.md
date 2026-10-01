@@ -145,7 +145,18 @@ python run_pipeline.py --only youth
 | `welfare_catalog.py` | 복지자원 목업 + 지역·연령 자격 필터 | ⑥ |
 | `validate.py` | 원형 회수율·원인 일치율·오탐 측정 | 성능 평가 |
 | `build_dashboard.py` + `dashboard_template.html` | 브리핑용 관리자 대시보드(단일 HTML, 데이터 인라인) | S-02 상당 |
+| `chief.py` | 마을이장 v1 — 환류 이벤트 주제 + 관심사·퀘스트 집계로 광장 이벤트 초안을 만들고 승인 명령을 제공. 사용법은 `../social_world/chief/README.md` | ⑩ 이후(월드 운영) |
+| `tests/test_chief.py` | 마을이장 단위 테스트(`python -m unittest tests.test_chief`) | — |
 | `docs/가상데이터_생성방식_설명자료.md` | 대회 제출 필수 설명자료 | — |
+
+### ⑩ 환류에 들어가는 것 (10/1 갱신)
+
+| 칸 | 받는 쪽 | 값 |
+|---|---|---|
+| `npc_emphasis` · `priority_missions` | 소셜 월드 화면(말풍선·미션 정렬) | 주요 요인별 NPC·미션 |
+| `event_theme` | 마을이장(`chief.py`) | 주요 요인 → 이벤트 주제 코드: 명절 무반응 `outdoor_walk` / 소비 위축 `free_activity` / 통신 추세 하락 `info_support` / 대화 신호 `small_talk` (`pipeline.EVENT_THEME_FROM_FACTOR`) |
+
+등급·점수는 어느 칸에도 넣지 않는다. `event_theme` 칸은 `03_world_update.sql` 적용 뒤에만 쓴다(없으면 건너뛰고 안내만 출력).
 
 ## 핵심 설계 (근거 문서)
 

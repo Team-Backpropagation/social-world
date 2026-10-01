@@ -104,6 +104,11 @@ class SupabaseRest:
     def insert(self, table, rows):
         return self._call("POST", f"/{table}", rows, extra_headers={"Prefer": "return=minimal"})
 
+    def update(self, table, query, values):
+        """조건에 맞는 행을 고치고 고친 행을 돌려준다(없으면 빈 목록)."""
+        return self._call("PATCH", f"/{table}?{query}", values,
+                          extra_headers={"Prefer": "return=representation"})
+
     def upsert(self, table, rows, on_conflict):
         return self._call("POST", f"/{table}?on_conflict={on_conflict}", rows,
                           extra_headers={"Prefer": "resolution=merge-duplicates,return=minimal"})
@@ -254,8 +259,21 @@ def fetch_escalations(sb, days=30):
     return rows or []
 
 
+def has_column(sb, table, column):
+    """칸이 있는지 확인(03·05 같은 마이그레이션 적용 전이면 False). 실패해도 멈추지 않는다."""
+    try:
+        sb.select(table, f"select={column}&limit=1")
+        return True
+    except SystemExit:
+        return False
+
+
 def push_feedback(sb, persona_table, feedback_payload):
-    """⑩ 환류 — 모든 코호트 행을 덮어쓴다. 개인화 대상이 아니게 된 코호트는 비워서 원래 화면으로 돌린다."""
+    """⑩ 환류 — 모든 코호트 행을 덮어쓴다. 개인화 대상이 아니게 된 코호트는 비워서 원래 화면으로 돌린다.
+    event_theme(마을이장용 이벤트 주제)은 03_world_update.sql 적용 뒤에만 쓴다."""
+    with_theme = has_column(sb, "cohort_feedback", "event_theme")
+    if not with_theme:
+        print("[안내] cohort_feedback.event_theme 칸이 없어 이벤트 주제는 건너뜁니다 — database/03_world_update.sql 적용 후 다시 실행")
     rows = []
     for p in persona_table:
         fb = feedback_payload.get(p["cohort_id"])
@@ -266,6 +284,8 @@ def push_feedback(sb, persona_table, feedback_payload):
             "model_version": C.MODEL_VERSION,
             "updated_at": pd.Timestamp.now(tz="Asia/Seoul").isoformat(),
         })
+        if with_theme:
+            rows[-1]["event_theme"] = fb.get("event_theme") if fb else None
     sb.upsert("cohort_feedback", rows, "sgg_code,age_group,gender")
     return rows
 

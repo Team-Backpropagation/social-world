@@ -356,6 +356,13 @@ NPC_EMPHASIS_FROM_FACTOR = {
     "baseline_z": "policy",         # 구조적 저활동 → 정책추천 NPC(복지 자원 우선 안내)
     "micro_signal": "psych",
 }
+# 마을이장이 받는 환류 — 이벤트 "주제"만 넘긴다(등급·점수 없음). 코드 → 뜻은 chief.THEMES
+EVENT_THEME_FROM_FACTOR = {
+    "event_response": "outdoor_walk",   # 명절 등 이벤트 무반응 → 부담 없는 야외 활동(오프라인 접촉)
+    "trigger_z": "free_activity",       # 선택적 소비 위축 → 돈 안 드는 활동
+    "baseline_z": "info_support",       # 구조적 저활동 → 생활 정보·지원센터 안내
+    "micro_signal": "small_talk",       # 대화 신호 → 가벼운 대화 모임
+}
 MISSION_SUGGESTIONS = {
     "psych": ["심리상담 NPC와 대화하기", "일주일 연속 출석하기"],
     "job": ["취업상담 NPC와 대화하기", "첫 동아리 가입하기"],
@@ -378,5 +385,6 @@ def build_feedback_payload(scored_df: pd.DataFrame, explained_df: pd.DataFrame) 
             "archetype_guess": r["archetype_guess"],
             "npc_emphasis": npc,
             "priority_missions": MISSION_SUGGESTIONS[npc],
+            "event_theme": EVENT_THEME_FROM_FACTOR[r["dominant_factor"]],
         }
     return payload
