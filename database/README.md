@@ -7,6 +7,8 @@
 | `01_socialworld_base.sql` | 소셜 월드 기본 5개 테이블(profiles·missions·mission_progress·clubs·club_members) + RLS + 시연용 미션 4개 | ✅ 적용됨 |
 | `02_loop_schema.sql` | 위험 탐지 에이전트와의 순환: npc_sessions(신호 컬럼), npc_chat_metrics(live/synthetic), escalations, cohort_feedback, 함수 2개, 환류용 미션 2개 | ✅ 적용됨 |
 | `03_world_update.sql` | 새 맵·NPC 캐릭터·월드 리포트(2026-09-29): NPC 코드에 coco·chief 추가, cohort_feedback.event_theme, missions.stage(퀘스트 1~4단계)+시드 11개, profiles.avatar·interests·join_goal(튜토리얼), 새 테이블 8개(club_cheers·world_events·event_participation·npc_demand_logs·world_activity_metrics·npc_demand_metrics·world_reports) + 뷰 2개 + 집계 함수 2개 | ❌ 아직 적용 안 함 — 팀 확인 후 실행 |
+| `04_coco.sql` | 코코(활동 추천) v1: `activity_catalog` + 시연용 활동 10개, 동아리 관심사 태그(`clubs.interest_tags`), `my_quest_stage()`, `recommend_activities()`. **03이 먼저 있어야 한다**(`profiles.interests`·`missions.stage`). 검증 `tests/run_coco.sh`(20항목) | ❌ 03 적용 후 실행 |
+| `tests/` | 로컬 PostgreSQL용 Supabase 스텁(`00_supabase_stub.sql`)과 에이전트별 테스트 | — |
 | `full_schema_reference.sql` | 목표 설계 전체(테이블 31·뷰 3·RLS 44). 관제 대시보드의 케이스·보고서·권한까지 포함 | ❌ 참고용 — 아직 적용 안 함 |
 | `DB_테이블_정의서.md` | 전체 설계의 원칙·ERD·테이블 정의 + **11장 순환 연결로 실제 구현된 것** | |
 | `DB_연결_단계별_실행가이드.md` | Supabase 프로젝트 생성, 카카오 로그인, React 연결 + **13장 순환 연결 절차** | |
@@ -18,7 +20,8 @@
 ## 새 Supabase 프로젝트에 처음부터 세팅하기
 
 1. Supabase 대시보드 → **SQL Editor** → New query → `01_socialworld_base.sql` 전체 붙여넣기 → Run
-2. 같은 방법으로 `02_loop_schema.sql` → Run, 이어서 `03_world_update.sql` → Run
+2. 같은 방법으로 `02_loop_schema.sql` → Run, 이어서 `03_world_update.sql` → `04_coco.sql` 순서로 Run
+   (04부터는 파일명이 `적용 순서 번호_에이전트 이름.sql`. 번호 순서대로 실행한다)
 3. **Authentication → Sign In / Providers → Anonymous Sign-Ins** 켜기
    (소셜 월드 데모의 "게스트로 들어가기"가 익명 로그인을 쓴다. 카카오 로그인은 `DB_연결_단계별_실행가이드.md` 5장)
 4. 키 두 종류를 구분한다

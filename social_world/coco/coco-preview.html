@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>코코 화면 미리보기</title>
+<style>
+  body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:#9CC9A4}
+  .bar{padding:12px;display:flex;gap:8px;flex-wrap:wrap;background:#fff}
+  .bar button{font:inherit;padding:8px 12px}
+  #log{font:12px/1.5 monospace;overflow-wrap:anywhere;background:#fff;margin:12px;padding:8px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button id="open-ok" type="button">코코와 대화 (정상)</button>
+  <button id="open-empty" type="button">결과 없음</button>
+  <button id="open-noprofile" type="button">프로필 없음</button>
+  <button id="open-fail" type="button">네트워크 실패</button>
+</div>
+<div id="log">수요 기록이 여기에 표시됩니다.</div>
+<script src="coco.js"></script>
+<script>
+// DB 없이 화면만 확인하는 가짜 supabase. 실제 결과 모양은 recommend_activities()와 같다.
+const SAMPLE = [
+  { item_key:'activity:9', kind:'activity', title:'온라인 협동 퍼즐 게임', summary:'세 명이서 30분 동안 퍼즐 하나를 풀어요.', place_label:'온라인', time_label:'금·토 저녁 9시', is_online:true, apply_url:null, is_demo:true, stage:2, score:6, reason:"관심사 '게임'에 맞춰 골랐어" },
+  { item_key:'club:2', kind:'club', title:'보드게임 동아리', summary:'주말마다 한 판', place_label:'동아리센터', time_label:null, is_online:true, apply_url:null, is_demo:false, stage:3, score:5, reason:"관심사 '게임'에 맞춰 골랐어" },
+  { item_key:'activity:1', kind:'activity', title:'호숫가 저녁 러닝', summary:'처음 오는 사람도 뒤처지지 않게 천천히 5km를 달려요.', place_label:'춘천 호숫가 산책로', time_label:'목요일 저녁 7시', is_online:false, apply_url:'https://example.org/apply', is_demo:false, stage:3, score:5, reason:"관심사 '운동'에 맞춰 골랐어" }
+];
+const logBox = document.getElementById('log');
+function fakeSb(mode) {
+  return {
+    rpc: async () => {
+      await new Promise(r => setTimeout(r, 300));
+      if (mode === 'empty') return { data: [], error: null };
+      if (mode === 'noprofile') return { data: null, error: { message: 'profile_required' } };
+      if (mode === 'fail') throw new Error('Failed to fetch');
+      return { data: SAMPLE, error: null };
+    },
+    from: () => ({ insert: async (row) => { logBox.textContent += '\n' + JSON.stringify(row); return { error: null }; } })
+  };
+}
+const openWith = (mode) => () => Coco.open({ sb: fakeSb(mode), onOpenClub: (id) => { logBox.textContent += '\n동아리 열기: ' + id; } });
+document.getElementById('open-ok').onclick = openWith('ok');
+document.getElementById('open-empty').onclick = openWith('empty');
+document.getElementById('open-noprofile').onclick = openWith('noprofile');
+document.getElementById('open-fail').onclick = openWith('fail');
+</script>
+</body>
+</html>
