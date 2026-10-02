@@ -1,0 +1,56 @@
+<!doctype html>
+<!--
+  소셜 월드 (개발용 원본) — 이 폴더의 파일을 나눠서 불러온다.
+    world.css · ui.css        스타일 (앱·3D 화면 / 휴대폰·지도)
+    world-engine.js           3D 장면·이동·미니맵
+    ../coco/coco.js           코코 대화창          ../chief/chief.js   마을이장 대화창
+    sounds.js                 효과음 등록·재생      ui.js               휴대폰·지도·설정·코코 알림
+    app.js                    로그인·튜토리얼·투어·NPC 대화·미션방·동아리방 (맨 마지막)
+  배포용 한 파일: python social_world/app/bundle.py → social_world/socialworld-demo.html
+  로컬에서 열 때는 social_world 폴더에서 `python -m http.server` 후 /app/ 로 접속(효과음 파일 때문에 file:// 보다 서버가 낫다).
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>소셜 월드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<link rel="stylesheet" href="world.css">
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<div id="banner">
+  🌱 <b>브리핑용 라이브 데모</b> — 실제 Supabase 프로젝트에 연결되어 있어요. 이 화면에서 만든 프로필·미션 참여·동아리는
+  실제 DB에 저장됩니다. 카카오 로그인은 정식 배포 주소에서만 동작해서, 여기서는 게스트로 체험할 수 있어요.
+</div>
+<div id="app"></div>
+<div id="stage" class="world-ui" aria-label="이음 마을 3D 장면. 광장의 분수를 가운데 두고 지원센터, 미션방, 동아리센터, 게임방, 카페, 공원, 내 집으로 걸어갈 수 있다."></div>
+<canvas id="hud-minimap" class="world-ui" role="img" aria-label="미니맵: 빨간 N은 북쪽, 가운데 빨간 화살표가 나, 색 점은 주민, 색 네모는 건물"></canvas>
+<div class="world-ui hud-title"><h1>이음 마을</h1><p id="hud-sub">광장</p></div>
+<div class="world-ui hud-right"><button type="button" id="hud-view" hidden title="시점을 처음 각도로 되돌려요">↺ 시점</button></div>
+<div class="world-ui hud-room" id="hud-room" hidden>
+  <button type="button" id="rm-custom">🎨 캐릭터 꾸미기</button>
+  <button type="button" id="rm-replay">🌱 루미의 마을 소개 다시 보기</button>
+  <button type="button" id="rm-out">🚪 밖으로 나가기</button>
+</div>
+<button type="button" class="world-ui" id="hud-act" hidden>대화하기</button>
+<div class="world-ui hud-help" id="hud-help"></div>
+<div class="world-ui world-dialog" id="tour-panel" role="region" aria-live="polite" aria-label="루미와 마을 투어" hidden></div>
+<!-- 휴대폰·코코 알림 (ui.js). 화질·로그아웃은 휴대폰 → 설정 -->
+<button type="button" class="world-ui" id="phone-launch" aria-label="휴대폰 열기"><span data-icon="phone"></span><span class="launch-label">나의 휴대폰</span><span id="unread-badge" hidden></span></button>
+<aside class="world-ui" id="notification" hidden aria-live="polite" aria-label="코코 알림"></aside>
+<div id="overlay" hidden></div>
+<div id="fade" aria-hidden="true"></div>
+
+<script src="world-engine.js"></script>
+<script src="../coco/coco.js"></script>
+<script src="../chief/chief.js"></script>
+<script src="sounds.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
