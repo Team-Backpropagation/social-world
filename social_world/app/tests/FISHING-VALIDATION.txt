@@ -1,23 +1,37 @@
 PASS 1280px /app/ legacy saved key settings migrate
 PASS 1280px /app/ I opens inventory with default rod
 PASS 1280px /app/ inventory blocks movement
+PASS 1280px /app/ guide and top-right dismiss button fit viewport
 PASS 1280px /app/ equipped rod and 3D float visible
 PASS 1280px /app/ fishing blocks movement but keeps action key
 PASS 1280px /app/ uploaded bite MP3 plays once across animation frames
 PASS 1280px /app/ float sinks beneath water
 PASS 1280px /app/ catch stores once and clears visuals
 PASS 1280px /app/ early reel does not catch or play bite sound
+PASS 1280px /app/ early cancellation does not advance guide completion
 PASS 1280px /app/ river uses its own water table
 PASS 1280px /app/ park uses its own water table
+PASS 1280px /app/ approaching fountain reveals no guide or fishing action hint
 PASS 1280px /app/ fountain uses its own water table
+PASS 1280px /app/ fountain bite keeps guide hidden and preserves bobber
 PASS 1280px /app/ map cancels fishing
 PASS 1280px /app/ phone cancels fishing
 PASS 1280px /app/ teleport cancels fishing
 PASS 1280px /app/ grouped fish retain individual sizes
+PASS 1280px /app/ fish omit sequence labels and retain catch location
 PASS 1280px /app/ inventory fits viewport
 PASS 1280px /app/ wrong bin retains trash
 PASS 1280px /app/ correct bin records recycling
+PASS 1280px /app/ missed bite retains guide and does not count
+PASS 1280px /app/ guide remains after second catch
+PASS 1280px /app/ guide ends immediately after third catch
+PASS 1280px /app/ fourth cast preserves action and bite without guide
+PASS 1280px /app/ automatic guide completion persists on reload
 PASS 1280px /app/ different user gets a separate inventory
+PASS 1280px /app/ different user retains their own guide
+PASS 1280px /app/ manual guide dismissal before three catches keeps fishing active
+PASS 1280px /app/ catch still works after manual guide dismissal
+PASS 1280px /app/ manual guide dismissal persists after feature recreation
 PASS 1280px /app/ switching back restores original inventory
 PASS 1280px /app/ user switching leaves no duplicate controls
 PASS 1280px /app/ changing avatar keeps equipped rod attached
@@ -32,23 +46,37 @@ PASS 1280px /app/ no browser errors:
 PASS 390px /app/ legacy saved key settings migrate
 PASS 390px /app/ I opens inventory with default rod
 PASS 390px /app/ inventory blocks movement
+PASS 390px /app/ guide and top-right dismiss button fit viewport
 PASS 390px /app/ equipped rod and 3D float visible
 PASS 390px /app/ fishing blocks movement but keeps action key
 PASS 390px /app/ uploaded bite MP3 plays once across animation frames
 PASS 390px /app/ float sinks beneath water
 PASS 390px /app/ catch stores once and clears visuals
 PASS 390px /app/ early reel does not catch or play bite sound
+PASS 390px /app/ early cancellation does not advance guide completion
 PASS 390px /app/ river uses its own water table
 PASS 390px /app/ park uses its own water table
+PASS 390px /app/ approaching fountain reveals no guide or fishing action hint
 PASS 390px /app/ fountain uses its own water table
+PASS 390px /app/ fountain bite keeps guide hidden and preserves bobber
 PASS 390px /app/ map cancels fishing
 PASS 390px /app/ phone cancels fishing
 PASS 390px /app/ teleport cancels fishing
 PASS 390px /app/ grouped fish retain individual sizes
+PASS 390px /app/ fish omit sequence labels and retain catch location
 PASS 390px /app/ inventory fits viewport
 PASS 390px /app/ wrong bin retains trash
 PASS 390px /app/ correct bin records recycling
+PASS 390px /app/ missed bite retains guide and does not count
+PASS 390px /app/ guide remains after second catch
+PASS 390px /app/ guide ends immediately after third catch
+PASS 390px /app/ fourth cast preserves action and bite without guide
+PASS 390px /app/ automatic guide completion persists on reload
 PASS 390px /app/ different user gets a separate inventory
+PASS 390px /app/ different user retains their own guide
+PASS 390px /app/ manual guide dismissal before three catches keeps fishing active
+PASS 390px /app/ catch still works after manual guide dismissal
+PASS 390px /app/ manual guide dismissal persists after feature recreation
 PASS 390px /app/ switching back restores original inventory
 PASS 390px /app/ user switching leaves no duplicate controls
 PASS 390px /app/ changing avatar keeps equipped rod attached
@@ -63,23 +91,37 @@ PASS 390px /app/ no browser errors:
 PASS 1280px /socialworld-demo.html legacy saved key settings migrate
 PASS 1280px /socialworld-demo.html I opens inventory with default rod
 PASS 1280px /socialworld-demo.html inventory blocks movement
+PASS 1280px /socialworld-demo.html guide and top-right dismiss button fit viewport
 PASS 1280px /socialworld-demo.html equipped rod and 3D float visible
 PASS 1280px /socialworld-demo.html fishing blocks movement but keeps action key
 PASS 1280px /socialworld-demo.html uploaded bite MP3 plays once across animation frames
 PASS 1280px /socialworld-demo.html float sinks beneath water
 PASS 1280px /socialworld-demo.html catch stores once and clears visuals
 PASS 1280px /socialworld-demo.html early reel does not catch or play bite sound
+PASS 1280px /socialworld-demo.html early cancellation does not advance guide completion
 PASS 1280px /socialworld-demo.html river uses its own water table
 PASS 1280px /socialworld-demo.html park uses its own water table
+PASS 1280px /socialworld-demo.html approaching fountain reveals no guide or fishing action hint
 PASS 1280px /socialworld-demo.html fountain uses its own water table
+PASS 1280px /socialworld-demo.html fountain bite keeps guide hidden and preserves bobber
 PASS 1280px /socialworld-demo.html map cancels fishing
 PASS 1280px /socialworld-demo.html phone cancels fishing
 PASS 1280px /socialworld-demo.html teleport cancels fishing
 PASS 1280px /socialworld-demo.html grouped fish retain individual sizes
+PASS 1280px /socialworld-demo.html fish omit sequence labels and retain catch location
 PASS 1280px /socialworld-demo.html inventory fits viewport
 PASS 1280px /socialworld-demo.html wrong bin retains trash
 PASS 1280px /socialworld-demo.html correct bin records recycling
+PASS 1280px /socialworld-demo.html missed bite retains guide and does not count
+PASS 1280px /socialworld-demo.html guide remains after second catch
+PASS 1280px /socialworld-demo.html guide ends immediately after third catch
+PASS 1280px /socialworld-demo.html fourth cast preserves action and bite without guide
+PASS 1280px /socialworld-demo.html automatic guide completion persists on reload
 PASS 1280px /socialworld-demo.html different user gets a separate inventory
+PASS 1280px /socialworld-demo.html different user retains their own guide
+PASS 1280px /socialworld-demo.html manual guide dismissal before three catches keeps fishing active
+PASS 1280px /socialworld-demo.html catch still works after manual guide dismissal
+PASS 1280px /socialworld-demo.html manual guide dismissal persists after feature recreation
 PASS 1280px /socialworld-demo.html switching back restores original inventory
 PASS 1280px /socialworld-demo.html user switching leaves no duplicate controls
 PASS 1280px /socialworld-demo.html changing avatar keeps equipped rod attached
@@ -91,9 +133,3 @@ PASS 1280px /socialworld-demo.html sound setting also mutes fishing
 PASS 1280px /socialworld-demo.html NPC conversation blocks inventory
 PASS 1280px /socialworld-demo.html logout removes fishing controls and listeners
 PASS 1280px /socialworld-demo.html no browser errors: 
-PASS embedded fishing MP3 exactly matches supplied file
-PASS all final inline JavaScript parses
-PASS file:// mobile reload preserves equipment and exact fish instances
-PASS file:// bite audio plays; missed bite gives no item
-PASS unequipped rod disables fishing
-PASS final file:// bundle has no browser errors

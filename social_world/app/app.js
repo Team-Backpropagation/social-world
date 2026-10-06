@@ -633,6 +633,7 @@
       return;
     }
     if(state.view === "room" && state.room && state.room.phase !== "free") return;
+    if(window.WorldUI && window.WorldUI.interactFishing({ hiddenOnly: true })) return;
     if(!t) return;
     if(t.type === "fishing"){ if(window.WorldUI) window.WorldUI.interactFishing(); return; }
     if(t.type === "npc") openNpc(t.id);

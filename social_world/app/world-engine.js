@@ -31,7 +31,7 @@
     renderer.domElement.setAttribute('tabindex', '0');
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(new THREE.Color('#EED3A8'), 30, 95);
+    scene.fog = new THREE.Fog(new THREE.Color('#A6D4F2').convertSRGBToLinear(), 110, 300);   // 맑은 날: 먼 곳만 옅은 하늘색
     const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 400);
 
     // ---------------- 공통: 둥근 지평선 + 바람 (원본 그대로)
@@ -292,7 +292,7 @@
     const MAPDATA = { paths: [], pathW: 2.4, lakes: [], till: [], trees: [], riverZ: -24 };   // 미니맵용 지도 정보
     const places = {};        // 문·장소 → 서는 위치 {x,z}
     const doors = [];         // 근처 판정용 {id,label,x,z,r,area}
-    let sky, sun, SUN_DIR, fountainJets = [], flags = [], chimneyPos, smoke = [], butterflies = [], petals, petalGeo, PN = 0;
+    let sky, sun, SUN_DIR, skyDeco = null, sunDisc = null, cloudRing = null, fountainJets = [], flags = [], chimneyPos, smoke = [], butterflies = [], petals, petalGeo, PN = 0;
     let npcObjs = [], villagers = [], dog, dogLegs = [], tail, dogBlob, bubble, homeSign = null, roomLight;
     const RX = 0, RZ = 110;     // 내 방 실내 위치 (마을과 멀리 떨어진 곳)
     let built = false;
@@ -328,18 +328,41 @@
     }
     function towardCenter(p, d) { const l = Math.hypot(p.x, p.z) || 1; return { x: p.x - p.x / l * d, z: p.z - p.z / l * d }; }
 
+    const SUN_DIR_SKY = new THREE.Vector3(0.18, 0, -1);   // 하늘의 해: 기본 시점(북쪽)을 낮췄을 때 지원센터 위로 보이게
     function build() {
       if (built) return; built = true;
       // 하늘·빛
       sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), new THREE.ShaderMaterial({
         side: THREE.BackSide, depthWrite: false, fog: false,
-        uniforms: { top: { value: new THREE.Color('#F1C38E') }, mid: { value: new THREE.Color('#F6DDB5') }, low: { value: new THREE.Color('#F4E6C8') } },
+        uniforms: { sunDir: { value: new THREE.Vector3(0, 0.3, -1).normalize() }, top: { value: new THREE.Color('#2F84DA') }, mid: { value: new THREE.Color('#5CADEA') }, low: { value: new THREE.Color('#A6D4F2') } },
         vertexShader: 'varying vec3 vp; void main(){ vp = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-        fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0.1 ? mix(mid, top, smoothstep(0.1, 0.6, h)) : mix(low, mid, smoothstep(-0.1, 0.1, h)); gl_FragColor = vec4(c, 1.0); }'
+        fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; uniform vec3 sunDir; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0.08 ? mix(mid, top, smoothstep(0.08, 0.7, h)) : mix(low, mid, smoothstep(-0.05, 0.08, h)); c = mix(c, low, (1.0 - smoothstep(0.0, 0.1, abs(h))) * 0.12); float sd = max(dot(vp, normalize(sunDir)), 0.0); c += vec3(1.0, 0.92, 0.72) * (pow(sd, 6.0) * 0.12 + pow(sd, 48.0) * 0.3); gl_FragColor = vec4(pow(c, vec3(2.2)), 1.0); }'   // 색은 화면에 보이는 색(sRGB)으로 적고 여기서 선형으로 바꾼다
       }));
       scene.add(sky);
-      scene.add(new THREE.HemisphereLight('#FFE6C4', '#5E7E47', 0.45));
-      sun = new THREE.DirectionalLight('#FFD8A2', 1.55);
+      // ☀ 해·구름 — 하늘 장식. 땅에 닿지 않게 카메라 초점을 따라다닌다(실내에서는 숨김)
+      {
+        skyDeco = new THREE.Group(); scene.add(skyDeco);
+        const az = Math.atan2(SUN_DIR_SKY.x, SUN_DIR_SKY.z), R = 240;
+        const sunM = new THREE.MeshBasicMaterial({ color: new THREE.Color('#FFE57A').multiplyScalar(1.25), fog: false });
+        const haloM = new THREE.MeshBasicMaterial({ color: '#FFF3C4', fog: false, transparent: true, opacity: 0.28, depthWrite: false });
+        sunDisc = new THREE.Group();
+        sunDisc.add(new THREE.Mesh(new THREE.CircleGeometry(8, 40), sunM));
+        const halo = new THREE.Mesh(new THREE.RingGeometry(8.6, 14, 40), haloM); halo.position.z = -0.1; sunDisc.add(halo);
+        sunDisc.position.set(Math.sin(az) * R, -9, Math.cos(az) * R);   /* 원본 시점에서 보이는 높이 — 둥근 지평선 때문에 하늘이 카메라보다 아래로 보인다 */ sunDisc.renderOrder = -1; skyDeco.add(sunDisc);
+        sky.material.uniforms.sunDir.value.copy(sunDisc.position).normalize();
+        cloudRing = new THREE.Group(); skyDeco.add(cloudRing);
+        const rnd = (() => { let q = 7177; return () => (q = (q * 16807) % 2147483647) / 2147483647; })();   // 따로 쓰는 난수 — 마을 나무·풀 배치 순서를 바꾸지 않게
+        const cloudM = new THREE.MeshStandardMaterial({ color: '#FFFFFF', emissive: '#EAF2FF', emissiveIntensity: 0.55, roughness: 1, fog: false });   // 둥근 지평선 셰이더를 안 씀(멀리 있어 휘면 땅 밑으로 꺼짐)
+        const puff = new THREE.SphereGeometry(1, 16, 12);
+        for (let i = 0; i < 12; i++) {
+          const c = new THREE.Group(), a = i / 12 * Math.PI * 2 + (rnd() - 0.5) * 0.35, R2 = 200 + rnd() * 30, s = 5 + rnd() * 3;
+          [[0, 0, 0, 1.3], [1.3, -0.2, 0.2, 1.0], [-1.3, -0.25, -0.1, 1.0], [0.6, 0.6, 0, 0.95], [-0.5, 0.5, 0.2, 0.85], [2.3, -0.45, 0, 0.7], [-2.2, -0.45, 0, 0.7]]
+            .forEach(([x, y, z, r]) => { const m = new THREE.Mesh(puff, cloudM); m.position.set(x, y, z); m.scale.set(r, r * 0.8, r); c.add(m); });
+          c.scale.setScalar(s); c.position.set(Math.sin(a) * R2, -14 + rnd() * 20, Math.cos(a) * R2); c.lookAt(0, c.position.y, 0); cloudRing.add(c);
+        }
+      }
+      scene.add(new THREE.HemisphereLight('#EAF4FF', '#7FA85A', 0.58));
+      sun = new THREE.DirectionalLight('#FFF4E2', 1.5);
       sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 3.2;
       const SH = 34; Object.assign(sun.shadow.camera, { left: -SH, right: SH, top: SH, bottom: -SH, near: 1, far: 120 });
       sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.035;
@@ -837,10 +860,10 @@
       for (let i = 0; i < PN; i++) { pp[i * 3] = (rnd() - 0.5) * 50; pp[i * 3 + 1] = rnd() * 9; pp[i * 3 + 2] = (rnd() - 0.5) * 30; }
       petalGeo.setAttribute('position', new THREE.BufferAttribute(pp, 3));
       const dustTex = canvasTex(64, 64, (g) => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,245,215,1)'); gr.addColorStop(1, 'rgba(255,245,215,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); });
-      petals = new THREE.Points(petalGeo, new THREE.PointsMaterial({ map: dustTex, color: '#FFF1CF', size: 0.22, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+      petals = new THREE.Points(petalGeo, new THREE.PointsMaterial({ map: dustTex, color: '#FFFFFF', size: 0.16, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
       scene.add(petals);
       for (let i = 0; i < 7; i++) {
-        const c = new THREE.Group(), cm = new THREE.MeshBasicMaterial({ color: '#FFF1DC', fog: false });
+        const c = new THREE.Group(), cm = new THREE.MeshBasicMaterial({ color: '#FFFFFF', fog: false });
         for (let k = 0; k < 5; k++) { const s = new THREE.Mesh(new THREE.SphereGeometry(3 + rnd() * 3, 14, 10), cm); s.position.set(k * 4 - 8, rnd() * 2, rnd() * 2); c.add(s); }
         c.position.set(-120 + i * 40 + rnd() * 10, 42 + rnd() * 16, -150 - rnd() * 40); c.scale.y = 0.6; scene.add(c);
       }
@@ -879,16 +902,16 @@
         void main(){
           vec3 sharp = texture2D(tSharp, vUv).rgb, blur = texture2D(tBlur, vUv).rgb;
           float dy = vUv.y - focusY;
-          float m = (dy > 0.0 ? smoothstep(band, band + 0.4, dy) : smoothstep(band, band + 0.3, -dy)) * 0.75;
+          float m = (dy > 0.0 ? smoothstep(band, band + 0.4, dy) : smoothstep(band, band + 0.3, -dy)) * 0.2;
           vec3 c = mix(sharp, blur, m);
-          c += texture2D(tBloom, vUv).rgb * 0.16;
+          c += texture2D(tBloom, vUv).rgb * 0.12;
           vec2 sp = vUv - vec2(0.08, 1.05); float ray = pow(max(0.0, 1.0 - length(sp * vec2(1.0, 1.25)) / 1.25), 2.2);
           float streak = 0.55 + 0.45 * sin(atan(sp.y, sp.x) * 22.0 + time * 0.15);
-          c += vec3(1.0, 0.8, 0.52) * ray * (0.045 + 0.025 * streak);
-          c *= vec3(1.05, 1.0, 0.9);
-          float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, 1.08);
-          c = aces(c * 0.88);
-          vec2 q = vUv - 0.5; c *= 1.0 - dot(q * vec2(0.95, 1.2), q * vec2(0.95, 1.2)) * 0.5;
+          c += vec3(1.0, 0.95, 0.85) * ray * 0.0 * streak;
+          c *= vec3(1.0, 1.0, 0.99);
+          float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, 1.14);
+          c = aces(c * 0.95);
+          vec2 q = vUv - 0.5; c *= 1.0 - dot(q * vec2(0.95, 1.2), q * vec2(0.95, 1.2)) * 0.15;
           c = pow(c, vec3(1.0 / 2.2));
           c += (fract(sin(dot(vUv * 913.0, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 255.0;
           gl_FragColor = vec4(c, 1.0); }` });
@@ -1312,6 +1335,7 @@
       { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = mode === 'room' ? 1.6 : 3;
         camera.position.set(camFocus.x + sy * Math.cos(view.pitch) * D, camFocus.y + Math.sin(view.pitch) * D, camFocus.z + cy * Math.cos(view.pitch) * D);
         camera.lookAt(camFocus.x - sy * ah, 0.9, camFocus.z - cy * ah); }
+      if (skyDeco) { skyDeco.visible = mode !== 'room'; skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
       sun.position.copy(camFocus).addScaledVector(SUN_DIR, 50); sun.target.position.copy(camFocus); sun.target.updateMatrixWorld();
       if (mm && (mm.frame++ % 2 === 0)) drawMinimap();
       sky.position.copy(camera.position);

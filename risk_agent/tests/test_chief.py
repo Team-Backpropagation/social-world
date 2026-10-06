@@ -209,6 +209,42 @@ class Cli(unittest.TestCase):
         CH.main(["close", "1"])
         self.assertEqual([c for c in sb.calls if c[0] == "update"][-1][2], "id=eq.1&status=in.(published)")
 
+    def test_approve_ignores_pasted_comment(self):
+        # Windows cmd에는 # 주석이 없어 "approve 12 # list에서 본 id" 가 그대로 인자로 들어온다(10/2 실제 오류)
+        sb = FakeSb(); self.S.client = lambda: sb
+        CH.main(["approve", "#12", "13", "#", "list에서", "본", "id"])
+        ups = [c for c in sb.calls if c[0] == "update"]
+        self.assertEqual([u[2] for u in ups], ["id=eq.12&status=in.(draft)", "id=eq.13&status=in.(draft)"])
+        CH.main(["approve", "#"])
+        self.assertEqual(len([c for c in sb.calls if c[0] == "update"]), 2)
+
+    def test_list_shows_kst_and_ended(self):
+        import io, contextlib
+        rows = [{"id": 1, "status": "published", "title": "카페", "place": "cafe",
+                 "starts_at": "2020-10-01T11:00:00+00:00", "ends_at": "2020-10-01T12:00:00+00:00",
+                 "target_sgg_code": None, "target_age_group": None, "target_gender": None, "reason_note": None},
+                {"id": 2, "status": "draft", "title": "공원", "place": "park",
+                 "starts_at": "2099-10-02T10:30:00+00:00", "ends_at": None,
+                 "target_sgg_code": None, "target_age_group": None, "target_gender": None, "reason_note": None}]
+        sb = FakeSb(); self.S.client = lambda: sb
+        sb.select = lambda t, q: [{"event_id": 1}, {"event_id": 1}] if t == "event_participation" else rows
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            CH.main(["list"])
+        text = out.getvalue()
+        self.assertIn("10/01(목) 20:00 KST", text)          # DB의 UTC 11:00 → 한국 20:00
+        self.assertIn("끝남", text.splitlines()[0])
+        self.assertIn("참여 2명", text.splitlines()[0])
+        self.assertIn("참여 0명", text.splitlines()[2])
+        self.assertNotIn("끝남", text.splitlines()[2])
+
+    def test_plan_refreshes_activity_first(self):
+        sb = FakeSb(); self.S.client = lambda: sb
+        CH.main(["plan", "--dry-run"])
+        names = [c[1] for c in sb.calls if c[0] in ("rpc", "select")]
+        self.assertIn("aggregate_world_activity", names)
+        self.assertLess(names.index("aggregate_world_activity"), names.index("world_activity_metrics"))
+
     def test_offline_preview(self):
         import json, tempfile
         d = {"11680-M-20대": {"sgg_code": "11680", "age_group": "20대", "gender": "M", "event_theme": "outdoor_walk"}}

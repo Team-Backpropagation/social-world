@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),
 const {chromium}=require(process.env.SW_PLAYWRIGHT_PATH||'playwright');
 const root=path.resolve(__dirname,'../..'),app=path.join(root,'app');
 const fixture=fs.readFileSync(path.join(__dirname,'ui_test.py'),'utf8').match(/FAKE_SUPABASE = r"""([\s\S]*?)"""/)[1];
-const three=fs.readFileSync(process.env.SW_THREE_PATH,'utf8');
+const three=process.env.SW_THREE_PATH?fs.readFileSync(process.env.SW_THREE_PATH,'utf8'):null;
 const checks=[];
 function check(ok,name){assert(ok,name);checks.push(name);console.log('PASS '+name);}
 const server=http.createServer((req,res)=>{
@@ -18,7 +18,7 @@ const server=http.createServer((req,res)=>{
   for(const [width,height,entry] of [[1280,820,'/app/'],[390,800,'/app/'],[1280,820,'/socialworld-demo.html']]){
    const ctx=await browser.newContext({viewport:{width,height},locale:'ko-KR'});
    await ctx.route('**/*supabase-js@2/**',r=>r.fulfill({contentType:'text/javascript',body:fixture}));
-   await ctx.route('**/*three@*/**',r=>r.fulfill({contentType:'text/javascript',body:three}));
+   if(three)await ctx.route('**/*three@*/**',r=>r.fulfill({contentType:'text/javascript',body:three}));
    await ctx.route(/https:\/\/fonts\.(googleapis|gstatic)\.com\//,r=>r.fulfill({contentType:'text/css',body:''}));
    const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.addInitScript(()=>{window.__SW_LITE=true;localStorage.setItem('sw_ui_settings_v1',JSON.stringify({bindings:{map:'KeyM',forward:'KeyW',left:'KeyA',back:'KeyS',right:'KeyD',interact:'KeyQ'},north:true,muted:false}));});
@@ -34,6 +34,10 @@ const server=http.createServer((req,res)=>{
    await page.locator('#equip-rod').click();await page.keyboard.press('i');
    await page.keyboard.press('m');await page.locator('[data-place="lake"]').click();
    await page.waitForFunction(()=>__sw().state.near?.type==='fishing'&&__sw().state.near.id==='lake');
+   await page.locator('.fishing-guide-dismiss').waitFor();
+   const guideBox=await page.locator('#fishing-status').boundingBox(),dismissBox=await page.locator('.fishing-guide-dismiss').boundingBox();
+   check(guideBox.x>=0&&guideBox.x+guideBox.width<=width+1&&dismissBox.y>=guideBox.y&&dismissBox.y+dismissBox.height<guideBox.y+guideBox.height&&dismissBox.x>guideBox.x+guideBox.width/2,tag+' guide and top-right dismiss button fit viewport');
+   await page.screenshot({path:path.join(__dirname,'fishing-guide-'+width+(entry.includes('demo')?'-bundle':'')+'.png')});
    await page.keyboard.press('q');await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='waiting');
    check(await page.evaluate(()=>__sw().engine.fishingVisualInfo().rodAttached&&__sw().engine.fishingVisualInfo().floatVisible),tag+' equipped rod and 3D float visible');
    const castPos=await page.evaluate(()=>__sw().engine.playerPos());await page.keyboard.press('w');await page.waitForTimeout(80);
@@ -48,12 +52,19 @@ const server=http.createServer((req,res)=>{
    await page.evaluate(()=>Object.assign(FishingData.timing,{castMs:80,waitMinMs:200,waitMaxMs:200,biteMs:1200}));
    await page.keyboard.press('q');await page.keyboard.press('q');
    check(await page.evaluate(()=>WorldUI.fishing.store.getState().instances.length===2&&__soundCalls.filter(n=>n==='fishingBite').length===1),tag+' early reel does not catch or play bite sound');
+   check(await page.evaluate(()=>JSON.parse(localStorage.getItem('social-world-inventory-v1:u1:guide')).completed===1),tag+' early cancellation does not advance guide completion');
    for(const [id,x,z] of [['river',9,-19],['park',-9.8,10.2],['fountain',0,4.1]]){
     await page.evaluate(p=>__sw().engine.enter('village',{spawn:p}),{x,z});
-    await page.waitForFunction(id=>__sw().state.near?.type==='fishing'&&__sw().state.near.id===id,id);
+    if(id==='fountain'){
+     await page.waitForFunction(()=>FishingData.locate(__sw().engine.playerPos())?.water.id==='fountain'&&__sw().state.near?.type!=='fishing'&&document.querySelector('#fishing-status').hidden);
+     check(await page.locator('#fishing-status').isHidden()&&await page.locator('#hud-act').isHidden(),tag+' approaching fountain reveals no guide or fishing action hint');
+    }else await page.waitForFunction(id=>__sw().state.near?.type==='fishing'&&__sw().state.near.id===id,id);
     await page.keyboard.press('q');await page.waitForFunction(id=>WorldUI.fishing.state?.waterId===id,id);
     check(await page.evaluate(id=>WorldUI.fishing.state.waterId===id,id),tag+' '+id+' uses its own water table');await page.keyboard.press('Escape');
    }
+   await page.keyboard.press('q');await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='bite');
+   check(await page.locator('#fishing-status').isHidden()&&await page.evaluate(()=>__sw().engine.fishingVisualInfo().floatVisible),tag+' fountain bite keeps guide hidden and preserves bobber');
+   await page.keyboard.press('Escape');
    await page.keyboard.press('q');await page.keyboard.press('m');
    check(await page.evaluate(()=>!WorldUI.isFishing()&&WorldUI.state.panel==='map'),tag+' map cancels fishing');await page.keyboard.press('Escape');
    await page.keyboard.press('q');await page.locator('#phone-launch').click();
@@ -63,15 +74,45 @@ const server=http.createServer((req,res)=>{
    await page.evaluate(()=>{const s=WorldUI.fishing.store;s.add({itemId:'crucian',sizeCm:15.2,waterId:'lake',caughtAt:new Date().toISOString()});s.add({itemId:'crucian',sizeCm:29.7,waterId:'lake',caughtAt:new Date().toISOString()});s.add({itemId:'can',waterId:'lake',caughtAt:new Date().toISOString()});});
    await page.keyboard.press('i');await page.locator('[data-item="crucian"]').click();
    check(await page.locator('[data-item="crucian"]').count()===1&&(await page.locator('.fish-instances').innerText()).includes('15.2')&&(await page.locator('.fish-instances').innerText()).includes('29.7'),tag+' grouped fish retain individual sizes');
+   check(!/\d+번째/.test(await page.locator('.fish-instances').innerText())&&(await page.locator('.fish-instances').innerText()).includes('호수'),tag+' fish omit sequence labels and retain catch location');
    const box=await page.locator('.inventory-dialog').boundingBox();check(box.x>=0&&box.y>=0&&box.x+box.width<=width+1&&box.y+box.height<=height+1,tag+' inventory fits viewport');
    await page.screenshot({path:path.join(__dirname,'fishing-'+width+(entry.includes('demo')?'-bundle':'')+'.png')});
    await page.locator('[data-item="can"]').click();await page.locator('#recycle-category').selectOption('paper');await page.locator('#recycle-item').click();
    check(await page.evaluate(()=>WorldUI.fishing.store.groups().some(g=>g.itemId==='can')),tag+' wrong bin retains trash');
    await page.locator('#recycle-category').selectOption('metal');await page.locator('#recycle-item').click();
    check(await page.evaluate(()=>WorldUI.fishing.store.getState().recycled.length===1),tag+' correct bin records recycling');await page.keyboard.press('i');
+   // Two further successful catches end the guide. Misses and cancellations do not count.
+   await page.waitForFunction(()=>__sw().state.near?.id==='lake');
+   await page.keyboard.press('q');await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='bite');
+   await page.waitForFunction(()=>!WorldUI.isFishing(),null,{timeout:5000});
+   check(await page.locator('#fishing-status').isVisible()&&await page.evaluate(()=>JSON.parse(localStorage.getItem('social-world-inventory-v1:u1:guide')).completed===1),tag+' missed bite retains guide and does not count');
+   for(const count of [2,3]){
+    await page.keyboard.press('q');await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='bite');await page.keyboard.press('q');
+    await page.waitForFunction(n=>!WorldUI.isFishing()&&JSON.parse(localStorage.getItem('social-world-inventory-v1:u1:guide')).completed===n,count);
+    check(count===2?await page.locator('#fishing-status').isVisible():await page.locator('#fishing-status').isHidden(),tag+' guide '+(count===2?'remains after second catch':'ends immediately after third catch'));
+   }
+   await page.keyboard.press('q');await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='bite');
+   check(await page.locator('#fishing-status').isHidden()&&await page.locator('#hud-act').isVisible(),tag+' fourth cast preserves action and bite without guide');await page.keyboard.press('q');
    const saved=await page.evaluate(()=>WorldUI.fishing.store.getState());
+   await page.reload({waitUntil:'commit'});await page.waitForFunction(()=>window.WorldUI?.fishing&&window.__sw?.().engine?.isRunning(),null,{timeout:90000});
+   await page.evaluate(()=>{window.__soundCalls=[];window.__soundResults=[];const play=Sound.play;Sound.play=async n=>{__soundCalls.push(n);const ok=await play(n);__soundResults.push({name:n,ok});return ok;};});
+   check(await page.locator('#fishing-status').isHidden()&&await page.evaluate(()=>JSON.parse(localStorage.getItem('social-world-inventory-v1:u1:guide')).completed===3),tag+' automatic guide completion persists on reload');
+   await page.evaluate(()=>Object.assign(FishingData.timing,{castMs:80,waitMinMs:200,waitMaxMs:200,biteMs:1200}));
    await page.evaluate(()=>{__sw().state.session.user.id='u2';WorldUI.attach(__sw().engine);});
    check(await page.evaluate(()=>WorldUI.fishing.store.getState().instances.length===1&&!WorldUI.fishing.store.isEquipped()),tag+' different user gets a separate inventory');
+   await page.keyboard.press('i');await page.locator('#equip-rod').click();await page.keyboard.press('i');
+   await page.evaluate(()=>__sw().engine.enter('village',{spawn:{x:10,z:36.8}}));await page.waitForFunction(()=>__sw().state.near?.id==='lake');
+   check(await page.locator('#fishing-status').isVisible(),tag+' different user retains their own guide');
+   await page.evaluate(()=>Object.assign(FishingData.timing,{castMs:80,waitMinMs:5000,waitMaxMs:5000,biteMs:5000}));
+   await page.keyboard.press('q');await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='waiting',null,{timeout:5000}).catch(async e=>{console.log('GUIDE DEBUG',await page.evaluate(()=>({state:WorldUI.fishing.state,near:__sw().state.near,ui:WorldUI.state.ctx,panel:WorldUI.state.panel,focus:document.activeElement?.outerHTML.slice(0,200),view:__sw().state.view,tour:!!__sw().state.tour,rod:WorldUI.fishing.store.isEquipped(),pos:__sw().engine.playerPos()})));throw e;});
+   await page.locator('.fishing-guide-dismiss').click();
+   check(await page.locator('#fishing-status').isHidden()&&await page.evaluate(()=>WorldUI.isFishing()),tag+' manual guide dismissal before three catches keeps fishing active');
+   await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='bite');await page.keyboard.press('q');
+   await page.waitForFunction(()=>!WorldUI.isFishing());
+   check(await page.evaluate(()=>WorldUI.fishing.store.getState().instances.length===2),tag+' catch still works after manual guide dismissal');
+   await page.evaluate(()=>{WorldUI.reset();WorldUI.attach(__sw().engine);WorldUI.sync({inVillage:true,tour:false,roomBusy:false});});
+   check(await page.locator('#fishing-status').isHidden()&&await page.evaluate(()=>JSON.parse(localStorage.getItem('social-world-inventory-v1:u2:guide')).dismissed),tag+' manual guide dismissal persists after feature recreation');
+   await page.evaluate(()=>Object.assign(FishingData.timing,{castMs:80,waitMinMs:200,waitMaxMs:200,biteMs:1200}));
    await page.evaluate(()=>{__sw().state.session.user.id='u1';WorldUI.attach(__sw().engine);});
    check(await page.evaluate(s=>JSON.stringify(WorldUI.fishing.store.getState())===JSON.stringify(s),saved),tag+' switching back restores original inventory');
    check(await page.locator('#inventory-launch').count()===1&&await page.locator('#fishing-status').count()===1,tag+' user switching leaves no duplicate controls');

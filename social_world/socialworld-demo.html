@@ -1575,9 +1575,407 @@ select:disabled {
 }
 
 /* Inventory and fishing UI (shared overlay and key settings). */
-.inventory-dialog{width:min(890px,100%);max-height:calc(100dvh - 44px);display:flex;flex-direction:column}.inventory-dialog .dialog-top{flex-shrink:0}.inventory-tabs{display:flex;gap:6px;padding:13px 21px;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto}.inventory-tabs button{border:0;border-radius:10px;background:#edf1e7;padding:9px 14px;font-size:12px;white-space:nowrap;cursor:pointer}.inventory-tabs button.active{background:var(--leaf);color:#fff9ef}.inventory-body{display:grid;grid-template-columns:1fr 285px;min-height:0;overflow:auto;flex:1}.inventory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;gap:12px;padding:21px}.inventory-item{position:relative;min-width:0;min-height:157px;border:2px solid #e0e5d5;border-radius:16px;background:#fffdf7;padding:12px 8px 32px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px}.inventory-item.selected{border-color:var(--leaf);background:#eef4e5}.item-art{display:grid;place-items:center;width:65px;height:65px;background:#e8edde;border-radius:17px}.item-art svg{width:50px;height:50px}.inventory-item strong{font-size:13px;overflow-wrap:anywhere}.inventory-item small{font-size:10px;color:var(--muted)}.item-count{position:absolute;right:9px;bottom:9px;font-size:11px;font-weight:700;color:var(--leaf)}.equipped-label{position:absolute;left:8px;bottom:9px;font-size:10px;color:var(--leaf)}.inventory-detail{border-left:1px solid var(--line);background:#f1f3e9;padding:21px;min-width:0}.inventory-detail h3{font-size:21px;margin:11px 0}.inventory-detail p{font-size:12px;line-height:1.8;color:#647568}.inventory-detail .action{width:100%;margin-top:12px;font-size:12px}.detail-art{display:grid;place-items:center;height:95px;margin-top:12px}.detail-art svg{width:85px;height:85px}.inventory-dialog .type-tag{display:inline-block;font-size:11px;background:#e1e8d6;color:var(--leaf);border-radius:7px;padding:5px 9px}.fish-instances{max-height:270px;overflow:auto;margin-top:15px;overscroll-behavior:contain}.fish-instance{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid #dbe1d1;font-size:11px}.fish-instance span small{display:block;font-size:10px;color:var(--muted);margin-top:4px}.fish-instance b{font-size:17px;color:var(--leaf);white-space:nowrap}.fish-instance b small{font-size:10px}.inventory-empty{grid-column:1/-1;font-size:13px;line-height:1.8;color:var(--muted);padding:20px 5px}.inventory-footer{display:flex;justify-content:space-between;padding:13px 21px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);flex-shrink:0}.recycle-picker{display:flex;flex-direction:column;gap:8px;font-size:12px;margin-top:18px}.recycle-picker select{width:100%;padding:10px;border:1px solid #d1dcc4;border-radius:10px;background:#fffdf7;color:var(--leaf)}
-#fishing-status{position:fixed;left:50%;transform:translateX(-50%);bottom:124px;z-index:7;display:flex;align-items:center;gap:13px;padding:15px 18px;width:min(410px,calc(100vw - 28px));border-radius:18px;background:#fff9efef;border:1px solid #fff;box-shadow:var(--shadow);pointer-events:none}#fishing-status strong{font-size:14px}#fishing-status p{font-size:11px;color:var(--muted);margin:5px 0 0;line-height:1.6}#fishing-status kbd{margin-left:auto;background:#e5eddc;color:var(--leaf);border-radius:7px;padding:7px 10px;font:700 13px inherit}#fishing-status button{margin-left:auto;border:0;border-radius:9px;background:#e5eddc;color:var(--leaf);font-size:12px;padding:10px;cursor:pointer;pointer-events:auto}.fishing-indicator{flex-shrink:0;width:19px;height:19px;border:3px solid #fff;border-radius:50%;background:#dc765b;box-shadow:0 0 0 1px #d6dbcf}#fishing-status[data-phase="bite"]{background:#fff1d8;border-color:#edb66b}#fishing-status[data-phase="bite"] .fishing-indicator{background:#cf533c;animation:fishing-bite .45s ease-in-out infinite alternate}@keyframes fishing-bite{to{transform:translateY(4px);opacity:.6}}#inventory-launch b{font-size:10px;background:#e4edd8;border-radius:5px;padding:2px 5px;margin-left:4px}body.in-world:has(#fishing-status:not([hidden])) .sw-toast{bottom:214px}
-@media(max-width:700px){.inventory-dialog{max-height:calc(100dvh - 24px)}.inventory-tabs{padding:10px 12px;gap:4px}.inventory-tabs button{padding:9px 11px}.inventory-body{grid-template-columns:1fr}.inventory-grid{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:8px}.inventory-item{min-height:143px;padding:9px 4px 29px}.item-art{width:53px;height:53px}.item-art svg{width:44px;height:44px}.inventory-item strong{font-size:11px}.inventory-detail{border-left:0;border-top:1px solid var(--line);padding:15px}.detail-art{height:55px}.detail-art svg{width:55px;height:55px}.inventory-detail h3{font-size:18px;margin:7px 0}.inventory-footer{padding:12px;font-size:10px}.fish-instances{max-height:210px}#fishing-status{bottom:129px;padding:12px;gap:10px}#fishing-status strong{font-size:12px}#fishing-status p{font-size:10px}body.in-world:has(#fishing-status:not([hidden])) .sw-toast{bottom:230px}}
+.inventory-dialog {
+  width:min(890px,100%);
+  max-height:calc(100dvh - 44px);
+  display:flex;
+  flex-direction:column
+}
+
+.inventory-dialog .dialog-top {
+  flex-shrink:0
+}
+
+.inventory-tabs {
+  display:flex;
+  gap:6px;
+  padding:13px 21px;
+  border-bottom:1px solid var(--line);
+  flex-shrink:0;
+  overflow-x:auto
+}
+
+.inventory-tabs button {
+  border:0;
+  border-radius:10px;
+  background:#edf1e7;
+  padding:9px 14px;
+  font-size:12px;
+  white-space:nowrap;
+  cursor:pointer
+}
+
+.inventory-tabs button.active {
+  background:var(--leaf);
+  color:#fff9ef
+}
+
+.inventory-body {
+  display:grid;
+  grid-template-columns:1fr 285px;
+  min-height:0;
+  overflow:auto;
+  flex:1
+}
+
+.inventory-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  align-content:start;
+  gap:12px;
+  padding:21px
+}
+
+.inventory-item {
+  position:relative;
+  min-width:0;
+  min-height:157px;
+  border:2px solid #e0e5d5;
+  border-radius:16px;
+  background:#fffdf7;
+  padding:12px 8px 32px;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px
+}
+
+.inventory-item.selected {
+  border-color:var(--leaf);
+  background:#eef4e5
+}
+
+.item-art {
+  display:grid;
+  place-items:center;
+  width:65px;
+  height:65px;
+  background:#e8edde;
+  border-radius:17px
+}
+
+.item-art svg {
+  width:50px;
+  height:50px
+}
+
+.inventory-item strong {
+  font-size:13px;
+  overflow-wrap:anywhere
+}
+
+.inventory-item small {
+  font-size:10px;
+  color:var(--muted)
+}
+
+.item-count {
+  position:absolute;
+  right:9px;
+  bottom:9px;
+  font-size:11px;
+  font-weight:700;
+  color:var(--leaf)
+}
+
+.equipped-label {
+  position:absolute;
+  left:8px;
+  bottom:9px;
+  font-size:10px;
+  color:var(--leaf)
+}
+
+.inventory-detail {
+  border-left:1px solid var(--line);
+  background:#f1f3e9;
+  padding:21px;
+  min-width:0
+}
+
+.inventory-detail h3 {
+  font-size:21px;
+  margin:11px 0
+}
+
+.inventory-detail p {
+  font-size:12px;
+  line-height:1.8;
+  color:#647568
+}
+
+.inventory-detail .action {
+  width:100%;
+  margin-top:12px;
+  font-size:12px
+}
+
+.detail-art {
+  display:grid;
+  place-items:center;
+  height:95px;
+  margin-top:12px
+}
+
+.detail-art svg {
+  width:85px;
+  height:85px
+}
+
+.inventory-dialog .type-tag {
+  display:inline-block;
+  font-size:11px;
+  background:#e1e8d6;
+  color:var(--leaf);
+  border-radius:7px;
+  padding:5px 9px
+}
+
+.fish-instances {
+  max-height:270px;
+  overflow:auto;
+  margin-top:15px;
+  overscroll-behavior:contain
+}
+
+.fish-instance {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:12px 0;
+  border-top:1px solid #dbe1d1;
+  font-size:11px
+}
+
+.fish-instance span small {
+  display:block;
+  font-size:10px;
+  color:var(--muted);
+  margin-top:4px
+}
+
+.fish-instance b {
+  font-size:17px;
+  color:var(--leaf);
+  white-space:nowrap
+}
+
+.fish-instance b small {
+  font-size:10px
+}
+
+.inventory-empty {
+  grid-column:1/-1;
+  font-size:13px;
+  line-height:1.8;
+  color:var(--muted);
+  padding:20px 5px
+}
+
+.inventory-footer {
+  display:flex;
+  justify-content:space-between;
+  padding:13px 21px;
+  border-top:1px solid var(--line);
+  font-size:11px;
+  color:var(--muted);
+  flex-shrink:0
+}
+
+.recycle-picker {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  font-size:12px;
+  margin-top:18px
+}
+
+.recycle-picker select {
+  width:100%;
+  padding:10px;
+  border:1px solid #d1dcc4;
+  border-radius:10px;
+  background:#fffdf7;
+  color:var(--leaf)
+}
+
+#fishing-status {
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:124px;
+  z-index:7;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:15px 18px;
+  width:min(410px,calc(100vw - 28px));
+  border-radius:18px;
+  background:#fff9efef;
+  border:1px solid #fff;
+  box-shadow:var(--shadow);
+  pointer-events:none
+}
+
+#fishing-status strong {
+  font-size:14px
+}
+
+#fishing-status p {
+  font-size:11px;
+  color:var(--muted);
+  margin:5px 0 0;
+  line-height:1.6
+}
+
+#fishing-status kbd {
+  margin-left:auto;
+  background:#e5eddc;
+  color:var(--leaf);
+  border-radius:7px;
+  padding:7px 10px;
+  font:700 13px inherit
+}
+
+#fishing-status button {
+  margin-left:auto;
+  border:0;
+  border-radius:9px;
+  background:#e5eddc;
+  color:var(--leaf);
+  font-size:12px;
+  padding:10px;
+  cursor:pointer;
+  pointer-events:auto
+}
+
+.fishing-indicator {
+  flex-shrink:0;
+  width:19px;
+  height:19px;
+  border:3px solid #fff;
+  border-radius:50%;
+  background:#dc765b;
+  box-shadow:0 0 0 1px #d6dbcf
+}
+
+#fishing-status[data-phase="bite"] {
+  background:#fff1d8;
+  border-color:#edb66b
+}
+
+#fishing-status[data-phase="bite"] .fishing-indicator {
+  background:#cf533c;
+  animation:fishing-bite .45s ease-in-out infinite alternate
+}
+
+@keyframes fishing-bite {
+  to {
+    transform:translateY(4px);
+    opacity:.6
+  }
+}
+
+#inventory-launch b {
+  font-size:10px;
+  background:#e4edd8;
+  border-radius:5px;
+  padding:2px 5px;
+  margin-left:4px
+}
+
+body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
+  bottom:214px
+}
+
+@media(max-width:700px) {
+  .inventory-dialog {
+    max-height:calc(100dvh - 24px)
+  }
+  .inventory-tabs {
+    padding:10px 12px;
+    gap:4px
+  }
+  .inventory-tabs button {
+    padding:9px 11px
+  }
+  .inventory-body {
+    grid-template-columns:1fr
+  }
+  .inventory-grid {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    padding:12px;
+    gap:8px
+  }
+  .inventory-item {
+    min-height:143px;
+    padding:9px 4px 29px
+  }
+  .item-art {
+    width:53px;
+    height:53px
+  }
+  .item-art svg {
+    width:44px;
+    height:44px
+  }
+  .inventory-item strong {
+    font-size:11px
+  }
+  .inventory-detail {
+    border-left:0;
+    border-top:1px solid var(--line);
+    padding:15px
+  }
+  .detail-art {
+    height:55px
+  }
+  .detail-art svg {
+    width:55px;
+    height:55px
+  }
+  .inventory-detail h3 {
+    font-size:18px;
+    margin:7px 0
+  }
+  .inventory-footer {
+    padding:12px;
+    font-size:10px
+  }
+  .fish-instances {
+    max-height:210px
+  }
+  #fishing-status {
+    bottom:129px;
+    padding:12px;
+    gap:10px
+  }
+  #fishing-status strong {
+    font-size:12px
+  }
+  #fishing-status p {
+    font-size:10px
+  }
+  body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
+    bottom:230px
+  }
+}
+
+#fishing-status {
+  padding-top:44px
+}
+
+#fishing-status .fishing-guide-dismiss {
+  position:absolute;
+  top:7px;
+  right:10px;
+  min-height:30px;
+  margin:0;
+  padding:5px 9px;
+  font-size:11px
+}
 
 
 </style>
@@ -1641,7 +2039,7 @@ select:disabled {
     renderer.domElement.setAttribute('tabindex', '0');
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(new THREE.Color('#EED3A8'), 30, 95);
+    scene.fog = new THREE.Fog(new THREE.Color('#A6D4F2').convertSRGBToLinear(), 110, 300);   // 맑은 날: 먼 곳만 옅은 하늘색
     const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 400);
 
     // ---------------- 공통: 둥근 지평선 + 바람 (원본 그대로)
@@ -1902,7 +2300,7 @@ select:disabled {
     const MAPDATA = { paths: [], pathW: 2.4, lakes: [], till: [], trees: [], riverZ: -24 };   // 미니맵용 지도 정보
     const places = {};        // 문·장소 → 서는 위치 {x,z}
     const doors = [];         // 근처 판정용 {id,label,x,z,r,area}
-    let sky, sun, SUN_DIR, fountainJets = [], flags = [], chimneyPos, smoke = [], butterflies = [], petals, petalGeo, PN = 0;
+    let sky, sun, SUN_DIR, skyDeco = null, sunDisc = null, cloudRing = null, fountainJets = [], flags = [], chimneyPos, smoke = [], butterflies = [], petals, petalGeo, PN = 0;
     let npcObjs = [], villagers = [], dog, dogLegs = [], tail, dogBlob, bubble, homeSign = null, roomLight;
     const RX = 0, RZ = 110;     // 내 방 실내 위치 (마을과 멀리 떨어진 곳)
     let built = false;
@@ -1938,18 +2336,41 @@ select:disabled {
     }
     function towardCenter(p, d) { const l = Math.hypot(p.x, p.z) || 1; return { x: p.x - p.x / l * d, z: p.z - p.z / l * d }; }
 
+    const SUN_DIR_SKY = new THREE.Vector3(0.18, 0, -1);   // 하늘의 해: 기본 시점(북쪽)을 낮췄을 때 지원센터 위로 보이게
     function build() {
       if (built) return; built = true;
       // 하늘·빛
       sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), new THREE.ShaderMaterial({
         side: THREE.BackSide, depthWrite: false, fog: false,
-        uniforms: { top: { value: new THREE.Color('#F1C38E') }, mid: { value: new THREE.Color('#F6DDB5') }, low: { value: new THREE.Color('#F4E6C8') } },
+        uniforms: { sunDir: { value: new THREE.Vector3(0, 0.3, -1).normalize() }, top: { value: new THREE.Color('#2F84DA') }, mid: { value: new THREE.Color('#5CADEA') }, low: { value: new THREE.Color('#A6D4F2') } },
         vertexShader: 'varying vec3 vp; void main(){ vp = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-        fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0.1 ? mix(mid, top, smoothstep(0.1, 0.6, h)) : mix(low, mid, smoothstep(-0.1, 0.1, h)); gl_FragColor = vec4(c, 1.0); }'
+        fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; uniform vec3 sunDir; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0.08 ? mix(mid, top, smoothstep(0.08, 0.7, h)) : mix(low, mid, smoothstep(-0.05, 0.08, h)); c = mix(c, low, (1.0 - smoothstep(0.0, 0.1, abs(h))) * 0.12); float sd = max(dot(vp, normalize(sunDir)), 0.0); c += vec3(1.0, 0.92, 0.72) * (pow(sd, 6.0) * 0.12 + pow(sd, 48.0) * 0.3); gl_FragColor = vec4(pow(c, vec3(2.2)), 1.0); }'   // 색은 화면에 보이는 색(sRGB)으로 적고 여기서 선형으로 바꾼다
       }));
       scene.add(sky);
-      scene.add(new THREE.HemisphereLight('#FFE6C4', '#5E7E47', 0.45));
-      sun = new THREE.DirectionalLight('#FFD8A2', 1.55);
+      // ☀ 해·구름 — 하늘 장식. 땅에 닿지 않게 카메라 초점을 따라다닌다(실내에서는 숨김)
+      {
+        skyDeco = new THREE.Group(); scene.add(skyDeco);
+        const az = Math.atan2(SUN_DIR_SKY.x, SUN_DIR_SKY.z), R = 240;
+        const sunM = new THREE.MeshBasicMaterial({ color: new THREE.Color('#FFE57A').multiplyScalar(1.25), fog: false });
+        const haloM = new THREE.MeshBasicMaterial({ color: '#FFF3C4', fog: false, transparent: true, opacity: 0.28, depthWrite: false });
+        sunDisc = new THREE.Group();
+        sunDisc.add(new THREE.Mesh(new THREE.CircleGeometry(8, 40), sunM));
+        const halo = new THREE.Mesh(new THREE.RingGeometry(8.6, 14, 40), haloM); halo.position.z = -0.1; sunDisc.add(halo);
+        sunDisc.position.set(Math.sin(az) * R, -9, Math.cos(az) * R);   /* 원본 시점에서 보이는 높이 — 둥근 지평선 때문에 하늘이 카메라보다 아래로 보인다 */ sunDisc.renderOrder = -1; skyDeco.add(sunDisc);
+        sky.material.uniforms.sunDir.value.copy(sunDisc.position).normalize();
+        cloudRing = new THREE.Group(); skyDeco.add(cloudRing);
+        const rnd = (() => { let q = 7177; return () => (q = (q * 16807) % 2147483647) / 2147483647; })();   // 따로 쓰는 난수 — 마을 나무·풀 배치 순서를 바꾸지 않게
+        const cloudM = new THREE.MeshStandardMaterial({ color: '#FFFFFF', emissive: '#EAF2FF', emissiveIntensity: 0.55, roughness: 1, fog: false });   // 둥근 지평선 셰이더를 안 씀(멀리 있어 휘면 땅 밑으로 꺼짐)
+        const puff = new THREE.SphereGeometry(1, 16, 12);
+        for (let i = 0; i < 12; i++) {
+          const c = new THREE.Group(), a = i / 12 * Math.PI * 2 + (rnd() - 0.5) * 0.35, R2 = 200 + rnd() * 30, s = 5 + rnd() * 3;
+          [[0, 0, 0, 1.3], [1.3, -0.2, 0.2, 1.0], [-1.3, -0.25, -0.1, 1.0], [0.6, 0.6, 0, 0.95], [-0.5, 0.5, 0.2, 0.85], [2.3, -0.45, 0, 0.7], [-2.2, -0.45, 0, 0.7]]
+            .forEach(([x, y, z, r]) => { const m = new THREE.Mesh(puff, cloudM); m.position.set(x, y, z); m.scale.set(r, r * 0.8, r); c.add(m); });
+          c.scale.setScalar(s); c.position.set(Math.sin(a) * R2, -14 + rnd() * 20, Math.cos(a) * R2); c.lookAt(0, c.position.y, 0); cloudRing.add(c);
+        }
+      }
+      scene.add(new THREE.HemisphereLight('#EAF4FF', '#7FA85A', 0.58));
+      sun = new THREE.DirectionalLight('#FFF4E2', 1.5);
       sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 3.2;
       const SH = 34; Object.assign(sun.shadow.camera, { left: -SH, right: SH, top: SH, bottom: -SH, near: 1, far: 120 });
       sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.035;
@@ -2447,10 +2868,10 @@ select:disabled {
       for (let i = 0; i < PN; i++) { pp[i * 3] = (rnd() - 0.5) * 50; pp[i * 3 + 1] = rnd() * 9; pp[i * 3 + 2] = (rnd() - 0.5) * 30; }
       petalGeo.setAttribute('position', new THREE.BufferAttribute(pp, 3));
       const dustTex = canvasTex(64, 64, (g) => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,245,215,1)'); gr.addColorStop(1, 'rgba(255,245,215,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); });
-      petals = new THREE.Points(petalGeo, new THREE.PointsMaterial({ map: dustTex, color: '#FFF1CF', size: 0.22, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+      petals = new THREE.Points(petalGeo, new THREE.PointsMaterial({ map: dustTex, color: '#FFFFFF', size: 0.16, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
       scene.add(petals);
       for (let i = 0; i < 7; i++) {
-        const c = new THREE.Group(), cm = new THREE.MeshBasicMaterial({ color: '#FFF1DC', fog: false });
+        const c = new THREE.Group(), cm = new THREE.MeshBasicMaterial({ color: '#FFFFFF', fog: false });
         for (let k = 0; k < 5; k++) { const s = new THREE.Mesh(new THREE.SphereGeometry(3 + rnd() * 3, 14, 10), cm); s.position.set(k * 4 - 8, rnd() * 2, rnd() * 2); c.add(s); }
         c.position.set(-120 + i * 40 + rnd() * 10, 42 + rnd() * 16, -150 - rnd() * 40); c.scale.y = 0.6; scene.add(c);
       }
@@ -2489,16 +2910,16 @@ select:disabled {
         void main(){
           vec3 sharp = texture2D(tSharp, vUv).rgb, blur = texture2D(tBlur, vUv).rgb;
           float dy = vUv.y - focusY;
-          float m = (dy > 0.0 ? smoothstep(band, band + 0.4, dy) : smoothstep(band, band + 0.3, -dy)) * 0.75;
+          float m = (dy > 0.0 ? smoothstep(band, band + 0.4, dy) : smoothstep(band, band + 0.3, -dy)) * 0.2;
           vec3 c = mix(sharp, blur, m);
-          c += texture2D(tBloom, vUv).rgb * 0.16;
+          c += texture2D(tBloom, vUv).rgb * 0.12;
           vec2 sp = vUv - vec2(0.08, 1.05); float ray = pow(max(0.0, 1.0 - length(sp * vec2(1.0, 1.25)) / 1.25), 2.2);
           float streak = 0.55 + 0.45 * sin(atan(sp.y, sp.x) * 22.0 + time * 0.15);
-          c += vec3(1.0, 0.8, 0.52) * ray * (0.045 + 0.025 * streak);
-          c *= vec3(1.05, 1.0, 0.9);
-          float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, 1.08);
-          c = aces(c * 0.88);
-          vec2 q = vUv - 0.5; c *= 1.0 - dot(q * vec2(0.95, 1.2), q * vec2(0.95, 1.2)) * 0.5;
+          c += vec3(1.0, 0.95, 0.85) * ray * 0.0 * streak;
+          c *= vec3(1.0, 1.0, 0.99);
+          float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, 1.14);
+          c = aces(c * 0.95);
+          vec2 q = vUv - 0.5; c *= 1.0 - dot(q * vec2(0.95, 1.2), q * vec2(0.95, 1.2)) * 0.15;
           c = pow(c, vec3(1.0 / 2.2));
           c += (fract(sin(dot(vUv * 913.0, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 255.0;
           gl_FragColor = vec4(c, 1.0); }` });
@@ -2922,6 +3343,7 @@ select:disabled {
       { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = mode === 'room' ? 1.6 : 3;
         camera.position.set(camFocus.x + sy * Math.cos(view.pitch) * D, camFocus.y + Math.sin(view.pitch) * D, camFocus.z + cy * Math.cos(view.pitch) * D);
         camera.lookAt(camFocus.x - sy * ah, 0.9, camFocus.z - cy * ah); }
+      if (skyDeco) { skyDeco.visible = mode !== 'room'; skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
       sun.position.copy(camFocus).addScaledVector(SUN_DIR, 50); sun.target.position.copy(camFocus); sun.target.updateMatrixWorld();
       if (mm && (mm.frame++ % 2 === 0)) drawMinimap();
       sky.position.copy(camera.position);
@@ -3783,6 +4205,14 @@ select:disabled {
   const D=root.FishingData,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let fishing=null,selected='rod',filter='all',lastHud='';
   let storage;try{storage=root.localStorage;}catch(e){storage={getItem:()=>null,setItem:()=>{throw Error('Storage unavailable');}};}
+  const guideKey=storageKey+':guide';
+  let guide={completed:0,dismissed:false};
+  try{
+   const saved=JSON.parse(storage.getItem(guideKey)||'null');
+   if(saved)guide={completed:Number.isInteger(saved.completed)?Math.max(0,Math.min(3,saved.completed)):0,dismissed:saved.dismissed===true};
+  }catch(e){}
+  function saveGuide(){try{storage.setItem(guideKey,JSON.stringify(guide));}catch(e){}}
+  function dismissGuide(){guide.dismissed=true;saveGuide();updateHud();engine?.pauseInput();}
   const store=root.InventoryStore.create({storage,key:storageKey,data:D,onChange:()=>{
    engine?.setRodEquipped(store.isEquipped());updateHud();if(ui.panel==='inventory')renderInventory();
   }});
@@ -3808,7 +4238,7 @@ select:disabled {
     }).join(''):'<p class="inventory-empty">아직 모은 아이템이 없어요.</p>'}</div>
     <aside class="inventory-detail">${g?`<span class="type-tag">${kindLabel(def)}</span><div class="detail-art">${itemIcon(def)}</div><h3>${esc(def.name)}</h3>
      ${def.kind==='tool'?`<p>물가에서 ${keyLabel(ui.bindings.interact)}로 던지고, 찌가 잠기면 다시 ${keyLabel(ui.bindings.interact)}로 낚아채세요.</p><button class="action ${state.equipped?'secondary':'primary'}" id="equip-rod">${state.equipped?'장착 해제':'낚싯대 장착'}</button>`:
-      def.kind==='fish'?`<p>같은 종류는 한 칸에 모아요. 각 물고기의 크기는 그대로 보관돼요.</p><div class="fish-instances" aria-label="물고기별 크기">${[...g.instances].reverse().map((e,i)=>`<div class="fish-instance" data-instance="${esc(e.id)}"><span>${g.instances.length-i}번째 물고기<small>${esc(D.waters.find(w=>w.id===e.waterId)?.name||'알 수 없는 장소')} · ${esc(new Date(e.caughtAt).toLocaleDateString('ko-KR'))}</small></span><b>${e.sizeCm.toFixed(1)} <small>cm</small></b></div>`).join('')}</div>`:
+      def.kind==='fish'?`<p>같은 종류는 한 칸에 모아요. 각 물고기의 크기는 그대로 보관돼요.</p><div class="fish-instances" aria-label="물고기별 크기">${[...g.instances].reverse().map(e=>`<div class="fish-instance" data-instance="${esc(e.id)}"><span><small>${esc(D.waters.find(w=>w.id===e.waterId)?.name||'알 수 없는 장소')} · ${esc(new Date(e.caughtAt).toLocaleDateString('ko-KR'))}</small></span><b>${e.sizeCm.toFixed(1)} <small>cm</small></b></div>`).join('')}</div>`:
       def.kind==='trash'?`<p>분리수거 분류 · <b>${D.categories[def.recycle]}</b></p>${def.description?`<p>${esc(def.description)}</p>`:''}<label class="recycle-picker">넣을 수거함<select id="recycle-category">${Object.entries(D.categories).map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label><button class="action secondary" id="recycle-item" data-instance="${esc(g.instances[0].id)}">이 쓰레기 1개 분리수거</button><p class="small muted">게임 내 분류 기준으로 판정해요.</p>`:`<p>${esc(def.description||'소중한 수집품이에요.')}</p>`}
      `:'<p class="inventory-empty">아이템을 모으면 여기에 자세히 보여드려요.</p>'}</aside></div>
     <footer class="inventory-footer"><span>분리수거 ${state.recycled.length}개 완료</span><span>${keyLabel(ui.bindings.inventory)} / Esc 닫기</span></footer></section>`;
@@ -3825,31 +4255,35 @@ select:disabled {
   function target(fallback){
    if(!allowed()||isBusy())return fallback;
    if(fishing)return {type:'fishing',id:fishing.water.id,label:fishing.phase==='bite'?'지금 낚아채기':'낚싯대 거두기'};
-   const spot=currentSpot();return spot?{type:'fishing',id:spot.water.id,label:spot.water.hidden?'여기서도 낚일까…?':spot.water.name+' · 낚시하기'}:fallback;
+   const spot=currentSpot();return spot&&!spot.water.hidden?{type:'fishing',id:spot.water.id,label:spot.water.name+' · 낚시하기'}:fallback;
   }
   function updateHud(){
    const spot=currentSpot(),phase=fishing?.phase||'idle',seconds=phase==='bite'?Math.max(0,Math.ceil((fishing.deadline-performance.now())/1000)):0;
-   const signature=[phase,spot?.water.id,store.isEquipped(),seconds,ui.panel,allowed(),isBusy(),keyLabel(ui.bindings.interact),keyLabel(ui.bindings.inventory)].join('|');if(signature===lastHud)return;lastHud=signature;
+   const signature=[phase,spot?.water.id,store.isEquipped(),seconds,ui.panel,allowed(),isBusy(),guide.completed,guide.dismissed,keyLabel(ui.bindings.interact),keyLabel(ui.bindings.inventory)].join('|');if(signature===lastHud)return;lastHud=signature;
    launch.querySelector('b').textContent=keyLabel(ui.bindings.inventory);
    launch.hidden=!allowed();
-   status.hidden=!allowed()||!store.isEquipped()||!!ui.panel||isBusy();
+   status.hidden=!allowed()||!store.isEquipped()||!!ui.panel||isBusy()||!!(spot?.water.hidden||fishing?.water.hidden)||guide.dismissed||guide.completed>=3;
    status.dataset.phase=phase;
-   const title=phase==='cast'?'낚싯대를 드리우고 있어요':phase==='waiting'?'찌를 지켜보세요':phase==='bite'?'물었어요! 지금 낚아채세요':spot?(spot.water.hidden?'여기서도 낚일까…?':spot.water.name+' · 낚시 가능'):'낚싯대 장착 중';
+   if(status.hidden)return;
+   const title=phase==='cast'?'낚싯대를 드리우고 있어요':phase==='waiting'?'찌를 지켜보세요':phase==='bite'?'물었어요! 지금 낚아채세요':spot?spot.water.name+' · 낚시 가능':'낚싯대 장착 중';
    const line=phase==='bite'?`찌가 물 아래로 잠겼어요 · ${seconds}초`:fishing?'찌가 잠기면 상호작용하세요.':spot?`${keyLabel(ui.bindings.interact)}를 눌러 낚싯대를 드리워요.`:'강 · 공원 연못 · 호수의 물가로 가 보세요.';
-   status.innerHTML=`<span class="fishing-indicator" aria-hidden="true"></span><div><strong>${title}</strong><p>${line}</p></div>${fishing?'<button id="fishing-cancel" aria-label="낚시 취소">취소</button>':`<kbd>${keyLabel(ui.bindings.interact)}</kbd>`}`;
+   status.innerHTML=`<button class="fishing-guide-dismiss" type="button" aria-label="낚시 안내 끄기">안내 끄기</button><span class="fishing-indicator" aria-hidden="true"></span><div><strong>${title}</strong><p>${line}</p></div>${fishing?'<button id="fishing-cancel" aria-label="낚시 취소">취소</button>':`<kbd>${keyLabel(ui.bindings.interact)}</kbd>`}`;
+   status.querySelector('.fishing-guide-dismiss').addEventListener('click',dismissGuide);
    document.querySelector('#fishing-cancel')?.addEventListener('click',()=>cancel(true));
   }
   function cancel(show=false){
    if(!fishing)return;fishing=null;engine?.setFishingVisual(null);engine?.pauseInput();lastHud='';updateHud();if(show)toast('낚싯대를 거두었어요.');
   }
-  function interact(){
+  function interact({hiddenOnly=false}={}){
    if(!allowed()||ui.panel||isBusy())return false;
+   if(hiddenOnly&&!(fishing?.water.hidden||currentSpot()?.water.hidden))return false;
    if(fishing){
     if(fishing.phase!=='bite'){cancel();toast('찌가 잠기기 전에 거두었어요. 다시 던져 보세요.');return true;}
     if(performance.now()>fishing.deadline){cancel();toast('놓쳤어요. 다시 도전해 보세요.');return true;}
     const waterId=fishing.water.id,entry=D.roll(waterId);cancel();
     try{
      const caught=store.add(entry),def=D.items[caught.itemId];toast(`${def.name}${def.kind==='fish'?' '+caught.sizeCm.toFixed(1)+' cm':''}을 낚았어요! · 인벤토리 ${keyLabel(ui.bindings.inventory)}`);
+     guide.completed=Math.min(3,guide.completed+1);saveGuide();updateHud();
      root.dispatchEvent(new CustomEvent('socialworld:catch',{detail:{...caught,kind:def.kind}}));
     }catch(e){toast('획득한 아이템을 저장할 수 없어요. 브라우저 저장 공간을 확인해 주세요.');}
     return true;
@@ -4591,7 +5025,7 @@ select:disabled {
     openPhone: openPhone,
     openMap: openMap,
     target: function(t){ return fishingFeature ? fishingFeature.target(t) : t; },
-    interactFishing: function(){ return fishingFeature ? fishingFeature.interact() : false; },
+    interactFishing: function(options){ return fishingFeature ? fishingFeature.interact(options) : false; },
     tick: function(){ if (fishingFeature) fishingFeature.tick(); },
     cancelFishing: function(){ if (fishingFeature) fishingFeature.cancel(); },
     isFishing: function(){ return !!(fishingFeature && fishingFeature.state); },
@@ -5239,6 +5673,7 @@ select:disabled {
       return;
     }
     if(state.view === "room" && state.room && state.room.phase !== "free") return;
+    if(window.WorldUI && window.WorldUI.interactFishing({ hiddenOnly: true })) return;
     if(!t) return;
     if(t.type === "fishing"){ if(window.WorldUI) window.WorldUI.interactFishing(); return; }
     if(t.type === "npc") openNpc(t.id);

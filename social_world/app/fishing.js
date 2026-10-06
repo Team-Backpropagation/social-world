@@ -5,6 +5,14 @@
   const D=root.FishingData,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let fishing=null,selected='rod',filter='all',lastHud='';
   let storage;try{storage=root.localStorage;}catch(e){storage={getItem:()=>null,setItem:()=>{throw Error('Storage unavailable');}};}
+  const guideKey=storageKey+':guide';
+  let guide={completed:0,dismissed:false};
+  try{
+   const saved=JSON.parse(storage.getItem(guideKey)||'null');
+   if(saved)guide={completed:Number.isInteger(saved.completed)?Math.max(0,Math.min(3,saved.completed)):0,dismissed:saved.dismissed===true};
+  }catch(e){}
+  function saveGuide(){try{storage.setItem(guideKey,JSON.stringify(guide));}catch(e){}}
+  function dismissGuide(){guide.dismissed=true;saveGuide();updateHud();engine?.pauseInput();}
   const store=root.InventoryStore.create({storage,key:storageKey,data:D,onChange:()=>{
    engine?.setRodEquipped(store.isEquipped());updateHud();if(ui.panel==='inventory')renderInventory();
   }});
@@ -30,7 +38,7 @@
     }).join(''):'<p class="inventory-empty">아직 모은 아이템이 없어요.</p>'}</div>
     <aside class="inventory-detail">${g?`<span class="type-tag">${kindLabel(def)}</span><div class="detail-art">${itemIcon(def)}</div><h3>${esc(def.name)}</h3>
      ${def.kind==='tool'?`<p>물가에서 ${keyLabel(ui.bindings.interact)}로 던지고, 찌가 잠기면 다시 ${keyLabel(ui.bindings.interact)}로 낚아채세요.</p><button class="action ${state.equipped?'secondary':'primary'}" id="equip-rod">${state.equipped?'장착 해제':'낚싯대 장착'}</button>`:
-      def.kind==='fish'?`<p>같은 종류는 한 칸에 모아요. 각 물고기의 크기는 그대로 보관돼요.</p><div class="fish-instances" aria-label="물고기별 크기">${[...g.instances].reverse().map((e,i)=>`<div class="fish-instance" data-instance="${esc(e.id)}"><span>${g.instances.length-i}번째 물고기<small>${esc(D.waters.find(w=>w.id===e.waterId)?.name||'알 수 없는 장소')} · ${esc(new Date(e.caughtAt).toLocaleDateString('ko-KR'))}</small></span><b>${e.sizeCm.toFixed(1)} <small>cm</small></b></div>`).join('')}</div>`:
+      def.kind==='fish'?`<p>같은 종류는 한 칸에 모아요. 각 물고기의 크기는 그대로 보관돼요.</p><div class="fish-instances" aria-label="물고기별 크기">${[...g.instances].reverse().map(e=>`<div class="fish-instance" data-instance="${esc(e.id)}"><span><small>${esc(D.waters.find(w=>w.id===e.waterId)?.name||'알 수 없는 장소')} · ${esc(new Date(e.caughtAt).toLocaleDateString('ko-KR'))}</small></span><b>${e.sizeCm.toFixed(1)} <small>cm</small></b></div>`).join('')}</div>`:
       def.kind==='trash'?`<p>분리수거 분류 · <b>${D.categories[def.recycle]}</b></p>${def.description?`<p>${esc(def.description)}</p>`:''}<label class="recycle-picker">넣을 수거함<select id="recycle-category">${Object.entries(D.categories).map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label><button class="action secondary" id="recycle-item" data-instance="${esc(g.instances[0].id)}">이 쓰레기 1개 분리수거</button><p class="small muted">게임 내 분류 기준으로 판정해요.</p>`:`<p>${esc(def.description||'소중한 수집품이에요.')}</p>`}
      `:'<p class="inventory-empty">아이템을 모으면 여기에 자세히 보여드려요.</p>'}</aside></div>
     <footer class="inventory-footer"><span>분리수거 ${state.recycled.length}개 완료</span><span>${keyLabel(ui.bindings.inventory)} / Esc 닫기</span></footer></section>`;
@@ -47,31 +55,35 @@
   function target(fallback){
    if(!allowed()||isBusy())return fallback;
    if(fishing)return {type:'fishing',id:fishing.water.id,label:fishing.phase==='bite'?'지금 낚아채기':'낚싯대 거두기'};
-   const spot=currentSpot();return spot?{type:'fishing',id:spot.water.id,label:spot.water.hidden?'여기서도 낚일까…?':spot.water.name+' · 낚시하기'}:fallback;
+   const spot=currentSpot();return spot&&!spot.water.hidden?{type:'fishing',id:spot.water.id,label:spot.water.name+' · 낚시하기'}:fallback;
   }
   function updateHud(){
    const spot=currentSpot(),phase=fishing?.phase||'idle',seconds=phase==='bite'?Math.max(0,Math.ceil((fishing.deadline-performance.now())/1000)):0;
-   const signature=[phase,spot?.water.id,store.isEquipped(),seconds,ui.panel,allowed(),isBusy(),keyLabel(ui.bindings.interact),keyLabel(ui.bindings.inventory)].join('|');if(signature===lastHud)return;lastHud=signature;
+   const signature=[phase,spot?.water.id,store.isEquipped(),seconds,ui.panel,allowed(),isBusy(),guide.completed,guide.dismissed,keyLabel(ui.bindings.interact),keyLabel(ui.bindings.inventory)].join('|');if(signature===lastHud)return;lastHud=signature;
    launch.querySelector('b').textContent=keyLabel(ui.bindings.inventory);
    launch.hidden=!allowed();
-   status.hidden=!allowed()||!store.isEquipped()||!!ui.panel||isBusy();
+   status.hidden=!allowed()||!store.isEquipped()||!!ui.panel||isBusy()||!!(spot?.water.hidden||fishing?.water.hidden)||guide.dismissed||guide.completed>=3;
    status.dataset.phase=phase;
-   const title=phase==='cast'?'낚싯대를 드리우고 있어요':phase==='waiting'?'찌를 지켜보세요':phase==='bite'?'물었어요! 지금 낚아채세요':spot?(spot.water.hidden?'여기서도 낚일까…?':spot.water.name+' · 낚시 가능'):'낚싯대 장착 중';
+   if(status.hidden)return;
+   const title=phase==='cast'?'낚싯대를 드리우고 있어요':phase==='waiting'?'찌를 지켜보세요':phase==='bite'?'물었어요! 지금 낚아채세요':spot?spot.water.name+' · 낚시 가능':'낚싯대 장착 중';
    const line=phase==='bite'?`찌가 물 아래로 잠겼어요 · ${seconds}초`:fishing?'찌가 잠기면 상호작용하세요.':spot?`${keyLabel(ui.bindings.interact)}를 눌러 낚싯대를 드리워요.`:'강 · 공원 연못 · 호수의 물가로 가 보세요.';
-   status.innerHTML=`<span class="fishing-indicator" aria-hidden="true"></span><div><strong>${title}</strong><p>${line}</p></div>${fishing?'<button id="fishing-cancel" aria-label="낚시 취소">취소</button>':`<kbd>${keyLabel(ui.bindings.interact)}</kbd>`}`;
+   status.innerHTML=`<button class="fishing-guide-dismiss" type="button" aria-label="낚시 안내 끄기">안내 끄기</button><span class="fishing-indicator" aria-hidden="true"></span><div><strong>${title}</strong><p>${line}</p></div>${fishing?'<button id="fishing-cancel" aria-label="낚시 취소">취소</button>':`<kbd>${keyLabel(ui.bindings.interact)}</kbd>`}`;
+   status.querySelector('.fishing-guide-dismiss').addEventListener('click',dismissGuide);
    document.querySelector('#fishing-cancel')?.addEventListener('click',()=>cancel(true));
   }
   function cancel(show=false){
    if(!fishing)return;fishing=null;engine?.setFishingVisual(null);engine?.pauseInput();lastHud='';updateHud();if(show)toast('낚싯대를 거두었어요.');
   }
-  function interact(){
+  function interact({hiddenOnly=false}={}){
    if(!allowed()||ui.panel||isBusy())return false;
+   if(hiddenOnly&&!(fishing?.water.hidden||currentSpot()?.water.hidden))return false;
    if(fishing){
     if(fishing.phase!=='bite'){cancel();toast('찌가 잠기기 전에 거두었어요. 다시 던져 보세요.');return true;}
     if(performance.now()>fishing.deadline){cancel();toast('놓쳤어요. 다시 도전해 보세요.');return true;}
     const waterId=fishing.water.id,entry=D.roll(waterId);cancel();
     try{
      const caught=store.add(entry),def=D.items[caught.itemId];toast(`${def.name}${def.kind==='fish'?' '+caught.sizeCm.toFixed(1)+' cm':''}을 낚았어요! · 인벤토리 ${keyLabel(ui.bindings.inventory)}`);
+     guide.completed=Math.min(3,guide.completed+1);saveGuide();updateHud();
      root.dispatchEvent(new CustomEvent('socialworld:catch',{detail:{...caught,kind:def.kind}}));
     }catch(e){toast('획득한 아이템을 저장할 수 없어요. 브라우저 저장 공간을 확인해 주세요.');}
     return true;

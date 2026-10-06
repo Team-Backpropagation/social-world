@@ -701,7 +701,7 @@
     openPhone: openPhone,
     openMap: openMap,
     target: function(t){ return fishingFeature ? fishingFeature.target(t) : t; },
-    interactFishing: function(){ return fishingFeature ? fishingFeature.interact() : false; },
+    interactFishing: function(options){ return fishingFeature ? fishingFeature.interact(options) : false; },
     tick: function(){ if (fishingFeature) fishingFeature.tick(); },
     cancelFishing: function(){ if (fishingFeature) fishingFeature.cancel(); },
     isFishing: function(){ return !!(fishingFeature && fishingFeature.state); },
