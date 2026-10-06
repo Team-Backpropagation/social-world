@@ -4869,7 +4869,7 @@ return GLTFLoader;
     renderer.domElement.setAttribute('tabindex', '0');
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(new THREE.Color('#A3D8F4'), 120, 280);
+    scene.fog = new THREE.Fog(new THREE.Color('#C4E2F2'), 110, 290);
     const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 400);
 
     // ---------------- 공통: 둥근 지평선 + 바람 (원본 그대로)
@@ -4908,8 +4908,8 @@ return GLTFLoader;
     }
     const depthMat = patch(new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }));
     // 🎨 [Cartoon] 3단 툰 셰이딩 — 명암이 부드럽게 번지지 않고 또렷하게 나뉜다
-    const TOON = (() => { const t = new THREE.DataTexture(new Uint8Array([124, 190, 250]), 3, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; })();
-    const TOON_SOFT = (() => { const t = new THREE.DataTexture(new Uint8Array([160, 212, 250]), 3, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; })();
+    const TOON = (() => { const t = new THREE.DataTexture(new Uint8Array([146, 194, 234, 255]), 4, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; })();
+    const TOON_SOFT = (() => { const t = new THREE.DataTexture(new Uint8Array([176, 214, 242, 255]), 4, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; })();
     const matCache = new Map();
     function M(color, o = {}) {
       const key = color + JSON.stringify(o, (k, v) => (v && v.isTexture ? v.uuid : v));
@@ -4926,8 +4926,8 @@ return GLTFLoader;
     const OL_MATS = new Map();
     function olMat(th, wind) {
       const key = th.toFixed(4) + '_' + (wind || 0); if (OL_MATS.has(key)) return OL_MATS.get(key);
-      const m = patch(new THREE.MeshBasicMaterial({ color: '#3E3548', side: THREE.BackSide }), wind || 0), inner = m.onBeforeCompile;
-      m.onBeforeCompile = (sh) => { inner(sh); sh.vertexShader = 'attribute vec3 olN;\n' + sh.vertexShader.replace('#include <begin_vertex>', 'float olD = -( modelViewMatrix * vec4( position, 1.0 ) ).z; vec3 transformed = vec3( position ) + olN * ' + th.toFixed(5) + ' * clamp( olD / 16.0, 0.55, 2.8 );'); };
+      const m = patch(new THREE.MeshBasicMaterial({ color: '#453E57', side: THREE.BackSide }), wind || 0), inner = m.onBeforeCompile;
+      m.onBeforeCompile = (sh) => { inner(sh); sh.vertexShader = 'attribute vec3 olN;\n' + sh.vertexShader.replace('#include <begin_vertex>', 'float olD = -( modelViewMatrix * vec4( position, 1.0 ) ).z; vec3 transformed = vec3( position ) + olN * ' + th.toFixed(5) + ' * clamp( olD / 18.0, 0.8, 1.7 );'); };
       m.customProgramCacheKey = () => 'outline_v3_' + key; OL_MATS.set(key, m); return m;
     }
     function olNormals(g) {
@@ -4950,12 +4950,12 @@ return GLTFLoader;
         if (g.type === 'PlaneGeometry' || g.type === 'CircleGeometry' || g.type === 'ShapeGeometry') return;
         if (!g.boundingSphere) g.computeBoundingSphere();
         o.getWorldScale(_olS); const s = Math.max(Math.abs(_olS.x), Math.abs(_olS.y), Math.abs(_olS.z)) || 1;
-        if (g.boundingSphere.radius * s < 0.14) return;
+        if (g.boundingSphere.radius * s < 0.2) return;
         list.push([o, s]);
       });
       for (const [o, s] of list) {
         olNormals(o.geometry);
-        const th = 0.04 / Math.pow(2, Math.round(Math.log2(s) * 4) / 4), mt = [].concat(o.material)[0], om = olMat(th, (mt && mt.userData.wind) || 0);
+        const th = 0.027 / Math.pow(2, Math.round(Math.log2(s) * 4) / 4), mt = [].concat(o.material)[0], om = olMat(th, (mt && mt.userData.wind) || 0);
         let h;
         if (o.isSkinnedMesh) { h = new THREE.SkinnedMesh(o.geometry, om); h.bind(o.skeleton, o.bindMatrix); h.frustumCulled = false; }
         else h = new THREE.Mesh(o.geometry, om);
@@ -5499,9 +5499,9 @@ return GLTFLoader;
       // 하늘·빛
       sky = new THREE.Mesh(sqSphere(300, 32, 16), new THREE.ShaderMaterial({
         side: THREE.BackSide, depthWrite: false, fog: false,
-        uniforms: { top: { value: new THREE.Color('#2E8FE6') }, mid: { value: new THREE.Color('#5BB4F2') }, low: { value: new THREE.Color('#9AD6F7') } },
+        uniforms: { sunDir: { value: new THREE.Vector3(0, 0.3, -1).normalize() }, top: { value: new THREE.Color('#3A95E2') }, mid: { value: new THREE.Color('#78BEEF') }, low: { value: new THREE.Color('#CDE8F6') } },
         vertexShader: 'varying vec3 vp; void main(){ vp = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-        fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0.1 ? mix(mid, top, smoothstep(0.1, 0.6, h)) : mix(low, mid, smoothstep(-0.1, 0.1, h)); gl_FragColor = vec4(c, 1.0); }'
+        fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; uniform vec3 sunDir; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0.08 ? mix(mid, top, smoothstep(0.08, 0.7, h)) : mix(low, mid, smoothstep(-0.05, 0.08, h)); c = mix(c, low, (1.0 - smoothstep(0.0, 0.16, abs(h))) * 0.45); float sd = max(dot(vp, normalize(sunDir)), 0.0); c += vec3(1.0, 0.9, 0.7) * (pow(sd, 6.0) * 0.16 + pow(sd, 48.0) * 0.28); gl_FragColor = vec4(c, 1.0); }'
       }));
       scene.add(sky);
       // 🎨 [Cartoon] 해와 뭉게구름 — 둥근 지평선 너머에 떠 있으므로 휘게 하는 patch 없이 그린다
@@ -5516,9 +5516,10 @@ return GLTFLoader;
         const az = Math.atan2(0.2, -1), R = 230, skyY = (r, deg) => 11.3 - (r + 20.6) * Math.tan(deg * Math.PI / 180);
         // 해: 시점을 땅 가까이 낮췄을 때 지평선 위 약 4~5° 하늘에 보이는 높이
         sunDisc.position.set(Math.sin(az) * R, 24, Math.cos(az) * R); sunDisc.scale.setScalar(1.1);
-        sunDisc.renderOrder = -1; skyDeco.add(sunDisc);
+        sunDisc.renderOrder = -1; skyDeco.add(sunDisc); sky.material.uniforms.sunDir.value.copy(sunDisc.position).normalize();
+        sunM.color.multiplyScalar(1.35);   // 후처리 번짐(bloom)으로 해 주변이 은은하게 빛나도록
         cloudRing = new THREE.Group(); skyDeco.add(cloudRing);
-        const cloudM = new THREE.MeshToonMaterial({ color: '#FFFFFF', gradientMap: TOON, emissive: '#DCEBFF', emissiveIntensity: 0.45, fog: false });
+        const cloudM = new THREE.MeshToonMaterial({ color: '#FFFFFF', gradientMap: TOON, emissive: '#E6F0FF', emissiveIntensity: 0.38, fog: false });
         const puff = sqSphere(1, 18, 12);
         for (let i = 0; i < 11; i++) {
           const c = new THREE.Group(), a = i / 11 * Math.PI * 2 + (rnd() - 0.5) * 0.3, R2 = 175 + rnd() * 35, el2 = 11 + rnd() * 4, s = 6 + rnd() * 3;
@@ -5537,9 +5538,9 @@ return GLTFLoader;
           c.lookAt(0, c.position.y, 0); cloudRing.add(c);
         }
       }
-      scene.add(new THREE.HemisphereLight('#FFFFFF', '#7DBB55', 0.46));
-      sun = new THREE.DirectionalLight('#FFF1D6', 1.25);
-      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 2.5;
+      scene.add(new THREE.HemisphereLight('#E4F1FF', '#A2CF7E', 0.54));
+      sun = new THREE.DirectionalLight('#FFF2DC', 1.12);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 4;
       const SH = 34; Object.assign(sun.shadow.camera, { left: -SH, right: SH, top: SH, bottom: -SH, near: 1, far: 120 });
       sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.035;
       scene.add(sun); scene.add(sun.target);
@@ -6097,12 +6098,12 @@ return GLTFLoader;
           float dy = vUv.y - focusY;
           float m = (dy > 0.0 ? smoothstep(band, band + 0.4, dy) : smoothstep(band, band + 0.3, -dy)) * 0.12;
           vec3 c = mix(sharp, blur, m);
-          c += texture2D(tBloom, vUv).rgb * 0.0;
+          c += texture2D(tBloom, vUv).rgb * 0.16;
           vec2 sp = vUv - vec2(0.08, 1.05); float ray = pow(max(0.0, 1.0 - length(sp * vec2(1.0, 1.25)) / 1.25), 2.2);
           float streak = 0.55 + 0.45 * sin(atan(sp.y, sp.x) * 22.0 + time * 0.15);
           c += vec3(1.0, 0.8, 0.52) * ray * 0.0 * streak;
           c *= vec3(1.01, 1.0, 0.98);
-          float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, 1.08);
+          float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, 1.05);
           c *= 0.92; { float mx = max(c.r, max(c.g, c.b)); float tm = mx < 0.78 ? mx : 0.78 + 0.22 * (1.0 - exp(-(mx - 0.78) / 0.22)); c *= tm / max(mx, 1e-4); }
           c = clamp((c - 0.5) * 1.03 + 0.5, 0.0, 1.0);
           vec2 q = vUv - 0.5; c *= 1.0 - dot(q * vec2(0.95, 1.2), q * vec2(0.95, 1.2)) * 0.08;
