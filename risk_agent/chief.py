@@ -275,6 +275,9 @@ def fetch_inputs(sb, now):
         raise SystemExit("world_events.status 칸이 없습니다 — database/05_chief.sql을 SQL Editor에서 먼저 실행하세요(03 다음).")
     if not S.has_column(sb, "cohort_feedback", "event_theme"):
         raise SystemExit("cohort_feedback.event_theme 칸이 없습니다 — database/03_world_update.sql을 먼저 실행하세요.")
+    # 이장의 장부를 먼저 새로 맞춘다 — 퀘스트 완료·이벤트 참여·응원 스티커 → world_activity_metrics(live)
+    n_live = sb.rpc("aggregate_world_activity")
+    print(f"[장부] 월드 활동 집계 갱신: live {n_live if n_live is not None else '?'}행 (5명 미만 그룹은 계획에 안 씀)")
     fb = sb.select("cohort_feedback", "select=sgg_code,age_group,gender,event_theme&event_theme=not.is.null") or []
     ints = sb.rpc("chief_interest_counts", {"p_k": C.K_ANONYMITY_MIN}) or []
     since = (now.astimezone(KST).date() - timedelta(weeks=C.CHIEF_ACTIVITY_WEEKS)).isoformat()
@@ -336,6 +339,21 @@ def cmd_plan(args):
     return events
 
 
+def _kst(ts):
+    """DB 시각(UTC 문자열) → 한국 시각 datetime. 없거나 못 읽으면 None"""
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(str(ts).replace("Z", "+00:00")).astimezone(KST)
+    except ValueError:
+        return None
+
+
+def _kst_label(ts):
+    t = _kst(ts)
+    return t.strftime("%m/%d(") + "월화수목금토일"[t.weekday()] + t.strftime(") %H:%M KST") if t else (ts or "")
+
+
 def cmd_list(args):
     import supabase_sync as S
     sb = S.client()
@@ -343,11 +361,18 @@ def cmd_list(args):
                      "target_gender,reason_note&status=in.(draft,published)&order=starts_at") or []
     if not rows:
         print("초안·공개 중인 이벤트가 없습니다. python chief.py plan 으로 만드세요.")
+    # 참여 인원(관리자만 볼 수 있음 — secret key라 RLS를 거치지 않는다). 누가 참여했는지는 출력하지 않는다
+    joined = {}
+    for p in (sb.select("event_participation", "select=event_id") or []) if rows else []:
+        joined[p["event_id"]] = joined.get(p["event_id"], 0) + 1
+    now = datetime.now(KST)
     for r in rows:
         tgt = cohort_label({"sgg_code": r["target_sgg_code"], "age_group": r["target_age_group"],
                             "gender": r["target_gender"]}) if r.get("target_sgg_code") else "월드 전체"
+        ends = _kst(r.get("ends_at"))
+        done = "  (끝남 — 시민 화면엔 안 보임)" if ends and ends < now else ""
         print(f"#{r['id']:<4} {r['status']:<9} {r['title']}  [{PLACE_LABEL.get(r['place'], r['place'])} · "
-              f"{(r['starts_at'] or '')[:16].replace('T', ' ')}]  → {tgt}")
+              f"{_kst_label(r.get('starts_at'))}]  → {tgt}  · 참여 {joined.get(r['id'], 0)}명{done}")
         print(f"       근거: {r.get('reason_note') or '-'}")
 
 
@@ -356,8 +381,18 @@ def cmd_status(args, new_status, allowed_from):
     sb = S.client()
     now = datetime.now(KST).isoformat()
     extra = {"approved_at": now} if new_status == "published" else ({"closed_at": now} if new_status == "closed" else {})
-    for i in args.ids:
-        got = sb.update("world_events", f"id=eq.{int(i)}&status=in.({','.join(allowed_from)})",
+    ids = []
+    for raw in args.ids:
+        tok = str(raw).strip().lstrip("#")          # list 출력의 "#12"를 그대로 붙여 넣어도 된다
+        if tok.isdigit():
+            ids.append(int(tok))
+        else:
+            print(f"'{raw}': 건너뜀 — 이벤트 번호(숫자)가 아닙니다. 번호는 python chief.py list 로 확인하세요")
+    if not ids:
+        print("바꿀 이벤트 번호가 없습니다. 예: python chief.py approve 12 13")
+        return
+    for i in ids:
+        got = sb.update("world_events", f"id=eq.{i}&status=in.({','.join(allowed_from)})",
                         {"status": new_status, **extra}) or []
         if got:
             print(f"#{i} → {new_status}  ({got[0]['title']})")

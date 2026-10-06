@@ -16,7 +16,7 @@ LLM·자유 입력 없음 — 대사와 이벤트 문구는 템플릿이다(v2�
      └─ world_events  status='draft'  (대상 코호트·근거는 관리자 전용 칸)
 [담당자] python chief.py list → python chief.py approve <id>     → status='published'
 [시민]  광장 이장에게 말 걸기 → 이번 주 이벤트(내 코호트 대상이 위, 이유는 안 보임) → "참여할래요"
-     └─ join_world_event(id) → event_participation → aggregate_world_activity()가 코호트×주로 집계(이장의 장부)
+     └─ join_world_event(id) → event_participation → aggregate_world_activity()가 코호트×주로 집계(이장의 장부, chief.py plan이 시작할 때 갱신)
 ```
 
 ## 파일
@@ -44,7 +44,7 @@ cd risk_agent
 python chief.py plan --offline        # Supabase 없이 outputs_youth/npc_feedback.json으로 미리보기
 python chief.py plan --dry-run        # Supabase 입력으로 계산만
 python chief.py plan                  # 초안 저장
-python chief.py list                  # 초안·공개 중 + 관리자용 근거
+python chief.py list                  # 초안·공개 중 + 관리자용 근거 · 참여 인원 · 한국 시간
 python chief.py approve 12 13         # 공개 → 광장에 보임
 python chief.py reject 14             # 반려
 python chief.py close 12              # 끝내기(종료 시각이 지나면 자동으로 안 보임)
