@@ -28,7 +28,8 @@
  *   keyLabel(action)      'interact' → 'E' 같은 현재 키 이름
  *   close() / reset()     화면 닫기 / 로그아웃 때 알림 상태 초기화
  *
- * 저장: 이 브라우저 localStorage 에 설정(미니맵 방향·화질·키·효과음)만 남긴다.
+ * 저장: 설정(미니맵 방향·화질·키·효과음)과 사용자 ID별 인벤토리를
+ *       별도 localStorage 키에 남긴다. 인벤토리 저장은 inventory.js가 맡는다.
  *       대화 내용·알림 내용은 어디에도 저장하지 않는다.
  */
 (function () {
@@ -47,6 +48,7 @@
 
   // ---------------------------------------------------------------- 아이콘
   var PATHS = {
+    inventory: 'M4 7h16v14H4zM8 7V4h8v3M4 12h16M10 12v3h4v-3',
     settings: 'M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1 1-3ZM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
     phone: 'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2ZM10 5h4M11 18h2',
     map: 'm3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5ZM9 3v16M15 5v16',
@@ -88,9 +90,9 @@
   var CALL_ANYWHERE = { coco: true, chief: true };
 
   // ---------------------------------------------------------------- 키 설정
-  var DEFAULT_BINDINGS = { map: 'KeyM', forward: 'KeyW', left: 'KeyA', back: 'KeyS', right: 'KeyD', interact: 'KeyE' };
+  var DEFAULT_BINDINGS = { map: 'KeyM', inventory: 'KeyI', forward: 'KeyW', left: 'KeyA', back: 'KeyS', right: 'KeyD', interact: 'KeyE' };
   var KEY_NAMES = {
-    map: '전체 지도', forward: '앞으로 이동', left: '왼쪽으로 이동',
+    inventory: '인벤토리', map: '전체 지도', forward: '앞으로 이동', left: '왼쪽으로 이동',
     back: '뒤로 이동', right: '오른쪽으로 이동', interact: '대화 / 상호작용'
   };
   var validCode = function (code) { return /^(Key[A-Z]|Digit[0-9])$/.test(code); };
@@ -103,6 +105,10 @@
     var saved = {};
     try { saved = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch (e) { saved = {}; }
     var b = Object.assign({}, DEFAULT_BINDINGS, saved.bindings || {});
+    if (!saved.bindings || !saved.bindings.inventory) {
+      var used = Object.keys(b).filter(function(k){ return k !== 'inventory'; }).map(function(k){ return b[k]; });
+      b.inventory = ['KeyI','KeyB','KeyV','KeyN'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(function(c){return 'Key'+c;})).filter(function(c){return used.indexOf(c)<0;})[0];
+    }
     var codes = Object.keys(DEFAULT_BINDINGS).map(function (k) { return b[k]; });
     var ok = codes.every(validCode) && new Set(codes).size === codes.length && Object.keys(b).length === codes.length;
     return {
@@ -114,7 +120,7 @@
   }
 
   // ---------------------------------------------------------------- 상태
-  var host = null, engine = null;
+  var host = null, engine = null, fishingFeature = null, fishingUser = null;
   var settings = loadSettings();
   var ui = {
     panel: null,          // null | 'phone' | 'map'
@@ -128,6 +134,8 @@
     hideTimer: null,
     data: { clubs: null, myClubs: {}, missions: null, progress: {}, error: null }
   };
+
+  Object.defineProperty(ui, 'bindings', { get: function(){ return settings.bindings; } });
 
   function persist() {
     try {
@@ -150,6 +158,7 @@
 
   // ---------------------------------------------------------------- 패널 열고 닫기
   function openPanel(kind) {
+    if (fishingFeature) fishingFeature.cancel();
     ui.bindingTarget = null;
     if (!ui.panel) ui.modalFocus = document.activeElement;
     hideNotice();
@@ -295,7 +304,7 @@
   function tryNotice() {
     ui.noticeTimer = null;
     if (ui.notice || !ui.ctx.inVillage || ui.ctx.tour || !document.body.classList.contains('in-world')) return;   // 다음 sync 때 다시
-    if (ui.panel || host.busy()) { ui.noticeTimer = setTimeout(tryNotice, COCO_NOTICE.retryMs); return; }
+    if (ui.panel || host.busy() || (fishingFeature && fishingFeature.state)) { ui.noticeTimer = setTimeout(tryNotice, COCO_NOTICE.retryMs); return; }
     ui.notice = { line: '같이 해볼 만한 모임이랑 활동을 찾아놨어. 한번 볼래?', read: false };
     var box = $('#notification');
     box.innerHTML =
@@ -501,7 +510,7 @@
         '<button class="action secondary setting-reset" id="setting-view"' + (hasEngine ? '' : ' disabled') + '>' + icon('reset') + ' 시점 초기화</button>' +
         '<p class="setting-note">시점의 방향·높이·줌을 처음 상태로 되돌려요.</p></section>' +
       '<section class="settings-section" aria-labelledby="sound-settings-title"><h3 id="sound-settings-title">소리</h3>' +
-        '<label class="setting-row" for="setting-sound"><span>효과음<small>코코 알림·미션 완료 소리</small></span>' +
+        '<label class="setting-row" for="setting-sound"><span>효과음<small>코코 알림·미션 완료·낚시 입질 소리</small></span>' +
           '<select id="setting-sound"><option value="on"' + (!settings.muted ? ' selected' : '') + '>켜기</option>' +
           '<option value="off"' + (settings.muted ? ' selected' : '') + '>끄기</option></select></label></section>' +
       '<section class="settings-section" aria-labelledby="key-settings-title"><h3 id="key-settings-title">키보드 조작</h3>' +
@@ -624,6 +633,10 @@
       if (ui.panel === 'map') { e.preventDefault(); closePanel(); return; }
       if (!ui.panel && allowed() && host && !host.busy()) { e.preventDefault(); openMap(); return; }
     }
+    // 인벤토리 키 — 앱 대화·튜토리얼 중에는 열지 않는다.
+    if (!typing && !e.ctrlKey && !e.altKey && !e.metaKey && !e.repeat && keyCode(e) === settings.bindings.inventory && fishingFeature && allowed() && !host.busy()) {
+      e.preventDefault(); fishingFeature.toggleInventory(); return;
+    }
     // 4) 열린 화면 안에서 Tab 순환
     if (e.key === 'Tab' && ui.panel) {
       var a = Array.prototype.filter.call($('#overlay').querySelectorAll('button:not(:disabled),textarea,a[href],input,select'),
@@ -646,19 +659,31 @@
     updateBadge();
   }
   function attach(e) {
-    if (engine === e) return;
+    var uid = host && host.userId();
+    if (fishingFeature && (engine !== e || fishingUser !== uid)) { fishingFeature.destroy(); fishingFeature = null; }
     engine = e;
     applySettings();
+    if (!fishingFeature && uid && window.createFishingFeature) {
+      fishingUser = uid;
+      fishingFeature = window.createFishingFeature({
+        engine: engine, ui: ui, openPanel: openPanel, closePanel: closePanel, setupFocus: focusFirst,
+        toast: toast, icon: icon, keyLabel: codeLabel, allowed: allowed, isBusy: host.busy,
+        storageKey: 'social-world-inventory-v1:' + encodeURIComponent(uid)
+      });
+    }
   }
   function sync(ctx) {
     ui.ctx = { inVillage: !!ctx.inVillage, tour: !!ctx.tour, roomBusy: !!ctx.roomBusy };
     $('#phone-launch').hidden = ui.ctx.tour || ui.ctx.roomBusy;
     if (ui.panel && !allowed()) closePanel();
     if (ui.ctx.tour) hideNotice();
+    if (fishingFeature) { if (!allowed()) fishingFeature.cancel(); fishingFeature.updateHud(); }
     scheduleNotice();
   }
   function reset() {
     closePanel();
+    if (fishingFeature) fishingFeature.destroy();
+    fishingFeature = null; fishingUser = null;
     hideNotice();
     clearTimeout(ui.noticeTimer); ui.noticeTimer = null;
     ui.notice = null; ui.noticeUser = null;
@@ -675,6 +700,13 @@
     keyLabel: function (action) { return codeLabel(settings.bindings[action] || DEFAULT_BINDINGS[action] || ''); },
     openPhone: openPhone,
     openMap: openMap,
+    target: function(t){ return fishingFeature ? fishingFeature.target(t) : t; },
+    interactFishing: function(){ return fishingFeature ? fishingFeature.interact() : false; },
+    tick: function(){ if (fishingFeature) fishingFeature.tick(); },
+    cancelFishing: function(){ if (fishingFeature) fishingFeature.cancel(); },
+    isFishing: function(){ return !!(fishingFeature && fishingFeature.state); },
+    openInventory: function(){ if (fishingFeature) fishingFeature.toggleInventory(); },
+    get fishing(){ return fishingFeature; },
     state: ui            // 테스트·디버그용
   };
 })();

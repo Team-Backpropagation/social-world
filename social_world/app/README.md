@@ -15,12 +15,18 @@
 | `world-engine.js` | 3D 마을·이동·미니맵 (전역 `getEngine()`/`ENGINE`) | 원래 데모 엔진 + PR #13 추가 기능(키 바꾸기·화질 선택·입력 정지·지도 바탕·NPC 위치·북쪽 고정·강아지 동행) |
 | `sounds.js` | 효과음 등록·재생 `Sound.play('이름')` | PR #13 |
 | `assets/notification.mp3` | 코코 알림·미션 완료 효과음 | PR #13 |
+| `assets/universfield-bubble-pop-293342.mp3` | 낚시 입질 시작 효과음 | 첨부 MP3 |
+| `fishing-data.js` | 지역별 물 영역·아이템·확률·물고기 크기·분리수거 분류 | 낚시 데모에서 병합 |
+| `inventory.js` | 사용자별 개별 아이템 저장·장착·묶음 표시·분리수거 | 낚시 데모에서 병합 |
+| `fishing.js` | 인벤토리 화면·낚시 상태·입질 효과음·중단 처리 | 최신 main에 연결 |
 | `ui.js` | 나의 휴대폰·전체 지도·설정·코코 알림 (`window.WorldUI`) | PR #13을 앱에 붙게 다시 정리 |
 | `app.js` | 로그인·설문·튜토리얼·투어·NPC 대화·미션방·동아리방, DB | 원래 데모 앱 로직 그대로 + 연결부 |
 | `bundle.py` | 위 파일 + `../coco/coco.js` + `../chief/chief.js`를 한 파일로 → `../socialworld-demo.html` | PR #13 bundle.py 기반 |
 | `tests/ui_test.py` | 휴대폰·지도·설정·알림 흐름 40항목 × 데스크톱·모바일 | 새로 |
 
-스크립트 순서: three(CDN) → `world-engine.js` → `../coco/coco.js` → `../chief/chief.js` → `sounds.js` → `ui.js` → `app.js`.
+스크립트 순서: three(CDN) → `world-engine.js` → `../coco/coco.js` → `../chief/chief.js` → `sounds.js` → `fishing-data.js` → `inventory.js` → `fishing.js` → `ui.js` → `app.js`.
+
+2026-10-02 낚시 병합: I로 인벤토리 → 기본 낚싯대 장착 → 물가에서 상호작용 → 찌가 흔들리며 잠기면 상호작용. 인벤토리는 사용자 ID별로 현재 브라우저에 저장하며, 새 DB 테이블은 추가하지 않았다. 자세한 파일 분석·설정·확률은 `FISHING-GUIDE.md`.
 
 ## 2. 만들기·확인
 
@@ -45,6 +51,7 @@ python social_world/chief/tests/demo_test.py      # 마을이장 연결
 | 주민 연락처 | 루미·정책·취업은 그 NPC 앞으로 이동해 대화, 코코·이장은 바로 대화창 | 앱 대화창이 저장(원문 없음) |
 | 전체 지도 (`M`) | 장소를 누르면 입구 앞으로 이동. 내 방에서 누르면 밖으로 나감 | — |
 | 설정 | 미니맵 방향(북쪽 고정/회전)·화질·시점 초기화·효과음·키 바꾸기·로그아웃 | 이 브라우저 localStorage(설정만) |
+| 인벤토리 (`I`)·낚시 | 기본 낚싯대 장착·지역별 낚시·개별 크기 유지·분리수거 | 사용자 ID별 localStorage |
 | 코코 알림 | 마을에 들어오고 6.5초 뒤 로그인당 1번, 고정 문구. 누르면 코코 대화창 | — |
 
 - 투어 중이거나 내 방 튜토리얼 중에는 휴대폰 버튼을 숨기고 지도 키도 막는다(튜토리얼 흐름 보호).

@@ -569,7 +569,10 @@
     E.hooks.blocked = worldBlocked;
     E.hooks.near = function(t){ state.near = t; updateHud(); };
     E.hooks.action = onWorldAction;
-    E.hooks.tick = onWorldTick;
+    E.hooks.tick = function(dt){ onWorldTick(dt); if(window.WorldUI) window.WorldUI.tick(dt); };
+    E.hooks.target = function(t){ return window.WorldUI ? window.WorldUI.target(t) : t; };
+    E.hooks.movementBlocked = function(){ return !!(window.WorldUI && window.WorldUI.isFishing()); };
+    E.hooks.teleport = function(){ if(window.WorldUI) window.WorldUI.cancelFishing(); };
     E.hooks.view = function(changed){ var b = document.getElementById("hud-view"); if(b) b.hidden = !changed; };
     var mmc = document.getElementById("hud-minimap"); if(mmc && E.attachMinimap && !mmc.__on){ mmc.__on = true; mmc.hidden = false; E.attachMinimap(mmc); }
     if(window.WorldUI) window.WorldUI.attach(E);
@@ -613,7 +616,8 @@
     if(state.tour || busyRoom || !t){ act.hidden = true; }
     else {
       act.hidden = false;
-      act.textContent = t.type === "npc" ? npcName(t.id) + " — 대화하기 (" + key("interact") + ")"
+      act.textContent = t.type === "fishing" ? t.label + " (" + key("interact") + ")"
+        : t.type === "npc" ? npcName(t.id) + " — 대화하기 (" + key("interact") + ")"
         : t.id === "room-door" ? "🚪 밖으로 나가기 (" + key("interact") + ")" : t.label + " 들어가기 (" + key("interact") + ")";
     }
     // 휴대폰 버튼·코코 알림 시점 (ui.js) — 투어 중이거나 방 튜토리얼 중엔 휴대폰을 숨긴다
@@ -622,6 +626,7 @@
   }
 
   function onWorldAction(t){
+    if(worldBlocked()) return;
     if(state.tour){
       if(state.tour.arrived) tourAdvance();
       else showToast("루미를 따라가 보세요 — '루미 따라가기'를 누르면 자동으로 걸어가요");
@@ -629,6 +634,7 @@
     }
     if(state.view === "room" && state.room && state.room.phase !== "free") return;
     if(!t) return;
+    if(t.type === "fishing"){ if(window.WorldUI) window.WorldUI.interactFishing(); return; }
     if(t.type === "npc") openNpc(t.id);
     else doorAction(t.id);
   }

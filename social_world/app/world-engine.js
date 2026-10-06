@@ -935,6 +935,7 @@
       const seated = player && player.userData.seated;
       removePerson(player);
       player = person(lookFromAvatar(av)); player.position.copy(pos); player.rotation.y = rot; playerAvatarKey = key;
+      if(rodModel)player.add(rodModel);
       if (seated) setSeated(player, true);
     }
     function ensureGuide() {
@@ -1095,6 +1096,7 @@
       let y0 = 0;
       for (let i = 0; i < 3; i++) { groundPlane.constant = y0; if (!ray.ray.intersectPlane(groundPlane, hit)) return; y0 = bendY(hit.x, hit.z); }
       for (const n of npcObjs) if (n.visible && Math.hypot(hit.x - n.x, hit.z - n.z) < 1.3 && Math.hypot(player.position.x - n.x, player.position.z - n.z) < 3.2) { if (hooks.action) hooks.action({ type: 'npc', id: n.id }); return; }
+      if(hooks.movementBlocked?.())return;
       autoPath = null; tapTarget = new THREE.Vector2(hit.x, hit.z);
     }
 
@@ -1204,14 +1206,14 @@
       const px = player.position.x, pz = player.position.z;
       if (mode === 'village') for (const n of npcObjs) { if (!n.visible) continue; const d = Math.hypot(px - n.x, pz - n.z); if (d < 3.0 && d < bd) { bd = d; best = { type: 'npc', id: n.id }; } }
       for (const d0 of doors) { if (d0.area !== mode) continue; const d = Math.hypot(px - d0.x, pz - d0.z); if (d < d0.r && d < bd) { bd = d; best = { type: 'door', id: d0.id, label: d0.label }; } }
-      return best;
+      return hooks.target ? hooks.target(best) : best;
     }
     function tick() {
       if (!running) return;
       const dt = Math.min(clock.getDelta(), 0.05) * (window.__SW_TIMESCALE || 1), t = clock.elapsedTime;
       U.time.value = reduceMotion ? 0 : t;
       let mx = 0, mz = 0, stepCap = Infinity;
-      const blocked = hooks.blocked() || (player && player.userData.seated) || (guideState && guideState.lockPlayer);
+      const blocked = hooks.blocked() || hooks.movementBlocked?.() || (player && player.userData.seated) || (guideState && guideState.lockPlayer);
       if (!blocked) {
         if (keys.has(bindings.forward) || keys.has('ArrowUp')) mz -= 1;
         if (keys.has(bindings.back) || keys.has('ArrowDown')) mz += 1;
@@ -1297,6 +1299,7 @@
       const nt = nearest();
       if (JSON.stringify(nt) !== JSON.stringify(nearTarget)) { nearTarget = nt; if (hooks.near) hooks.near(nt); }
       if (hooks.tick) hooks.tick(dt);
+      updateFishingModels(t);
 
       if (mode === 'room') camFocus.lerp(new THREE.Vector3(RX + (player.position.x - RX) * 0.35, 0, RZ + (player.position.z - RZ) * 0.35 + 0.6), reduceMotion ? 1 : Math.min(1, dt * 3));
       else camFocus.lerp(player.position, reduceMotion ? 1 : Math.min(1, dt * 4));
@@ -1349,11 +1352,52 @@
       }
     }
 
+    // Reusable fishing visuals use the same ground curvature as the village.
+    let rodEquipped=false,rodModel=null,floatModel=null,fishingLine=null,fishingRipple=null,fishingVisual=null;
+    function ensureFishingModels(){
+      if(rodModel||!player)return;
+      rodModel=new THREE.Group();rodModel.name='equipped-fishing-rod';
+      const stick=mesh(new THREE.CylinderGeometry(.026,.05,2.35,8),M('#8C6A43'),0,1.1,.65,rodModel);stick.rotation.x=.65;
+      mesh(new THREE.CylinderGeometry(.065,.065,.40,8),M('#3D5A47'),0,.27,.04,rodModel).rotation.x=.65;
+      mesh(new THREE.SphereGeometry(.10,12,8),M('#BBA166'),.09,.49,.19,rodModel);
+      rodModel.position.set(.48,.65,.24);player.add(rodModel);shade(rodModel,false,false);
+      floatModel=new THREE.Group();floatModel.name='fishing-float';
+      // Two hemispheres form a round red/white float.
+      mesh(new THREE.SphereGeometry(.23,20,12,0,Math.PI*2,0,Math.PI/2),M('#E96B52',{r:.4}),0,0,0,floatModel);
+      mesh(new THREE.SphereGeometry(.23,20,12,0,Math.PI*2,Math.PI/2,Math.PI/2),M('#FFF6DF',{r:.4}),0,0,0,floatModel);
+      mesh(new THREE.CylinderGeometry(.025,.025,.20,8),M('#D34E3C'),0,.29,0,floatModel);
+      scene.add(floatModel);shade(floatModel,false,false);floatModel.visible=false;
+      const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(9),3));
+      fishingLine=new THREE.Line(geometry,patch(new THREE.LineBasicMaterial({color:'#FFF7DB',transparent:true,opacity:.85})));fishingLine.name='fishing-line';fishingLine.frustumCulled=false;scene.add(fishingLine);fishingLine.visible=false;
+      fishingRipple=mesh(new THREE.TorusGeometry(.39,.018,6,32),M('#F7F6DF',{transparent:true,opacity:.65}),0,0,0);fishingRipple.rotation.x=-Math.PI/2;fishingRipple.name='fishing-ripple';fishingRipple.visible=false;
+    }
+    function updateFishingModels(t){
+      ensureFishingModels();
+      if(!rodModel)return;rodModel.visible=rodEquipped;
+      if(!fishingVisual){floatModel.visible=false;fishingLine.visible=false;fishingRipple.visible=false;return;}
+      const {point,phase,progress}=fishingVisual;
+      const dx=point.x-player.position.x,dz=point.z-player.position.z;
+      player.rotation.y=Math.atan2(dx,dz);
+      const tip=new THREE.Vector3(0,2.17,1.39);rodModel.localToWorld(tip);
+      const p=phase==='cast'?progress:1;
+      const x=tip.x+(point.x-tip.x)*p,z=tip.z+(point.z-tip.z)*p;
+      const y=phase==='cast'?tip.y+(point.y+.12-tip.y)*p+Math.sin(p*Math.PI)*1.05:phase==='bite'?point.y+.12-progress*.62:point.y+.12+Math.sin(t*3)*.045;
+      floatModel.position.set(x,y,z);floatModel.visible=true;
+      floatModel.rotation.z=phase==='bite'?Math.sin(t*38)*.20:0;
+      const positions=fishingLine.geometry.attributes.position;
+      positions.setXYZ(0,tip.x,tip.y,tip.z);positions.setXYZ(1,(tip.x+x)/2,(tip.y+y)/2-.20,(tip.z+z)/2);positions.setXYZ(2,x,y,z);positions.needsUpdate=true;fishingLine.visible=true;
+      fishingRipple.position.set(point.x,point.y+.015,point.z);fishingRipple.visible=phase!=='cast';fishingRipple.scale.setScalar(phase==='bite'?1+progress*.7:1+Math.sin(t*2)*.08);
+    }
+
     const api = {
       bubbleNpc: null,
       hooks,
+      setRodEquipped(on){rodEquipped=!!on;ensureFishingModels();if(rodModel)rodModel.visible=rodEquipped;},
+      setFishingVisual(value){ensureFishingModels();fishingVisual=value;if(!value)updateFishingModels(0);},
+      fishingVisualInfo:()=>({equipped:rodEquipped,rodAttached:!!rodModel&&rodModel.parent===player,phase:fishingVisual?.phase||null,floatVisible:!!floatModel?.visible,floatPosition:floatModel?{x:floatModel.position.x,y:floatModel.position.y,z:floatModel.position.z}:null}),
       places: () => places,
       enter(m, opt = {}) {
+        hooks.teleport?.();fishingVisual=null;
         build();
         U.k.value = BEND_K;
         if (!zzz) { zzz = textSprite('Z z z', { size: 70, color: '#5B7DB1', stroke: '#5B7DB1' }); zzz.visible = false; scene.add(zzz); }
@@ -1382,7 +1426,7 @@
         document.body.classList.add('in-world');
         if (!running) { running = true; setGfx(gfxHigh); clock.getDelta(); requestAnimationFrame(tick); }
       },
-      leave() { running = false; keys.clear(); document.body.classList.remove('in-world'); },
+      leave() { hooks.teleport?.();fishingVisual=null;updateFishingModels(0); running = false; keys.clear(); document.body.classList.remove('in-world'); },
       isRunning: () => running,
       mode: () => mode,
       wake() { player.userData.sleeping = false; setSeated(player, false); player.position.x += 0.6; player.rotation.y = Math.PI / 4; },
