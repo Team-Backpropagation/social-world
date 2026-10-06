@@ -44,7 +44,7 @@ const server=http.createServer((req,res)=>{
    check(await page.evaluate(p=>Math.hypot(__sw().engine.playerPos().x-p.x,__sw().engine.playerPos().z-p.z)<.01,castPos),tag+' fishing blocks movement but keeps action key');
    await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='bite',null,{timeout:12000,polling:20});
    await page.waitForFunction(()=>__soundResults.some(s=>s.name==='fishingBite'&&s.ok),null,{timeout:4000});
-   await page.waitForTimeout(250);
+   await page.waitForFunction(()=>WorldUI.fishing.state?.phase==='bite'&&__sw().engine.fishingVisualInfo().floatPosition.y<0,null,{timeout:4000,polling:20});
    check(await page.evaluate(()=>__soundCalls.filter(n=>n==='fishingBite').length===1),tag+' uploaded bite MP3 plays once across animation frames');
    check(await page.evaluate(()=>__sw().engine.fishingVisualInfo().floatPosition.y<0),tag+' float sinks beneath water');
    await page.keyboard.press('q');await page.waitForFunction(()=>WorldUI.fishing.store.getState().instances.length===2);

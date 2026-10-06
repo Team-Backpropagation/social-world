@@ -12,6 +12,10 @@
 | `index.html` | 화면 뼈대(HUD·휴대폰 버튼·알림 자리)와 스크립트 순서 | 원래 데모 + PR #13 |
 | `world.css` | 로그인·설문·대화창·3D HUD 스타일 | 원래 데모 `<style>` 그대로 |
 | `ui.css` | 휴대폰·지도·설정·알림 스타일 | PR #13 (`.primary/.secondary`만 `#overlay` 안으로 좁힘) |
+| `market-world.js` | 별도 시장·은행·옷가게 3D 장면과 버스 왕복 애니메이션 | 시장 1차 구현 |
+| `market.js` | 버스 안내·블랙아웃·은행/옷가게 이용 화면 | 시장 1차 구현 |
+| `market.css` | 이동 연출·시장 이용 화면 스타일 | 시장 1차 구현 |
+| `tests/market_test.cjs` | 버스·시장·시설 출입·귀환·PC/모바일·번들 검증 | 시장 1차 구현 |
 | `world-engine.js` | 3D 마을·이동·미니맵 (전역 `getEngine()`/`ENGINE`) | 원래 데모 엔진 + PR #13 추가 기능(키 바꾸기·화질 선택·입력 정지·지도 바탕·NPC 위치·북쪽 고정·강아지 동행) |
 | `sounds.js` | 효과음 등록·재생 `Sound.play('이름')` | PR #13 |
 | `assets/notification.mp3` | 코코 알림·미션 완료 효과음 | PR #13 |
@@ -25,7 +29,7 @@
 | `tests/fishing_test.cjs` | 낚시·인벤토리·안내 종료·계정별 저장·기존 UI 연결 검증 | 낚시 수정본 |
 | `tests/ui_test.py` | 휴대폰·지도·설정·알림 흐름 40항목 × 데스크톱·모바일 | 새로 |
 
-스크립트 순서: three(CDN) → `world-engine.js` → `../coco/coco.js` → `../chief/chief.js` → `sounds.js` → `fishing-data.js` → `inventory.js` → `fishing.js` → `ui.js` → `app.js`.
+스크립트 순서: three(CDN) → `world-engine.js` → `market-world.js` → `../coco/coco.js` → `../chief/chief.js` → `sounds.js` → `fishing-data.js` → `inventory.js` → `fishing.js` → `ui.js` → `market.js` → `app.js`.
 
 2026-10-06 `(7)` 기준 낚시 병합: I로 인벤토리 → 기본 낚싯대 장착 → 물가에서 상호작용 → 찌가 흔들리며 잠기면 상호작용. 인벤토리는 사용자 ID별로 현재 브라우저에 저장하며, 새 DB 테이블은 추가하지 않았다. 자세한 파일 분석·설정·확률은 `FISHING-GUIDE.md`.
 
@@ -35,6 +39,7 @@
 python social_world/app/bundle.py                 # → social_world/socialworld-demo.html
 python social_world/app/tests/ui_test.py          # 휴대폰·지도·설정·알림
 node social_world/app/tests/fishing_test.cjs      # 낚시·인벤토리
+node social_world/app/tests/market_test.cjs       # 버스·시장·은행·옷가게
 python social_world/coco/tests/demo_test.py       # 코코 연결
 python social_world/chief/tests/demo_test.py      # 마을이장 연결
 ```
@@ -129,3 +134,37 @@ bundle 없이 바로 보려면 `social_world` 폴더에서 `python -m http.serve
 - 낚시 모듈·인벤토리·입질 효과음과 앱/엔진/UI 연결만 반영하고, `bundle.py`로 배포용 HTML을 재생성했다.
 - 분수대 접근 안내 숨김, 아이템 3회 획득 후 안내 자동 종료, `안내 끄기`, 계정별 안내 상태 유지, 물고기 순번 표시 제거를 포함한다.
 - 낚시 위치·확률·저장 방식·검증 실행 환경은 `FISHING-GUIDE.md`, 이번 병합 파일 목록과 검증 결과는 프로젝트 루트 `MERGE-NOTES.md`를 참고한다.
+
+
+## 7. 버스·별도 시장·은행·옷가게 (2026-10-06)
+
+1차 범위는 버스 왕복 이동, 별도 시장 광장, 두 건물의 3D 실내와 이용 안내 화면이다. 은행 입출금·아이템 창고·옷 구매·가챠·유저 거래·멀티플레이는 추가하지 않았다. 구체적인 업무 규칙을 정한 뒤 확장한다.
+
+### 이용 순서
+
+- 기존 마을 동남쪽 `(39, 24.2)`에 정류장 팻말과 승강장을 추가했다. 전체 지도 `M` → `시장행 버스`로 찾아갈 수도 있다.
+- 팻말 근처에서 상호작용 키(기본 `E`) 또는 화면 버튼을 누르면 버스 도착 → 탑승 → 출발 → 검은 화면 → 시장 도착 → 하차 → 버스 출발 순서로 이동한다.
+- 이동 중에는 걷기·시점·지도·휴대폰·인벤토리·중복 상호작용을 막는다. `연출 건너뛰기`로 도착 지점까지 바로 이동할 수 있다.
+- 시장 광장의 `이음 은행`, `오늘의 옷장` 문 앞에서 상호작용하면 실내로 들어간다. 실내 안내 창구·진열대에서 다시 상호작용해 이용 화면을 연다.
+- 실내 출구에서 상호작용하면 시장 광장으로 돌아온다. 시장 지도에는 은행·옷가게·시장 광장·마을행 버스가 표시된다.
+- 시장 정류장에서 버스를 불러 기존 마을로 돌아간다. 인벤토리·장착 도구·캐릭터 설정은 유지한다.
+- 시장에서 휴대폰으로 미션방·동아리센터 화면을 열었다 닫으면 시장으로 돌아온다.
+
+### 구조와 좌표
+
+| 항목 | 위치/파일 |
+|---|---|
+| 마을 정류장 | `MarketWorldData.villageStop`: x=39, z=24.2 |
+| 시장 영역 | x=154…206, z=-23…23; 기존 마을·내 방과 겹치지 않는다 |
+| 시장 지도 범위 | x=150…210, z=-27…27; 지도 위치 계산도 같은 값 사용 |
+| 은행·옷가게 실내 | 각각 (180,100), (210,100); 별도 이동 범위·충돌 처리 |
+| 시장·버스·실내 모양 | `market-world.js`; 엔진의 재질·곡률·그림자 도우미 재사용 |
+| 전환·이용 화면 | `market.js`, `market.css` |
+| 앱 장면 분기 | `app.js`: market, market-bank, market-clothing |
+| 지도·휴대폰 연결 | `ui.js` |
+
+기존 건물·NPC·마을 범위·하늘을 유지하며, 기존 `rnd()`를 새 장식에서 사용하지 않는다. 새 버스 도로·승강장 범위 안의 풀·작은 꽃 인스턴스만 숨겨 도로를 정리했다. 새 지면은 세분화된 평면으로 만들어 기존 둥근 지평선과 맞췄다.
+
+은행 화면은 보관·저축 창구의 준비 안내이고, 옷가게 화면은 6가지 색상의 진열이다. 잔액·구매·저축 결과를 만들거나 실제 DB에 새 행을 쓰지 않는다.
+
+새 테스트는 `node social_world/app/tests/market_test.cjs`로 실행한다. 기존 낚시 테스트와 같이 Node Playwright·Chromium을 사용하며 `SW_THREE_PATH`, `SW_CHROME_PATH`, `SW_PLAYWRIGHT_PATH`를 지원한다. 상세 적용·검증 기록은 `MARKET-NOTES.md`.

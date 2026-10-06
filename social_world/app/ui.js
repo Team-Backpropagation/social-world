@@ -200,7 +200,8 @@
     { id: 'lake', name: '호수', x: 10, z: 36.8 },
     { id: 'forest', name: '숲길', x: -38, z: 22 },
     { id: 'flowers', name: '꽃 언덕', x: 36, z: 38 },
-    { id: 'field', name: '들판', x: 42, z: 6 }
+    { id: 'field', name: '들판', x: 42, z: 6 },
+    { id: 'bus', name: '시장행 버스', x: 39, z: 24.2 }
   ];
   // 엔진 places()에 없는 산책로 장소
   var EXTRA_SPOTS = { lake: { x: 10, z: 36.8 }, forest: { x: -38, z: 22 }, flowers: { x: 36, z: 38 }, field: { x: 42, z: 6 } };
@@ -213,12 +214,13 @@
     if (!spot) { toast('이 장소는 아직 준비 중이에요.'); return; }
     closePanel();
     if (!host.teleport({ x: spot.x, z: spot.z })) return;
-    var name = (MAP_POINTS.filter(function (m) { return m.id === id; })[0] || {}).name || '목적지';
+    var name = (currentMapPoints().filter(function (m) { return m.id === id; })[0] || {}).name || '목적지';
     toast(name + ' 앞으로 이동했어요');
   }
 
   // NPC 앞(마을 가운데 쪽으로 1.8칸)으로 이동해 NPC를 바라본다
   function goNpc(id) {
+    if (isMarket()) { toast('마을 주민을 만나려면 버스를 타고 마을로 돌아가 주세요.'); return false; }
     if (!engine) return false;
     var n = engine.npcPositions().filter(function (x) { return x.id === id; })[0];
     if (!n) return false;
@@ -235,24 +237,33 @@
   }
 
   // ---------------------------------------------------------------- 전체 지도
+  function isMarket() { return engine && ['market', 'bank', 'clothing'].indexOf(engine.mode()) >= 0; }
+  function currentMapPoints() { return isMarket() ? window.MarketWorldData.points : MAP_POINTS; }
+  function currentMapPct(p) {
+    if (!isMarket()) return mapPct(p);
+    var b = window.MarketWorldData.mapBounds;
+    return { left: (p.x - b.x0) / (b.x1 - b.x0) * 100, top: (p.z - b.z0) / (b.z1 - b.z0) * 100 };
+  }
   function openMap() {
     if (!allowed()) return;
     openPanel('map');
+    var inMarket = isMarket();
     var inRoom = engine && engine.mode && engine.mode() === 'room';
     var here = engine ? (inRoom ? engine.places().home : engine.playerPos()) : { x: 0.6, z: 7.4 };
-    var pos = mapPct(here);
+    if (inMarket && engine.mode() !== 'market') here = engine.places()[engine.mode() === 'bank' ? 'market-bank' : 'market-clothing'];
+    var pos = currentMapPct(here);
     $('#overlay').innerHTML =
       '<section class="ui-dialog map-dialog" role="dialog" aria-modal="true" aria-labelledby="map-title">' +
         '<header class="dialog-top"><div class="avatar">' + icon('map') + '</div>' +
-          '<div><div class="eyebrow">IEUM VILLAGE</div><h2 id="map-title">이음 마을 지도</h2>' +
+          '<div><div class="eyebrow">' + (inMarket ? 'IEUM MARKET' : 'IEUM VILLAGE') + '</div><h2 id="map-title">' + (inMarket ? '이음 시장 지도' : '이음 마을 지도') + '</h2>' +
           '<p>장소 이름을 누르면 입구 앞으로 이동해요.</p></div>' +
           '<button class="icon-btn" data-close aria-label="지도 닫기">' + icon('close') + '</button></header>' +
         '<div class="map-main">' +
-          '<div class="map-caption"><span>' + (inRoom ? '지금은 내 방에 있어요. 장소를 누르면 밖으로 나가요.' : '궁금한 곳부터 천천히 둘러보세요.') +
+          '<div class="map-caption"><span>' + (inRoom ? '지금은 내 방에 있어요. 장소를 누르면 밖으로 나가요.' : inMarket && engine.mode() !== 'market' ? '지금은 실내에 있어요. 장소를 누르면 시장 광장으로 나가요.' : '궁금한 곳부터 천천히 둘러보세요.') +
             '</span><span><strong>N ↑</strong> 북쪽 고정</span></div>' +
           '<div class="map-frame"><canvas id="full-map" aria-label="이음 마을 전체 지도"></canvas>' +
-            MAP_POINTS.map(function (p) {
-              var q = mapPct(p);
+            currentMapPoints().map(function (p) {
+              var q = currentMapPct(p);
               return '<button class="map-point" style="left:' + q.left + '%;top:' + q.top + '%" data-place="' + p.id +
                 '" aria-label="' + p.name + ' 앞으로 이동">' + p.name + '</button>';
             }).join('') +
@@ -263,6 +274,7 @@
         '</div>' +
       '</section>';
     var c = $('#full-map'), g = c.getContext('2d');
+    c.setAttribute('aria-label', inMarket ? '이음 시장 전체 지도' : '이음 마을 전체 지도');
     c.width = 928; c.height = 736;
     if (engine && engine.mapBase) g.drawImage(engine.mapBase(), 0, 0, c.width, c.height);
     $('#overlay [data-close]').onclick = closePanel;

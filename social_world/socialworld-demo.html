@@ -1979,6 +1979,79 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
 
 
 </style>
+<style>
+/* Bus transition and market service screens. */
+#transit-fade {
+  position: fixed; inset: 0; z-index: 30; background: #080B0A;
+  opacity: 0; pointer-events: none; transition: opacity .32s ease;
+}
+#transit-fade.is-black { opacity: 1; }
+#transit-card {
+  position: fixed; left: 50%; bottom: max(30px, env(safe-area-inset-bottom));
+  transform: translateX(-50%); z-index: 31; width: min(430px, calc(100vw - 28px));
+  box-sizing: border-box; padding: 20px 22px; background: #FFF9EC;
+  border: 1px solid #E3D6BA; border-radius: 22px; box-shadow: 0 16px 54px #243D3633;
+  color: #36584B; font-family: 'Gowun Dodum', sans-serif;
+}
+.transit-route { display: block; font-size: 11px; letter-spacing: .14em; color: #8B8066; margin-bottom: 10px; }
+.transit-main { display: flex; align-items: center; gap: 16px; }
+.transit-icon { display: grid; place-items: center; width: 52px; height: 52px; background: #F3E3BE; border-radius: 15px; font-size: 29px; flex-shrink: 0; }
+.transit-main strong { font-size: 18px; }
+.transit-main p { font-size: 12px; line-height: 1.65; margin: 6px 0 0; color: #7B826F; }
+#transit-skip { display: block; margin: 13px 0 0 auto; padding: 8px 11px; border: 0; border-radius: 9px; background: #EAF0DF; color: #51725B; font: inherit; font-size: 11px; cursor: pointer; }
+body.in-transit .hud-title, body.in-transit #hud-act, body.in-transit #hud-help,
+body.in-transit #phone-launch, body.in-transit #inventory-launch, body.in-transit #notification,
+body.in-transit #fishing-status, body.in-transit #hud-view, body.in-transit #hud-minimap { visibility: hidden; }
+.market-service-backdrop { z-index: 25; background: #263D3866; align-items: center; padding: 22px; box-sizing: border-box; }
+.market-service {
+  width: min(710px, 100%); max-height: calc(100dvh - 44px); overflow: auto;
+  box-sizing: border-box; border-radius: 26px; background: #FFF9EE; color: #36574A;
+  box-shadow: 0 18px 60px #25453940; font-family: 'Gowun Dodum', sans-serif;
+}
+.market-service header { display: flex; align-items: flex-start; gap: 20px; padding: 28px 30px 22px; border-bottom: 1px solid #E3DFCF; }
+.market-eyebrow { font-size: 10px; letter-spacing: .2em; color: #9B8B70; }
+.market-service h2 { margin: 9px 0 7px; font: 700 28px 'Gowun Batang', serif; }
+.market-service header p { margin: 0; color: #77836F; font-size: 13px; line-height: 1.7; }
+#market-service-close { margin-left: auto; border: 0; background: #E9EEDE; color: #456B54; border-radius: 50%; width: 38px; height: 38px; font-size: 28px; flex-shrink: 0; cursor: pointer; }
+.market-bank-welcome { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 28px; background: #EEF2E5; margin: 24px 30px; border-radius: 20px; }
+.market-bank-welcome > span { font-size: 45px; }
+.market-bank-welcome strong { font-size: 19px; }
+.market-bank-welcome p { max-width: 390px; margin: 0; font-size: 13px; line-height: 1.7; color: #73836F; }
+.market-bank-services { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 30px 25px; }
+.market-bank-services article { padding: 20px; border: 1px solid #DDDCCA; border-radius: 16px; }
+.market-bank-services article > span:first-child { font-size: 28px; }
+.market-bank-services h3 { font-size: 17px; margin: 12px 0 7px; }
+.market-bank-services p { font-size: 12px; line-height: 1.7; color: #7B8573; }
+.market-soon { display: inline-block; padding: 5px 10px; border-radius: 7px; background: #E9E9D9; font-size: 11px; color: #898876; }
+.market-collection { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 26px 30px 10px; }
+.market-look { display: flex; flex-direction: column; align-items: center; gap: 10px; border: 1px solid #E3DBCB; border-radius: 17px; padding: 15px 7px; background: #F7F1E5; }
+.market-look svg { width: 91px; height: 96px; }
+.market-look strong { font-size: 13px; }
+.market-look span { font-size: 10px; color: #978B75; }
+.market-collection-note { padding: 0 30px; font-size: 12px; line-height: 1.7; color: #8A816E; }
+.market-service footer { display: flex; align-items: center; gap: 16px; padding: 20px 30px; border-top: 1px solid #E3DFCF; }
+.market-primary { background: #426F58; color: #FFF7E7; border: 0; border-radius: 12px; padding: 12px 21px; font: inherit; cursor: pointer; }
+.market-service footer span { margin-left: auto; font-size: 11px; color: #8B8F7C; }
+@media (max-width: 600px) {
+  #transit-card { padding: 17px; bottom: max(20px, env(safe-area-inset-bottom)); }
+  .transit-main strong { font-size: 16px; }
+  .market-service-backdrop { padding: 12px; }
+  .market-service { max-height: calc(100dvh - 24px); border-radius: 22px; }
+  .market-service header { padding: 22px 18px 18px; gap: 10px; }
+  .market-service h2 { font-size: 23px; }
+  .market-bank-welcome { margin: 18px; padding: 20px 14px; }
+  .market-bank-services { padding: 0 18px 18px; gap: 10px; }
+  .market-bank-services article { padding: 15px 11px; }
+  .market-collection { padding: 18px 18px 8px; gap: 9px; }
+  .market-look { padding: 11px 5px; }
+  .market-look svg { width: 67px; height: 76px; }
+  .market-look strong { font-size: 11px; }
+  .market-collection-note { padding: 0 18px; }
+  .market-service footer { padding: 17px 18px; }
+}
+@media (prefers-reduced-motion: reduce) { #transit-fade { transition: none; } }
+
+</style>
 </head>
 <body>
 <div id="banner">
@@ -2957,6 +3030,35 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     let player = null, playerAvatarKey = '', guide = null, guideState = null, marker = null, zzz = null, knock = null, waitSpr = null;
     const hooks = { near: null, action: null, tick: null, view: null, blocked: () => false };
     let mode = 'village', running = false, nearTarget = null;
+    let marketWorld = null, villageScenery = null;
+    function isIndoor() { return mode === 'room' || mode === 'bank' || mode === 'clothing'; }
+    function indoorFocus() {
+      const p = mode === 'room' ? { x: RX, z: RZ } : window.MarketWorldData.rooms[mode];
+      return new THREE.Vector3(p.x + (player.position.x - p.x) * .35, 0, p.z + (player.position.z - p.z) * .35 + .6);
+    }
+    function ensureMarket() {
+      if (marketWorld || !window.createMarketWorld) return;
+      // Group the existing scenery after build() so its order and rnd() sequence stay intact.
+      villageScenery = new THREE.Group(); villageScenery.name = 'original-village-scenery';
+      const originals = scene.children.filter(o => !o.isLight && o !== sky && o !== skyDeco && o !== sun.target);
+      scene.add(villageScenery); originals.forEach(o => villageScenery.add(o));
+      // Clear only the new bus road/platform footprint, keeping all placement seeds intact.
+      villageScenery.traverse(o => {
+        if (!o.isInstancedMesh || !o.geometry.attributes.position) return;
+        const matrix = new THREE.Matrix4();
+        for (let i = 0; i < o.count; i++) {
+          o.getMatrixAt(i, matrix);
+          const x = matrix.elements[12], z = matrix.elements[14];
+          if (x >= 32 && x <= 58 && z >= 17.4 && z <= 25.2) {
+            matrix.scale(new THREE.Vector3(0, 0, 0)); o.setMatrixAt(i, matrix);
+          }
+        }
+        o.instanceMatrix.needsUpdate = true;
+      });
+      marketWorld = window.createMarketWorld({ THREE, scene, mesh, M, rbox, shade, textSprite, canvasTex,
+        colliders, doors, places, engine: api, player: () => player, animatePerson, reduceMotion });
+      grid = null;
+    }
     const keys = new Set(); let tapTarget = null, autoPath = null;
 
     function setAvatar(av) {
@@ -2987,7 +3089,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     let grid = null;
     function buildGrid() {
       const cs = 0.5, x0 = -54, z0 = -19, nx = 217, nz = 149, blocked = new Uint8Array(nx * nz), pad = 0.5;
-      const cols = colliders.filter(c => (c.seg ? c.seg[1] < 60 : c.z < 60));
+      const cols = colliders.filter(c => (!c.area || c.area === 'village') && (c.seg ? c.seg[1] < 60 : c.z < 60));
       for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
         const x = x0 + i * cs, z = z0 + j * cs;
         for (const c of cols) {
@@ -3044,7 +3146,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       return out;
     }
     function route(from, to) {
-      if (mode === 'room' || from.z > 40) return [{ x: to.x, z: to.z }];
+      if (mode !== 'village' || from.z > 40) return [{ x: to.x, z: to.z }];
       return astar(from, to) || route0(from, to);
     }
     function route0(from, to) {
@@ -3084,9 +3186,9 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     const VIEW0R = { yaw: 0, pitch: Math.atan2(8.6, 9.2), dist: Math.hypot(8.6, 9.2) };
     const view = { yaw: 0, pitch: VIEW0.pitch, zoom: 1 }, viewT = { yaw: 0, pitch: VIEW0.pitch, zoom: 1 };
     const PITCH_MIN = 0.36, PITCH_MAX = 1.12, ROOM_YAW = 0.6;
-    function base() { return mode === 'room' ? VIEW0R : VIEW0; }
+    function base() { return isIndoor() ? VIEW0R : VIEW0; }
     function clampView(v) {
-      if (mode === 'room') v.yaw = Math.max(-ROOM_YAW, Math.min(ROOM_YAW, v.yaw));   // 방은 벽이 가리지 않는 만큼만
+      if (isIndoor()) v.yaw = Math.max(-ROOM_YAW, Math.min(ROOM_YAW, v.yaw));   // 방은 벽이 가리지 않는 만큼만
       v.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, v.pitch)); v.zoom = Math.max(0.6, Math.min(1.35, v.zoom));
     }
     function viewChanged() { const b = base(); return Math.abs(viewT.yaw) > 0.03 || Math.abs(viewT.pitch - b.pitch) > 0.03 || Math.abs(viewT.zoom - 1) > 0.03; }
@@ -3136,7 +3238,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     const RB = { x0: RX - 4.8, x1: RX + 4.8, z0: RZ - 3.8, z1: RZ + 3.9 };
     function collide(pos, r) {
       for (const c of colliders) {
-        if (c.off) continue;
+        if (c.off || (c.area && c.area !== mode)) continue;
         if (c.seg) {
           const [ax, az, bx, bz] = c.seg, vx = bx - ax, vz = bz - az, t = Math.max(0, Math.min(1, ((pos.x - ax) * vx + (pos.z - az) * vz) / (vx * vx + vz * vz)));
           const qx = ax + vx * t, qz = az + vz * t, dx = pos.x - qx, dz = pos.z - qz, d = Math.hypot(dx, dz), min = c.r + r;
@@ -3146,7 +3248,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
         const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), min = c.r + r;
         if (d < min && d > 1e-4) { pos.x = c.x + dx / d * min; pos.z = c.z + dz / d * min; }
       }
-      const B = mode === 'room' ? RB : VB;
+      const B = mode === 'room' ? RB : marketWorld?.roomBounds(mode) || (mode === 'market' ? window.MarketWorldData.bounds : VB);
       pos.x = Math.min(B.x1, Math.max(B.x0, pos.x)); pos.z = Math.min(B.z1, Math.max(B.z0, pos.z));
     }
     function turnToward(obj, dx, dz, dt, rate = 10) { let d = Math.atan2(dx, dz) - obj.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); obj.rotation.y += d * Math.min(1, dt * rate); }
@@ -3159,7 +3261,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       { n: '동아리센터', x: 15, z: -11, w: 7, d: 5.5, c: '#A98BF0' }, { n: '게임방', x: 17.5, z: -1.5, r: 4.4, c: '#FFB45C' },
       { n: '카페', x: -11.8, z: -10.6, w: 6, d: 5, c: '#FF8FB3' }, { n: '내 집', x: 22, z: 12, w: 5.6, d: 5, c: '#6FB6F2' }
     ];
-    const MAP_AREA = [{ n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
+    const MAP_AREA = [{ n: '시장행 버스', x: 39, z: 24.2 }, { n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
     const NPC_DOT = { psych: '#B56CC0', policy: '#3F7FD6', job: '#2F9E8F', chief: '#E0A020', coco: '#2E6B4F' };
     let mm = null;
     function mmBase() {
@@ -3180,7 +3282,9 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       return c;
     }
     function drawMinimap() {
-      if (!mm || !player || mode !== 'village') return;
+      if (!mm || !player) return;
+      if (mode === 'market' && marketWorld) { marketWorld.drawMinimap(mm, player, view.yaw); return; }
+      if (mode !== 'village') return;
       if (!mm.base) mm.base = mmBase();
       { const cw = mm.canvas.clientWidth; if (cw && cw !== mm.size) attachMinimap(mm.canvas); }
       const dpr = mm.dpr, Sz = mm.size, R = Sz / 2, k = R / MAP_SPAN, g = mm.ctx, yaw = window.__SW_NORTH_FIXED ? 0 : view.yaw, px = player.position.x, pz = player.position.z;
@@ -3233,10 +3337,11 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     }
     const clock = new THREE.Clock(), tmpV = new THREE.Vector3();
     function nearest() {
+      if (marketWorld?.info()) return null;
       let best = null, bd = 99;
       const px = player.position.x, pz = player.position.z;
       if (mode === 'village') for (const n of npcObjs) { if (!n.visible) continue; const d = Math.hypot(px - n.x, pz - n.z); if (d < 3.0 && d < bd) { bd = d; best = { type: 'npc', id: n.id }; } }
-      for (const d0 of doors) { if (d0.area !== mode) continue; const d = Math.hypot(px - d0.x, pz - d0.z); if (d < d0.r && d < bd) { bd = d; best = { type: 'door', id: d0.id, label: d0.label }; } }
+      for (const d0 of doors) { if (d0.area !== mode) continue; const d = Math.hypot(px - d0.x, pz - d0.z); if (d < d0.r && d < bd) { bd = d; best = { type: d0.type || 'door', id: d0.id, label: d0.label }; } }
       return hooks.target ? hooks.target(best) : best;
     }
     function tick() {
@@ -3331,8 +3436,9 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       if (JSON.stringify(nt) !== JSON.stringify(nearTarget)) { nearTarget = nt; if (hooks.near) hooks.near(nt); }
       if (hooks.tick) hooks.tick(dt);
       updateFishingModels(t);
+      if (marketWorld) marketWorld.tick(dt, t);
 
-      if (mode === 'room') camFocus.lerp(new THREE.Vector3(RX + (player.position.x - RX) * 0.35, 0, RZ + (player.position.z - RZ) * 0.35 + 0.6), reduceMotion ? 1 : Math.min(1, dt * 3));
+      if (isIndoor()) camFocus.lerp(indoorFocus(), reduceMotion ? 1 : Math.min(1, dt * 3));
       else camFocus.lerp(player.position, reduceMotion ? 1 : Math.min(1, dt * 4));
       U.center.value.set(camFocus.x, 0, camFocus.z);
       petals.position.set(camFocus.x, -1, camFocus.z - 4);
@@ -3340,16 +3446,16 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
         let dy = viewT.yaw - view.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
         view.yaw += dy * k; view.pitch += (viewT.pitch - view.pitch) * k; view.zoom += (viewT.zoom - view.zoom) * k; }
       U.yaw.value = view.yaw;
-      { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = mode === 'room' ? 1.6 : 3;
+      { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = isIndoor() ? 1.6 : 3;
         camera.position.set(camFocus.x + sy * Math.cos(view.pitch) * D, camFocus.y + Math.sin(view.pitch) * D, camFocus.z + cy * Math.cos(view.pitch) * D);
         camera.lookAt(camFocus.x - sy * ah, 0.9, camFocus.z - cy * ah); }
-      if (skyDeco) { skyDeco.visible = mode !== 'room'; skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
+      if (skyDeco) { skyDeco.visible = !isIndoor(); skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
       sun.position.copy(camFocus).addScaledVector(SUN_DIR, 50); sun.target.position.copy(camFocus); sun.target.updateMatrixWorld();
       if (mm && (mm.frame++ % 2 === 0)) drawMinimap();
       sky.position.copy(camera.position);
       tmpV.set(player.position.x, 0.9 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
       finalMat.uniforms.focusY.value += ((tmpV.y * 0.5 + 0.5) - finalMat.uniforms.focusY.value) * Math.min(1, dt * 5);
-      finalMat.uniforms.band.value = mode === 'room' ? 0.35 : 0.2;
+      finalMat.uniforms.band.value = isIndoor() ? 0.35 : 0.2;
       finalMat.uniforms.time.value = t;
       renderFrame();
       requestAnimationFrame(tick);
@@ -3405,7 +3511,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     }
     function updateFishingModels(t){
       ensureFishingModels();
-      if(!rodModel)return;rodModel.visible=rodEquipped;
+      if(!rodModel)return;rodModel.visible=rodEquipped && !marketWorld?.info();
       if(!fishingVisual){floatModel.visible=false;fishingLine.visible=false;fishingRipple.visible=false;return;}
       const {point,phase,progress}=fishingVisual;
       const dx=point.x-player.position.x,dz=point.z-player.position.z;
@@ -3428,17 +3534,26 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       setFishingVisual(value){ensureFishingModels();fishingVisual=value;if(!value)updateFishingModels(0);},
       fishingVisualInfo:()=>({equipped:rodEquipped,rodAttached:!!rodModel&&rodModel.parent===player,phase:fishingVisual?.phase||null,floatVisible:!!floatModel?.visible,floatPosition:floatModel?{x:floatModel.position.x,y:floatModel.position.y,z:floatModel.position.z}:null}),
       places: () => places,
+      startBusRide(destination, callbacks) { return marketWorld ? marketWorld.start(destination, callbacks) : false; },
+      finishBusRide() { marketWorld?.finish(); },
+      cancelBusRide() { marketWorld?.cancel(); },
+      busRideInfo: () => marketWorld?.info() || null,
+      marketInfo: () => ({ ...marketWorld?.debug(), villageVisible: villageScenery?.visible }),
       enter(m, opt = {}) {
         hooks.teleport?.();fishingVisual=null;
         build();
+        ensureMarket();
         U.k.value = BEND_K;
         if (!zzz) { zzz = textSprite('Z z z', { size: 70, color: '#5B7DB1', stroke: '#5B7DB1' }); zzz.visible = false; scene.add(zzz); }
         if (!knock) { knock = textSprite('똑똑!', { stroke: '#B56CC0' }); knock.visible = false; scene.add(knock); }
         if (!waitSpr) { waitSpr = textSprite('이쪽이야!', { stroke: '#B56CC0' }); waitSpr.visible = false; scene.add(waitSpr); }
         setAvatar(opt.avatar);
-        mode = m; keys.clear(); tapTarget = null; autoPath = null;
-        U.k.value = mode === 'room' ? 0 : BEND_K;   // 실내는 둥근 지평선을 끈다(바닥이 꺼져 보이지 않게)
-        if (mode === 'room' || opt.resetView) resetView(true); else { clampView(viewT); notifyView(); }
+        mode = m; marketWorld?.enter(mode);
+        if (villageScenery) villageScenery.visible = mode === 'village' || mode === 'room';
+        keys.clear(); tapTarget = null; autoPath = null;
+        U.k.value = isIndoor() ? 0 : BEND_K;   // 실내는 둥근 지평선을 끈다(바닥이 꺼져 보이지 않게)
+        if (isIndoor() || opt.resetView) resetView(true); else { clampView(viewT); notifyView(); }
+        if (mode === 'market' && opt.resetView) { view.zoom = viewT.zoom = 1.25; view.pitch = viewT.pitch = .72; notifyView(); }
         const sp = opt.spawn || (opt.spawnPlace && places[opt.spawnPlace]);
         if (sp) {
           player.position.set(sp.x, 0, sp.z);
@@ -3453,12 +3568,13 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
         player.rotation.y = opt.facing != null ? opt.facing : Math.atan2(-player.position.x, -player.position.z);
         setSeated(player, !!opt.seated); player.userData.sleeping = !!opt.sleeping;
         if (opt.seated) player.rotation.y = Math.PI / 2;
-        camFocus.copy(mode === 'room' ? new THREE.Vector3(RX + (player.position.x - RX) * 0.35, 0, RZ + (player.position.z - RZ) * 0.35 + 0.6) : player.position);
+        camFocus.copy(isIndoor() ? indoorFocus() : player.position);
+        if (mm) { mm.base = null; mm.frame = 0; }
         nearTarget = undefined;
         document.body.classList.add('in-world');
         if (!running) { running = true; setGfx(gfxHigh); clock.getDelta(); requestAnimationFrame(tick); }
       },
-      leave() { hooks.teleport?.();fishingVisual=null;updateFishingModels(0); running = false; keys.clear(); document.body.classList.remove('in-world'); },
+      leave() { marketWorld?.cancel(); hooks.teleport?.();fishingVisual=null;updateFishingModels(0); running = false; keys.clear(); document.body.classList.remove('in-world'); },
       isRunning: () => running,
       mode: () => mode,
       wake() { player.userData.sleeping = false; setSeated(player, false); player.position.x += 0.6; player.rotation.y = Math.PI / 4; },
@@ -3482,7 +3598,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       setQuality(high) { setGfx(!!high); return gfxHigh; },
       setBindings(value) { bindings = { ...bindings, ...value }; keys.clear(); },
       pauseInput() { keys.clear(); tapTarget = null; autoPath = null; drag.id = null; },
-      mapBase: () => mmBase(),
+      mapBase: () => mode === 'market' || mode === 'bank' || mode === 'clothing' ? marketWorld.mapBase() : mmBase(),
       npcPositions: () => npcObjs.map(n => ({ id:n.id, x:n.x, z:n.z })),
       attachMinimap,
       minimapInfo: () => mm ? { size: mm.size, span: MAP_SPAN } : null,
@@ -3495,6 +3611,363 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     };
     return api;
   }
+
+</script>
+<!-- market-world.js -->
+<script>
+/* Separate market scenery and bus travel. Existing village randomness stays untouched. */
+(function (root) {
+  'use strict';
+  const MX = 180;
+  const data = root.MarketWorldData = {
+    bounds: { x0: MX - 26, x1: MX + 26, z0: -23, z1: 23 },
+    mapBounds: { x0: MX - 30, x1: MX + 30, z0: -27, z1: 27 },
+    villageStop: { x: 39, z: 24.2 },
+    marketStop: { x: MX - 1.8, z: 14.8 },
+    rooms: { bank: { x: MX, z: 100 }, clothing: { x: MX + 30, z: 100 } },
+    points: [
+      { id: 'market-bank', name: '이음 은행', x: MX - 12, z: -8 },
+      { id: 'market-clothing', name: '오늘의 옷장', x: MX + 12, z: -8 },
+      { id: 'market-square', name: '시장 광장', x: MX, z: 3 },
+      { id: 'market-bus', name: '마을행 버스', x: MX - 1.8, z: 14.8 }
+    ],
+    durationScale: 1
+  };
+
+  root.createMarketWorld = function ({ THREE, scene, mesh, M, rbox, shade, textSprite, canvasTex,
+    colliders, doors, places, engine, player: getPlayer, animatePerson, reduceMotion }) {
+    const plaza = new THREE.Group(); plaza.name = 'ieum-market'; scene.add(plaza);
+    const interiors = {};
+    const stop = new THREE.Group(); stop.name = 'village-bus-stop'; scene.add(stop);
+    let ride = null;
+
+    function box(parent, w, h, d, color, x, y, z, radius = .12) {
+      return mesh(rbox(w, h, d, radius), M(color), x, y, z, parent);
+    }
+    function ground(parent, w, d, color, x, y, z) {
+      const geometry = new THREE.PlaneGeometry(w, d, Math.ceil(w), Math.ceil(d));
+      geometry.rotateX(-Math.PI / 2);
+      const floor = mesh(geometry, M(color), x, y, z, parent);
+      floor.receiveShadow = true;
+      return floor;
+    }
+    function label(parent, value, x, y, z, size = 80) {
+      const sign = textSprite(value, { size, color: '#304D45', stroke: '#FFF9EA' });
+      sign.position.set(x, y, z); parent.add(sign); return sign;
+    }
+    function facadeSign(parent, value, width, x, y, z) {
+      const tex = canvasTex(1024, 192, (g, w, h) => {
+        g.fillStyle = '#FFF3D9'; g.fillRect(0, 0, w, h);
+        g.fillStyle = '#365C4C'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = '700 92px "Gowun Dodum", sans-serif'; g.fillText(value, w / 2, h / 2, w - 80);
+      });
+      box(parent, width + .15, .9, .14, '#456E5B', x, y, z);
+      mesh(new THREE.PlaneGeometry(width, .76), M('#FFFFFF', { map: tex }), x, y, z + .08, parent);
+    }
+    function poleSign(parent, x, z, title, subtitle) {
+      box(parent, .15, 2.7, .15, '#456957', x, 1.35, z);
+      box(parent, 2.2, .85, .18, '#F8F0DB', x, 2.7, z);
+      const tex = canvasTex(512, 192, (g, w, h) => {
+        g.fillStyle = '#F8F0DB'; g.fillRect(0, 0, w, h);
+        g.textAlign = 'center'; g.fillStyle = '#31584B';
+        g.font = '700 62px "Gowun Dodum", sans-serif'; g.fillText(title, w / 2, 83);
+        g.font = '36px "Gowun Dodum", sans-serif'; g.fillText(subtitle, w / 2, 146);
+      });
+      mesh(new THREE.PlaneGeometry(2.05, .77), M('#FFFFFF', { map: tex }), x, 2.7, z + .1, parent);
+    }
+    function plant(parent, x, z, color = '#6F9A64', scale = 1) {
+      const g = new THREE.Group(); parent.add(g); g.position.set(x, 0, z);
+      box(g, .65, .55, .65, '#DCC7A3', 0, .27, 0);
+      mesh(new THREE.CylinderGeometry(.08, .11, 1.3, 8), M('#A17B55'), 0, 1.15, 0, g);
+      for (const [dx, y, dz, r] of [[0, 2.3, 0, .9], [.5, 1.9, .1, .65], [-.4, 2, -.2, .72]]) {
+        mesh(new THREE.SphereGeometry(r, 12, 9), M(color), dx, y, dz, g);
+      }
+      g.scale.setScalar(scale); shade(g);
+      const area = parent === plaza ? 'market' : parent.userData.area;
+      if (area) colliders.push({ x: x + (parent === plaza ? 0 : parent.position.x), z: z + (parent === plaza ? 0 : parent.position.z), r: .42 * scale, area });
+    }
+    function bench(parent, x, z) {
+      box(parent, 2.8, .15, .7, '#B48960', x, .65, z);
+      box(parent, 2.8, .8, .12, '#B48960', x, 1.08, z - .35);
+      [-1, 1].forEach(dx => box(parent, .15, .6, .55, '#547362', x + dx, .3, z));
+    }
+    function road(parent, centerX, z, width) {
+      ground(parent, width, 5.4, '#7D8B89', centerX, .065, z);
+      [-1, 1].forEach(side => box(parent, width, .15, .22, '#E7DDC7', centerX, .10, z + side * 2.8));
+      for (let x = centerX - width / 2 + 2; x < centerX + width / 2; x += 4) {
+        box(parent, 1.6, .015, .12, '#F9EDB7', x, .085, z);
+      }
+    }
+
+    // No calls to the original engine's rnd(): additions do not move its trees or grass.
+    road(stop, 45, 20.3, 26);
+    box(stop, 5.4, .08, 2.6, '#E4D8BE', 39, .09, 23.5);
+    poleSign(stop, 38, 22.7, '버스 정류장', '이음 시장행');
+    bench(stop, 41, 24.6);
+    colliders.push({ x: 38, z: 22.7, r: .2, area: 'village' });
+    colliders.push({ seg: [39.6, 24.6, 42.4, 24.6], r: .4, area: 'village' });
+    places.bus = { ...data.villageStop };
+    doors.push({ id: 'bus', label: '시장행 버스 부르기', ...places.bus, r: 2.4, area: 'village', type: 'bus' });
+
+    // Market square: two distinct shop fronts around an open, walkable centre.
+    ground(plaza, 76, 76, '#A9C98B', MX, -.09, 0);
+    ground(plaza, 45, 38, '#E7D6B7', MX, .025, 0);
+    for (let x = MX - 21; x <= MX + 21; x += 3) ground(plaza, .035, 34, '#D9C5A5', x, .037, 0);
+    for (let z = -17; z <= 15; z += 3) ground(plaza, 43, .035, '#D9C5A5', MX, .037, z);
+    road(plaza, MX, 18, 66);
+    poleSign(plaza, MX - 4.2, 14.8, '버스 정류장', '이음 마을행');
+    colliders.push({ x: MX - 4.2, z: 14.8, r: .2, area: 'market' });
+    bench(plaza, MX + 5, 14.3);
+    places['market-bus'] = { ...data.marketStop };
+    places['market-square'] = { x: MX, z: 3 };
+    doors.push({ id: 'market-bus', label: '마을행 버스 부르기', ...data.marketStop, r: 2.3, area: 'market', type: 'bus' });
+
+    function shop(id, x, color, roof, title, bank) {
+      const g = new THREE.Group(); g.position.set(x, 0, -8); plaza.add(g);
+      box(g, 9.8, .3, 8, '#CCBBA2', 0, .15, 0);
+      box(g, 9.3, 4.8, 7.3, color, 0, 2.5, 0);
+      box(g, 10.2, .6, 8, roof, 0, 5, 0);
+      box(g, 10.7, .15, 8.4, '#FFF3D9', 0, 4.72, 0);
+      box(g, 1.5, 2.75, .12, '#476C62', 0, 1.52, 3.70);
+      box(g, 1.2, 2.3, .07, '#9AC9C6', 0, 1.62, 3.79);
+      mesh(new THREE.SphereGeometry(.07, 8, 6), M('#ECC772'), .48, 1.3, 3.85, g);
+      [-2.9, 2.9].forEach(xx => {
+        box(g, 2.4, 2.5, .16, '#FFF7E9', xx, 2.0, 3.70);
+        box(g, 2.1, 2.2, .08, '#A2CBC6', xx, 2.0, 3.82);
+        box(g, .06, 2.2, .08, '#FFF7E9', xx, 2.0, 3.90);
+      });
+      if (bank) {
+        [-4.2, -1.25, 1.25, 4.2].forEach(xx => {
+          mesh(new THREE.CylinderGeometry(.17, .22, 3.7, 10), M('#FFF2D5'), xx, 2.0, 4.0, g);
+          box(g, .55, .17, .55, '#D2C2A8', xx, .23, 4.0);
+        });
+        const clock = mesh(new THREE.CircleGeometry(.57, 32), M('#FFF5D8'), 3.4, 4.0, 3.85, g);
+        box(g, .04, .32, .035, '#48675B', 3.4, 4.1, 3.9);
+        box(g, .3, .04, .035, '#48675B', 3.52, 4, 3.9);
+        clock.name = 'bank-clock';
+      } else {
+        for (let i = 0; i < 12; i++) {
+          const awning = box(g, .8, .13, 1.65, i % 2 ? '#FFF4DC' : '#D78676', -4.4 + i * .8, 3.42, 4.1);
+          awning.rotation.x = .16;
+        }
+        [-2.9, 2.9].forEach((xx, i) => {
+          box(g, .8, 1.15, .12, i ? '#A8BFA2' : '#D98C7D', xx, 1.95, 3.92);
+          mesh(new THREE.SphereGeometry(.22, 10, 8), M('#FFF0D9'), xx, 2.72, 3.92, g);
+        });
+      }
+      facadeSign(g, title, 4.7, 0, 4.15, 3.88);
+      places[id] = { x, z: -2.8 };
+      doors.push({ id, label: title, ...places[id], r: 2.3, area: 'market' });
+      // Rectangular walls keep the whole building footprint inaccessible.
+      for (const [ax, az, bx, bz] of [[-4.8, -3.8, 4.8, -3.8], [-4.8, 3.8, 4.8, 3.8], [-4.8, -3.8, -4.8, 3.8], [4.8, -3.8, 4.8, 3.8]]) {
+        colliders.push({ seg: [x + ax, -8 + az, x + bx, -8 + bz], r: .15, area: 'market' });
+      }
+      plant(plaza, x - 5.9, -2.3, bank ? '#719C7A' : '#96B06D', .8);
+      plant(plaza, x + 5.9, -2.3, bank ? '#719C7A' : '#96B06D', .8);
+      shade(g);
+    }
+    shop('market-bank', MX - 12, '#EEE7D1', '#648E7F', '이음 은행', true);
+    shop('market-clothing', MX + 12, '#F5E6D4', '#CB8273', '오늘의 옷장', false);
+    // A central welcome arch and small places to rest give the square its identity.
+    [-5, 5].forEach(x => { box(plaza, .38, 4.5, .38, '#887B60', MX + x, 2.25, -17); colliders.push({ x: MX + x, z: -17, r: .22, area: 'market' }); });
+    box(plaza, 11.3, .65, .6, '#608A70', MX, 4.4, -17);
+    facadeSign(plaza, '이음 시장', 8.4, MX, 4.4, -16.65);
+    box(plaza, 5, .15, 3.2, '#D0B78B', MX, .1, 1);
+    box(plaza, 4.5, .3, 2.7, '#EEE3C9', MX, .28, 1);
+    label(plaza, '시장 광장', MX, 1.05, 1, 64);
+    for (const [x, z] of [[MX - 21, -17], [MX + 21, -17], [MX - 21, 10], [MX + 21, 10]]) plant(plaza, x, z, '#799D68', 1.3);
+    bench(plaza, MX - 8, 7); bench(plaza, MX + 8, 7);
+    for (const x of [MX - 8, MX + 8]) colliders.push({ seg: [x - 1.4, 7, x + 1.4, 7], r: .4, area: 'market' });
+    colliders.push({ seg: [MX - 2.5, 1, MX + 2.5, 1], r: 1.6, area: 'market' });
+    shade(plaza);
+
+    function shirt(parent, x, y, z, color) {
+      box(parent, .7, .9, .22, color, x, y, z, .08);
+      const l = box(parent, .35, .48, .22, color, x - .44, y + .23, z, .06); l.rotation.z = -.45;
+      const r = box(parent, .35, .48, .22, color, x + .44, y + .23, z, .06); r.rotation.z = .45;
+    }
+    function room(kind, title) {
+      const p = data.rooms[kind], g = new THREE.Group(); g.position.set(p.x, 0, p.z); scene.add(g); interiors[kind] = g;
+      g.userData.area = kind;
+      box(g, 10, .18, 10, '#E9D9BA', 0, -.08, 0);
+      box(g, 10, 4, .2, kind === 'bank' ? '#D7E4D5' : '#F1D9CD', 0, 2, -4.7);
+      [-4.8, 4.8].forEach(x => box(g, .2, 4, 9.5, '#F7ECDC', x, 2, 0));
+      for (let z = -4; z <= 4; z++) box(g, 9.4, .012, .025, '#D3BE9C', 0, .02, z);
+      label(g, title, 0, 3.2, -4.5);
+      if (kind === 'bank') {
+        box(g, 6, 1.1, 1, '#91AB8D', 0, .55, -1.8);
+        box(g, 6.3, .13, 1.15, '#F8EFDA', 0, 1.16, -1.8);
+        [-2, 0, 2].forEach(x => {
+          box(g, .7, .58, .1, '#536D64', x, 1.53, -2);
+          box(g, 1, .05, .6, '#E7D9BD', x, 1.25, -1.5);
+        });
+        for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+          box(g, .85, .7, .3, '#6F8B7A', -3.6 + col * .95, .7 + row * .8, -4.3);
+          box(g, .13, .08, .08, '#ECD091', -3.6 + col * .95, .7 + row * .8, -4.09);
+        }
+        bench(g, -2.5, 1.8);
+        colliders.push({ seg: [p.x - 3.9, p.z + 1.8, p.x - 1.1, p.z + 1.8], r: .4, area: kind });
+        colliders.push({ seg: [p.x - 3.2, p.z - 1.8, p.x + 3.2, p.z - 1.8], r: .6, area: kind });
+      } else {
+        const colors = ['#86A494', '#D89280', '#D8C285', '#9BA9C3'];
+        [-3, 3].forEach((x, side) => {
+          box(g, .12, 2.3, .12, '#A78661', x, 1.15, -2.4);
+          box(g, 2.8, .12, .12, '#A78661', x, 2.3, -2.4);
+          for (let i = 0; i < 3; i++) shirt(g, x - .9 + i * .9, 1.55, -2.4, colors[(i + side) % colors.length]);
+          colliders.push({ seg: [p.x + x - 1.5, p.z - 2.4, p.x + x + 1.5, p.z - 2.4], r: .4, area: kind });
+        });
+        box(g, 2.4, .9, 1.2, '#C59D85', 0, .45, -3.6);
+        colliders.push({ seg: [p.x - 1.2, p.z - 3.6, p.x + 1.2, p.z - 3.6], r: .6, area: kind });
+        for (let i = 0; i < 3; i++) box(g, .65, .12, .55, colors[i], -.75 + i * .75, 1.05, -3.6);
+        box(g, 1.5, 2.8, .08, '#94B6AE', -4.55, 1.5, .6);
+        box(g, 1.6, .25, .9, '#CBA68A', 2.6, .3, 1.6);
+        colliders.push({ seg: [p.x + 1.8, p.z + 1.6, p.x + 3.4, p.z + 1.6], r: .45, area: kind });
+      }
+      plant(g, 3.8, 3, '#7AA078', .7);
+      label(g, '시장 광장으로', 0, 1.2, 4.35, 48);
+      places[kind + '-inside'] = { x: p.x, z: p.z + 2.9 };
+      doors.push({ id: kind + '-exit', label: '시장 광장으로 나가기', x: p.x, z: p.z + 3.5, r: 1.25, area: kind, type: 'exit' });
+      doors.push({ id: kind + '-service', label: kind === 'bank' ? '은행 안내 보기' : '진열된 옷 둘러보기', x: p.x, z: p.z - .35, r: 2, area: kind, type: 'service' });
+      shade(g); g.visible = false;
+    }
+    room('bank', '이음 은행'); room('clothing', '오늘의 옷장');
+
+    // Reusable bus with a sliding door, wheels, lights and its destination board.
+    const bus = new THREE.Group(); bus.name = 'market-shuttle-bus'; scene.add(bus);
+    box(bus, 7.6, 2.4, 2.9, '#E8BA6D', 0, 1.8, 0, .3);
+    box(bus, 7.5, .75, 3, '#547F6E', 0, .85, 0, .2);
+    box(bus, 7.3, .2, 2.9, '#FFF1D5', 0, 3.07, 0);
+    [-1, 1].forEach(side => {
+      for (let i = 0; i < 4; i++) box(bus, 1.2, .95, .04, '#718E90', -1.6 + i * 1.35, 2.25, side * 1.47, .05);
+      [-2.5, 2.5].forEach(x => {
+        const wheel = mesh(new THREE.CylinderGeometry(.55, .55, .25, 16), M('#3F4C49'), x, .55, side * 1.5, bus); wheel.rotation.x = Math.PI / 2;
+        const hub = mesh(new THREE.CylinderGeometry(.26, .26, .28, 16), M('#CEC9B4'), x, .55, side * 1.52, bus); hub.rotation.x = Math.PI / 2;
+      });
+    });
+    box(bus, .08, 1.2, 2.3, '#718E90', -3.81, 2.22, 0);
+    [-.93, .93].forEach(z => box(bus, .1, .25, .45, '#FFF1B4', -3.83, 1.04, z));
+    box(bus, 1.4, 2.15, .06, '#304C44', -1.8, 1.65, 1.51);
+    const busDoor = box(bus, 1.35, 2.08, .07, '#ACC6BB', -1.8, 1.65, 1.56);
+    box(busDoor, 1.1, 1.35, .03, '#637F80', 0, .16, .06);
+    label(bus, '이음 순환버스', .6, 3.55, 0, 58);
+    shade(bus); bus.visible = false;
+
+    function park(mode) { return mode === 'village' ? { x: 41, z: 20.3 } : { x: MX, z: 18 }; }
+    function landing(mode) { return mode === 'village' ? data.villageStop : data.marketStop; }
+    function doorPoint(mode) { const p = park(mode); return { x: p.x - 1.8, z: p.z + 1.75 }; }
+    function positionPlayer(p, visible = true) {
+      const player = getPlayer(); if (!player) return;
+      player.position.set(p.x, 0, p.z); player.visible = visible;
+      if (player.userData.blob) player.userData.blob.visible = visible;
+    }
+    function phase(name) {
+      if (!ride) return;
+      ride.phase = name; ride.at = performance.now(); ride.cb.onPhase?.(name);
+    }
+    function transfer() {
+      if (!ride || ride.transferred) return;
+      ride.transferred = true; ride.cb.onTransfer(ride.destination, landing(ride.destination));
+      const p = park(ride.destination); bus.position.set(p.x + 14, 0, p.z);
+    }
+    function finish() {
+      if (!ride) return;
+      transfer();
+      const done = ride; ride = null; bus.visible = false; busDoor.position.x = -1.8;
+      positionPlayer(landing(done.destination)); engine.pauseInput(); done.cb.onComplete?.();
+    }
+    function cancel() {
+      if (!ride) return;
+      const old = ride; ride = null; bus.visible = false;
+      positionPlayer(old.transferred ? landing(old.destination) : old.origin);
+      engine.pauseInput(); old.cb.onCancel?.();
+    }
+    const timings = { approach: 1700, boarding: 1300, departure: 850, blackout: 900, arriving: 1100, alighting: 1300, farewell: 700 };
+    function tick(dt, t) {
+      if (!ride) return;
+      const scale = Math.max(.03, Number(data.durationScale) || 1) * (reduceMotion ? .35 : 1);
+      const progress = Math.min(1, (performance.now() - ride.at) / (timings[ride.phase] * scale));
+      const smooth = progress * progress * (3 - 2 * progress);
+      const source = park(ride.source), dest = park(ride.destination), player = getPlayer();
+      if (ride.phase === 'approach') bus.position.set(source.x + 25 * (1 - smooth), 0, source.z);
+      if (ride.phase === 'boarding') {
+        busDoor.position.x = -1.8 + Math.min(1, progress * 3) * 1.25;
+        const door = doorPoint(ride.source);
+        positionPlayer({ x: ride.origin.x + (door.x - ride.origin.x) * smooth, z: ride.origin.z + (door.z - ride.origin.z) * smooth });
+        player.rotation.y = Math.atan2(door.x - ride.origin.x, door.z - ride.origin.z);
+        animatePerson(player, progress < 1, t, dt);
+      }
+      if (ride.phase === 'departure') {
+        busDoor.position.x = -1.8; bus.position.set(source.x - smooth * 14, 0, source.z); positionPlayer(doorPoint(ride.source), false);
+      }
+      if (ride.phase === 'blackout') {
+        if (progress >= .55 && !ride.transferred) transfer();
+        positionPlayer(doorPoint(ride.transferred ? ride.destination : ride.source), false);
+      }
+      if (ride.phase === 'arriving') { bus.position.set(dest.x + 14 * (1 - smooth), 0, dest.z); positionPlayer(doorPoint(ride.destination), false); }
+      if (ride.phase === 'alighting') {
+        busDoor.position.x = -1.8 + Math.min(1, progress * 3) * 1.25;
+        const from = doorPoint(ride.destination), to = landing(ride.destination);
+        positionPlayer({ x: from.x + (to.x - from.x) * smooth, z: from.z + (to.z - from.z) * smooth });
+        player.rotation.y = Math.atan2(to.x - from.x, to.z - from.z); animatePerson(player, progress < 1, t, dt);
+      }
+      if (ride.phase === 'farewell') { busDoor.position.x = -1.8; bus.position.set(dest.x - smooth * 22, 0, dest.z); }
+      if (progress < 1) return;
+      const phases = Object.keys(timings), next = phases[phases.indexOf(ride.phase) + 1];
+      if (next) phase(next); else finish();
+    }
+
+    let marketMap = null;
+    function mapBase() {
+      if (marketMap) return marketMap;
+      const c = document.createElement('canvas'); c.width = 600; c.height = 540;
+      const g = c.getContext('2d'), P = (x, z) => [(x - data.mapBounds.x0) * 10, (z - data.mapBounds.z0) * 10];
+      g.fillStyle = '#A9C98B'; g.fillRect(0, 0, c.width, c.height);
+      g.fillStyle = '#E7D6B7'; g.fillRect(75, 75, 450, 380);
+      g.fillStyle = '#7D8B89'; g.fillRect(0, 423, c.width, 54);
+      g.strokeStyle = '#FFF1B5'; g.lineWidth = 2; g.setLineDash([18, 18]); g.beginPath(); g.moveTo(0, 450); g.lineTo(c.width, 450); g.stroke(); g.setLineDash([]);
+      for (const [x, color] of [[MX - 12, '#648E7F'], [MX + 12, '#CB8273']]) {
+        const [px, pz] = P(x, -8); g.fillStyle = color; g.fillRect(px - 48, pz - 37, 96, 74);
+        g.strokeStyle = '#4D6556'; g.strokeRect(px - 48, pz - 37, 96, 74);
+      }
+      g.fillStyle = '#628B6D'; for (const [x, z] of [[MX - 21, -17], [MX + 21, -17], [MX - 21, 10], [MX + 21, 10]]) { const p = P(x, z); g.beginPath(); g.arc(...p, 16, 0, Math.PI * 2); g.fill(); }
+      marketMap = c;
+      return c;
+    }
+    function drawMinimap(mm, player, viewYaw) {
+      const g = mm.ctx, R = mm.size / 2, yaw = root.__SW_NORTH_FIXED ? 0 : viewYaw, k = R / 24;
+      g.setTransform(mm.dpr, 0, 0, mm.dpr, 0, 0); g.clearRect(0, 0, mm.size, mm.size);
+      g.save(); g.beginPath(); g.arc(R, R, R - 2, 0, Math.PI * 2); g.clip(); g.fillStyle = '#A9C98B'; g.fillRect(0, 0, mm.size, mm.size);
+      g.translate(R, R); g.rotate(yaw); g.scale(k / 10, k / 10);
+      g.drawImage(mapBase(), -(player.position.x - data.mapBounds.x0) * 10, -(player.position.z - data.mapBounds.z0) * 10); g.restore();
+      g.textAlign = 'center'; g.font = '700 10px sans-serif';
+      for (const p of data.points) {
+        const dx = (p.x - player.position.x) * k, dz = (p.z - player.position.z) * k;
+        const x = R + dx * Math.cos(yaw) - dz * Math.sin(yaw), y = R + dx * Math.sin(yaw) + dz * Math.cos(yaw);
+        if (Math.hypot(x - R, y - R) < R - 15) { g.strokeStyle = '#FFF8E8'; g.lineWidth = 3; g.strokeText(p.name, x, y); g.fillStyle = '#365B4C'; g.fillText(p.name, x, y); }
+      }
+      g.save(); g.translate(R, R); g.rotate(yaw - player.rotation.y); g.beginPath(); g.moveTo(0, 8); g.lineTo(-5, -5); g.lineTo(5, -5); g.closePath(); g.fillStyle = '#F26D58'; g.fill(); g.strokeStyle = '#FFFFFF'; g.lineWidth = 1.5; g.stroke(); g.restore();
+      g.fillStyle = '#BA574B'; g.fillText('N', R + Math.sin(yaw) * (R - 10), R - Math.cos(yaw) * (R - 10));
+      g.beginPath(); g.arc(R, R, R - 2, 0, Math.PI * 2); g.strokeStyle = '#FFF8E8'; g.lineWidth = 3; g.stroke();
+    }
+    return {
+      tick, mapBase, drawMinimap, finish, cancel,
+      enter(mode) {
+        if (ride && !(ride.transferred && mode === ride.destination)) cancel();
+        plaza.visible = mode === 'market'; stop.visible = mode === 'village';
+        for (const kind of Object.keys(interiors)) interiors[kind].visible = kind === mode;
+      },
+      start(destination, cb) {
+        if (ride || !['village', 'market'].includes(engine.mode()) || destination === engine.mode()) return false;
+        engine.pauseInput(); const p = getPlayer();
+        ride = { source: engine.mode(), destination, origin: { x: p.position.x, z: p.position.z }, cb, transferred: false };
+        bus.visible = true; phase('approach'); return true;
+      },
+      info: () => ride ? { phase: ride.phase, source: ride.source, destination: ride.destination, transferred: ride.transferred } : null,
+      roomBounds(mode) { const p = data.rooms[mode]; return p ? { x0: p.x - 4.5, x1: p.x + 4.5, z0: p.z - 4.4, z1: p.z + 4.3 } : null; },
+      debug: () => ({ marketVisible: plaza.visible, interiors: Object.fromEntries(Object.entries(interiors).map(([k, g]) => [k, g.visible])), busVisible: bus.visible, playerVisible: getPlayer()?.visible })
+    };
+  };
+})(window);
 
 </script>
 <!-- ../coco/coco.js -->
@@ -4524,7 +4997,8 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     { id: 'lake', name: '호수', x: 10, z: 36.8 },
     { id: 'forest', name: '숲길', x: -38, z: 22 },
     { id: 'flowers', name: '꽃 언덕', x: 36, z: 38 },
-    { id: 'field', name: '들판', x: 42, z: 6 }
+    { id: 'field', name: '들판', x: 42, z: 6 },
+    { id: 'bus', name: '시장행 버스', x: 39, z: 24.2 }
   ];
   // 엔진 places()에 없는 산책로 장소
   var EXTRA_SPOTS = { lake: { x: 10, z: 36.8 }, forest: { x: -38, z: 22 }, flowers: { x: 36, z: 38 }, field: { x: 42, z: 6 } };
@@ -4537,12 +5011,13 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     if (!spot) { toast('이 장소는 아직 준비 중이에요.'); return; }
     closePanel();
     if (!host.teleport({ x: spot.x, z: spot.z })) return;
-    var name = (MAP_POINTS.filter(function (m) { return m.id === id; })[0] || {}).name || '목적지';
+    var name = (currentMapPoints().filter(function (m) { return m.id === id; })[0] || {}).name || '목적지';
     toast(name + ' 앞으로 이동했어요');
   }
 
   // NPC 앞(마을 가운데 쪽으로 1.8칸)으로 이동해 NPC를 바라본다
   function goNpc(id) {
+    if (isMarket()) { toast('마을 주민을 만나려면 버스를 타고 마을로 돌아가 주세요.'); return false; }
     if (!engine) return false;
     var n = engine.npcPositions().filter(function (x) { return x.id === id; })[0];
     if (!n) return false;
@@ -4559,24 +5034,33 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
   }
 
   // ---------------------------------------------------------------- 전체 지도
+  function isMarket() { return engine && ['market', 'bank', 'clothing'].indexOf(engine.mode()) >= 0; }
+  function currentMapPoints() { return isMarket() ? window.MarketWorldData.points : MAP_POINTS; }
+  function currentMapPct(p) {
+    if (!isMarket()) return mapPct(p);
+    var b = window.MarketWorldData.mapBounds;
+    return { left: (p.x - b.x0) / (b.x1 - b.x0) * 100, top: (p.z - b.z0) / (b.z1 - b.z0) * 100 };
+  }
   function openMap() {
     if (!allowed()) return;
     openPanel('map');
+    var inMarket = isMarket();
     var inRoom = engine && engine.mode && engine.mode() === 'room';
     var here = engine ? (inRoom ? engine.places().home : engine.playerPos()) : { x: 0.6, z: 7.4 };
-    var pos = mapPct(here);
+    if (inMarket && engine.mode() !== 'market') here = engine.places()[engine.mode() === 'bank' ? 'market-bank' : 'market-clothing'];
+    var pos = currentMapPct(here);
     $('#overlay').innerHTML =
       '<section class="ui-dialog map-dialog" role="dialog" aria-modal="true" aria-labelledby="map-title">' +
         '<header class="dialog-top"><div class="avatar">' + icon('map') + '</div>' +
-          '<div><div class="eyebrow">IEUM VILLAGE</div><h2 id="map-title">이음 마을 지도</h2>' +
+          '<div><div class="eyebrow">' + (inMarket ? 'IEUM MARKET' : 'IEUM VILLAGE') + '</div><h2 id="map-title">' + (inMarket ? '이음 시장 지도' : '이음 마을 지도') + '</h2>' +
           '<p>장소 이름을 누르면 입구 앞으로 이동해요.</p></div>' +
           '<button class="icon-btn" data-close aria-label="지도 닫기">' + icon('close') + '</button></header>' +
         '<div class="map-main">' +
-          '<div class="map-caption"><span>' + (inRoom ? '지금은 내 방에 있어요. 장소를 누르면 밖으로 나가요.' : '궁금한 곳부터 천천히 둘러보세요.') +
+          '<div class="map-caption"><span>' + (inRoom ? '지금은 내 방에 있어요. 장소를 누르면 밖으로 나가요.' : inMarket && engine.mode() !== 'market' ? '지금은 실내에 있어요. 장소를 누르면 시장 광장으로 나가요.' : '궁금한 곳부터 천천히 둘러보세요.') +
             '</span><span><strong>N ↑</strong> 북쪽 고정</span></div>' +
           '<div class="map-frame"><canvas id="full-map" aria-label="이음 마을 전체 지도"></canvas>' +
-            MAP_POINTS.map(function (p) {
-              var q = mapPct(p);
+            currentMapPoints().map(function (p) {
+              var q = currentMapPct(p);
               return '<button class="map-point" style="left:' + q.left + '%;top:' + q.top + '%" data-place="' + p.id +
                 '" aria-label="' + p.name + ' 앞으로 이동">' + p.name + '</button>';
             }).join('') +
@@ -4587,6 +5071,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
         '</div>' +
       '</section>';
     var c = $('#full-map'), g = c.getContext('2d');
+    c.setAttribute('aria-label', inMarket ? '이음 시장 전체 지도' : '이음 마을 전체 지도');
     c.width = 928; c.height = 736;
     if (engine && engine.mapBase) g.drawImage(engine.mapBase(), 0, 0, c.width, c.height);
     $('#overlay [data-close]').onclick = closePanel;
@@ -5036,6 +5521,94 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
 })();
 
 </script>
+<!-- market.js -->
+<script>
+/* Market service screens and bus presentation; no wallet, purchases or DB writes. */
+(function (root) {
+  'use strict';
+  let host = null, travelling = false, destination = null, service = null, focusBefore = null;
+  const messages = {
+    approach: ['버스가 오고 있어요', '정류장에서 잠시 기다려 주세요.'],
+    boarding: ['버스에 올라타요', '문이 열렸어요. 천천히 올라타세요.'],
+    departure: ['출발합니다', '정류장을 뒤로 하고 출발해요.'],
+    blackout: ['다음 정류장으로 이동 중', '잠시 후 도착해요.'],
+    arriving: ['정류장에 도착했어요', '버스가 멈추면 내려요.'],
+    alighting: ['천천히 내려요', '도착한 곳을 자유롭게 둘러보세요.'],
+    farewell: ['즐거운 시간 보내세요', '돌아갈 때도 정류장에서 버스를 불러요.']
+  };
+  function cleanup() {
+    travelling = false; destination = null;
+    document.body.classList.remove('in-transit');
+    document.getElementById('transit-fade')?.remove(); document.getElementById('transit-card')?.remove();
+    host?.engine()?.pauseInput(); host?.refresh();
+  }
+  function phase(name) {
+    const title = destination === 'market' ? '이음 시장행' : '이음 마을행';
+    const card = document.getElementById('transit-card'), line = messages[name];
+    card.dataset.phase = name;
+    card.querySelector('strong').textContent = line[0]; card.querySelector('p').textContent = line[1];
+    card.querySelector('.transit-route').textContent = title;
+    document.getElementById('transit-fade').classList.toggle('is-black', name === 'blackout');
+    root.dispatchEvent(new CustomEvent('socialworld:bus-phase', { detail: { phase: name, destination } }));
+  }
+  function ride() {
+    const engine = host?.engine();
+    if (!engine || travelling || host.blocked() || host.tutorial()) return false;
+    closeService(); root.WorldUI?.close(); root.WorldUI?.cancelFishing();
+    destination = engine.mode() === 'village' ? 'market' : 'village'; travelling = true;
+    const fade = document.createElement('div'); fade.id = 'transit-fade'; fade.setAttribute('aria-hidden', 'true'); document.body.append(fade);
+    const card = document.createElement('section'); card.id = 'transit-card'; card.setAttribute('role', 'status'); card.setAttribute('aria-live', 'polite');
+    card.innerHTML = '<span class="transit-route"></span><div class="transit-main"><span class="transit-icon" aria-hidden="true">🚌</span><div><strong></strong><p></p></div></div><button type="button" id="transit-skip">연출 건너뛰기</button>';
+    document.body.append(card); document.body.classList.add('in-transit');
+    document.getElementById('transit-skip').onclick = () => engine.finishBusRide();
+    const started = engine.startBusRide(destination, {
+      onPhase: phase,
+      onTransfer: (mode, spawn) => host.arrive(mode, spawn),
+      onComplete: () => { const target = destination; cleanup(); host.toast(target === 'market' ? '이음 시장에 도착했어요. 은행과 옷가게를 둘러보세요.' : '이음 마을에 돌아왔어요.'); },
+      onCancel: cleanup
+    });
+    if (!started) cleanup(); else host.refresh();
+    return started;
+  }
+  const colors = [['세이지 셔츠', '#8FAA9B'], ['살구 셔츠', '#D9917F'], ['크림 니트', '#E2CF9C'], ['하늘 셔츠', '#96B4CC'], ['라벤더 니트', '#B5A4C1'], ['소프트 브라운', '#B9987C']];
+  function clothes() {
+    return colors.map(([name, color]) => '<article class="market-look"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="M32 18 17 28 5 51l18 9 10-15v52h34V45l10 15 18-9-12-23-15-10c-4 12-32 12-36 0Z" fill="' + color + '" stroke="#7E8272" stroke-width="2"/><path d="M32 18q18 15 36 0" fill="none" stroke="#F9F2E1" stroke-width="4"/></svg><strong>' + name + '</strong><span>오늘의 진열</span></article>').join('');
+  }
+  function closeService() {
+    service = null; document.getElementById('market-service')?.remove();
+    host?.engine()?.pauseInput();
+    if (focusBefore && document.contains(focusBefore)) focusBefore.focus(); focusBefore = null;
+  }
+  function openService(kind) {
+    if (travelling || service || !host || host.tutorial()) return;
+    root.WorldUI?.close(); focusBefore = document.activeElement; service = kind;
+    const bank = kind === 'bank', modal = document.createElement('div'); modal.id = 'market-service'; modal.className = 'modal-backdrop market-service-backdrop';
+    modal.innerHTML = '<section class="market-service" role="dialog" aria-modal="true" aria-labelledby="market-service-title">' +
+      '<header><div><span class="market-eyebrow">' + (bank ? 'IEUM BANK' : 'TODAY’S WARDROBE') + '</span><h2 id="market-service-title">' + (bank ? '이음 은행' : '오늘의 옷장') + '</h2><p>' + (bank ? '잠시 쉬면서 앞으로의 계획을 그려 보세요.' : '지금 마음에 드는 색을 천천히 둘러보세요.') + '</p></div><button type="button" id="market-service-close" aria-label="안내 닫기">×</button></header>' +
+      (bank ? '<div class="market-bank-welcome"><span aria-hidden="true">🏦</span><strong>은행에 오신 것을 환영해요</strong><p>소중한 물건을 맡기고, 나만의 목표를 차근차근 준비하는 공간이에요.</p></div><div class="market-bank-services"><article><span aria-hidden="true">🗃️</span><h3>보관 창구</h3><p>가져온 물건을 보관하는 창구예요.</p><span class="market-soon">준비 중</span></article><article><span aria-hidden="true">🌱</span><h3>저축 창구</h3><p>작은 목표부터 함께 준비해요.</p><span class="market-soon">준비 중</span></article></div>' : '<div class="market-collection">' + clothes() + '</div><p class="market-collection-note">마음에 드는 옷을 골라 보는 공간이에요. 구매 창구는 준비 중이에요.</p>') +
+      '<footer><button type="button" class="market-primary" id="market-service-done">계속 둘러보기</button><span>Esc로 닫기</span></footer></section>';
+    document.body.append(modal);
+    modal.querySelector('#market-service-close').onclick = closeService; modal.querySelector('#market-service-done').onclick = closeService;
+    host.engine()?.pauseInput(); modal.querySelector('#market-service-close').focus();
+  }
+  document.addEventListener('keydown', e => {
+    if (!service) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeService(); return; }
+    if (e.key === 'Tab') {
+      const buttons = [...document.querySelectorAll('#market-service button')], first = buttons[0], last = buttons.at(-1);
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, true);
+  root.MarketUI = {
+    init(value) { host = value; }, ride, openService, closeService,
+    isTravelling: () => travelling,
+    reset() { closeService(); host?.engine()?.cancelBusRide(); cleanup(); },
+    state: () => ({ travelling, destination, service })
+  };
+})(window);
+
+</script>
 <!-- app.js -->
 <script>
 /*
@@ -5244,6 +5817,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
   function render(){
     var tut = document.getElementById("tut-backdrop"); if(tut && state.view !== "room") tut.remove();
     if(state.view === "plaza") return renderPlaza();
+    if(state.view === "market" || state.view === "market-bank" || state.view === "market-clothing") return renderMarket();
     if(state.view === "room") return renderRoom();
     hideWorld();
     if(state.view === "loading") return renderLoading();
@@ -5597,7 +6171,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
   // 앱 대화창(NPC·튜토리얼·코코·이장)이 열려 있는가 — 휴대폰(ui.js)이 알림을 미룰 때도 쓴다
   function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop"); }
   // 3D 입력을 멈춰야 하는가 — 대화창 또는 휴대폰·지도(ui.js)가 열려 있을 때
-  function worldBlocked(){ return dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
+  function worldBlocked(){ return !!(window.MarketUI && window.MarketUI.isTravelling()) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
   // 현재 키 이름 — 휴대폰 설정에서 바꿀 수 있다(ui.js). ui.js가 없으면 기본 키
   function key(action){ return window.WorldUI ? window.WorldUI.keyLabel(action) : ({interact:"E",forward:"W",left:"A",back:"S",right:"D",map:"M"})[action]; }
   function hud(id){ return document.getElementById(id); }
@@ -5642,26 +6216,29 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
 
   function updateHud(){
     var E = ENGINE; if(!E || !E.isRunning()) return;
-    var inRoom = state.view === "room";
-    hud("hud-sub").textContent = inRoom ? nick() + "의 방" : (state.tour ? "루미와 마을 한 바퀴" : "광장 · " + nick() + "님");
+    var inRoom = state.view === "room", inMarket = state.view.indexOf("market") === 0, marketIndoor = inMarket && state.view !== "market";
+    var travelling = !!(window.MarketUI && window.MarketUI.isTravelling());
+    document.querySelector(".hud-title h1").textContent = inMarket ? "이음 시장" : "이음 마을";
+    hud("hud-sub").textContent = inMarket ? (state.view === "market-bank" ? "이음 은행" : state.view === "market-clothing" ? "오늘의 옷장" : "시장 광장 · " + nick() + "님") : inRoom ? nick() + "의 방" : (state.tour ? "루미와 마을 한 바퀴" : "광장 · " + nick() + "님");
     var busyRoom = inRoom && state.room && state.room.phase !== "free";
     hud("hud-room").hidden = !inRoom || busyRoom;
-    var mmc = hud("hud-minimap"); if(mmc) mmc.hidden = inRoom;
+    var mmc = hud("hud-minimap"); if(mmc) mmc.hidden = inRoom || marketIndoor;
     hud("hud-help").hidden = !!state.tour || busyRoom;
     var move = esc(key("forward") + key("left") + key("back") + key("right")), ek = esc(key("interact"));
     hud("hud-help").innerHTML = inRoom
       ? '<b>' + move + '</b> 이동 · <b>끌기</b> 시점 · 문 앞에서 <b>' + ek + '</b>'
       : '<b>' + move + '</b> 이동 · <b>끌기</b> 시점 · <b>휠</b> 줌 · 가까이서 <b>' + ek + '</b> · <b>' + esc(key("map")) + '</b> 지도';
     var act = hud("hud-act"), t = state.near;
-    if(state.tour || busyRoom || !t){ act.hidden = true; }
+    if(state.tour || busyRoom || travelling || !t){ act.hidden = true; }
     else {
       act.hidden = false;
-      act.textContent = t.type === "fishing" ? t.label + " (" + key("interact") + ")"
+      act.textContent = t.type === "bus" || t.type === "service" || t.type === "exit" ? t.label + " (" + key("interact") + ")"
+        : t.type === "fishing" ? t.label + " (" + key("interact") + ")"
         : t.type === "npc" ? npcName(t.id) + " — 대화하기 (" + key("interact") + ")"
         : t.id === "room-door" ? "🚪 밖으로 나가기 (" + key("interact") + ")" : t.label + " 들어가기 (" + key("interact") + ")";
     }
     // 휴대폰 버튼·코코 알림 시점 (ui.js) — 투어 중이거나 방 튜토리얼 중엔 휴대폰을 숨긴다
-    if(window.WorldUI) window.WorldUI.sync({ inVillage: !inRoom, tour: !!state.tour, roomBusy: busyRoom });
+    if(window.WorldUI) window.WorldUI.sync({ inVillage: E.mode() === "village", tour: !!state.tour, roomBusy: busyRoom || travelling });
     drawTour();
   }
 
@@ -5676,13 +6253,17 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     if(window.WorldUI && window.WorldUI.interactFishing({ hiddenOnly: true })) return;
     if(!t) return;
     if(t.type === "fishing"){ if(window.WorldUI) window.WorldUI.interactFishing(); return; }
+    if(t.type === "bus"){ if(window.MarketUI) window.MarketUI.ride(); return; }
+    if(t.type === "service"){ if(window.MarketUI) window.MarketUI.openService(ENGINE.mode()); return; }
     if(t.type === "npc") openNpc(t.id);
     else doorAction(t.id);
   }
 
   function doorAction(id){
     var P = ENGINE.places();
-    if(id === "mission"){ state.spawn = P.mission; loadMissionRoom(); }
+    if(id === "market-bank" || id === "market-clothing"){ state.view = id; state.near = null; render(); }
+    else if(id === "bank-exit" || id === "clothing-exit"){ state.spawn = P[id === "bank-exit" ? "market-bank" : "market-clothing"]; state.view = "market"; state.near = null; render(); }
+    else if(id === "mission"){ state.spawn = P.mission; loadMissionRoom(); }
     else if(id === "club"){ state.spawn = P.club; loadClubRoom(); }
     else if(id === "home"){ openRoom(false); }
     else if(id === "room-door"){ state.spawn = P.home; state.view = "plaza"; render(); }
@@ -5694,6 +6275,27 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     state.spawn = null; state.spawnFacing = null;
     if(!showWorld("village", { spawn: spawn, facing: facing })) return;
     if(state.activeNpc) renderNpcModal();
+  }
+
+  function renderMarket(){
+    var mode = state.view === "market-bank" ? "bank" : state.view === "market-clothing" ? "clothing" : "market";
+    var spawn = state.spawn, facing = state.spawnFacing;
+    state.spawn = null; state.spawnFacing = null; state.near = null;
+    if(mode !== "market") spawn = ENGINE.places()[mode + "-inside"];
+    else if(!spawn) spawn = window.MarketWorldData.marketStop;
+    showWorld(mode, { spawn: spawn, facing: facing != null ? facing : Math.PI, resetView: true });
+  }
+  function rememberWorldReturn(){
+    if(!ENGINE || !ENGINE.isRunning()) return;
+    var mode = ENGINE.mode();
+    if(["market","bank","clothing"].indexOf(mode) < 0){ state.worldReturn = null; return; }
+    state.worldReturn = { spawn: mode === "market" ? ENGINE.playerPos() : ENGINE.places()[mode === "bank" ? "market-bank" : "market-clothing"] };
+  }
+  function returnFromRoomScreen(){
+    if(state.worldReturn){
+      state.spawn = state.worldReturn.spawn; state.worldReturn = null; state.view = "market";
+    } else state.view = "plaza";
+    render();
   }
 
   // ---------------- ③ 내 방 (3D 실내) ----------------
@@ -5914,11 +6516,11 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       return CONTACT_ORDER.map(function(id){ return NPCS.filter(function(n){ return n.id === id; })[0]; })
         .filter(Boolean).map(function(n){ return { id: n.id, name: n.name, emoji: n.emoji, color: n.color }; });
     },
-    busy: dialogOpen,
+    busy: function(){ return dialogOpen() || !!(window.MarketUI && window.MarketUI.isTravelling()); },
     openNpc: openNpc,
     teleport: function(spawn, facing){
-      if(state.tour || !ENGINE) return false;
-      state.near = null; state.spawn = spawn; state.spawnFacing = facing; state.view = "plaza"; render();
+      if(state.tour || !ENGINE || (window.MarketUI && window.MarketUI.isTravelling())) return false;
+      state.near = null; state.spawn = spawn; state.spawnFacing = facing; state.view = ["market", "bank", "clothing"].indexOf(ENGINE.mode()) >= 0 ? "market" : "plaza"; render();
       return true;
     },
     openMissionRoom: function(){ if(ENGINE) state.spawn = ENGINE.places().mission; loadMissionRoom(); },
@@ -5926,6 +6528,15 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     logout: logout,
     toast: showToast,
     onKeysChanged: updateHud
+  });
+
+  if(window.MarketUI) window.MarketUI.init({
+    engine: function(){ return ENGINE; },
+    blocked: dialogOpen,
+    tutorial: function(){ return !!state.tour || (state.view === "room" && state.room && state.room.phase !== "free"); },
+    arrive: function(mode, spawn){ state.near = null; state.spawn = spawn; state.view = mode === "market" ? "market" : "plaza"; render(); },
+    refresh: updateHud,
+    toast: showToast
   });
 
   // 테스트·디버그용 (콘솔에서 __sw().engine 등으로 확인)
@@ -6030,6 +6641,8 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
     });
   }
   function logout(){
+    if(window.MarketUI) window.MarketUI.reset();
+    state.worldReturn = null; state.spawn = null; state.spawnFacing = null;
     if(state.tour && state.tour.walking) clearInterval(state.tour.walking); state.tour = null;
     if(window.WorldUI) window.WorldUI.reset();
     hideWorld();
@@ -6173,6 +6786,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
 
   // ---------------- mission room ----------------
   function loadMissionRoom(){
+    rememberWorldReturn();
     state.view = "mission";
     render();
     Promise.all([
@@ -6225,7 +6839,8 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       '</div>'
     ));
     bindTopbar();
-    el("#btn-back").addEventListener("click", function(){ state.view = "plaza"; render(); });
+    el("#btn-back").textContent = state.worldReturn ? "← 시장으로 돌아가기" : "← 광장으로 돌아가기";
+    el("#btn-back").addEventListener("click", returnFromRoomScreen);
     Array.prototype.forEach.call(app.querySelectorAll("[data-join]"), function(btn){
       btn.addEventListener("click", function(){
         var id = Number(btn.getAttribute("data-join"));
@@ -6247,6 +6862,7 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
 
   // ---------------- club room ----------------
   function loadClubRoom(){
+    rememberWorldReturn();
     state.view = "club";
     render();
     Promise.all([
@@ -6297,7 +6913,8 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
       '</div>'
     ));
     bindTopbar();
-    el("#btn-back").addEventListener("click", function(){ state.view = "plaza"; render(); });
+    el("#btn-back").textContent = state.worldReturn ? "← 시장으로 돌아가기" : "← 광장으로 돌아가기";
+    el("#btn-back").addEventListener("click", returnFromRoomScreen);
     el("#btn-toggle-form").addEventListener("click", function(){ state.showClubForm = !state.showClubForm; renderClubRoom(); });
     var form = el("#club-form");
     if(form){

@@ -1,0 +1,70 @@
+/* Bus transition and market service screens. */
+#transit-fade {
+  position: fixed; inset: 0; z-index: 30; background: #080B0A;
+  opacity: 0; pointer-events: none; transition: opacity .32s ease;
+}
+#transit-fade.is-black { opacity: 1; }
+#transit-card {
+  position: fixed; left: 50%; bottom: max(30px, env(safe-area-inset-bottom));
+  transform: translateX(-50%); z-index: 31; width: min(430px, calc(100vw - 28px));
+  box-sizing: border-box; padding: 20px 22px; background: #FFF9EC;
+  border: 1px solid #E3D6BA; border-radius: 22px; box-shadow: 0 16px 54px #243D3633;
+  color: #36584B; font-family: 'Gowun Dodum', sans-serif;
+}
+.transit-route { display: block; font-size: 11px; letter-spacing: .14em; color: #8B8066; margin-bottom: 10px; }
+.transit-main { display: flex; align-items: center; gap: 16px; }
+.transit-icon { display: grid; place-items: center; width: 52px; height: 52px; background: #F3E3BE; border-radius: 15px; font-size: 29px; flex-shrink: 0; }
+.transit-main strong { font-size: 18px; }
+.transit-main p { font-size: 12px; line-height: 1.65; margin: 6px 0 0; color: #7B826F; }
+#transit-skip { display: block; margin: 13px 0 0 auto; padding: 8px 11px; border: 0; border-radius: 9px; background: #EAF0DF; color: #51725B; font: inherit; font-size: 11px; cursor: pointer; }
+body.in-transit .hud-title, body.in-transit #hud-act, body.in-transit #hud-help,
+body.in-transit #phone-launch, body.in-transit #inventory-launch, body.in-transit #notification,
+body.in-transit #fishing-status, body.in-transit #hud-view, body.in-transit #hud-minimap { visibility: hidden; }
+.market-service-backdrop { z-index: 25; background: #263D3866; align-items: center; padding: 22px; box-sizing: border-box; }
+.market-service {
+  width: min(710px, 100%); max-height: calc(100dvh - 44px); overflow: auto;
+  box-sizing: border-box; border-radius: 26px; background: #FFF9EE; color: #36574A;
+  box-shadow: 0 18px 60px #25453940; font-family: 'Gowun Dodum', sans-serif;
+}
+.market-service header { display: flex; align-items: flex-start; gap: 20px; padding: 28px 30px 22px; border-bottom: 1px solid #E3DFCF; }
+.market-eyebrow { font-size: 10px; letter-spacing: .2em; color: #9B8B70; }
+.market-service h2 { margin: 9px 0 7px; font: 700 28px 'Gowun Batang', serif; }
+.market-service header p { margin: 0; color: #77836F; font-size: 13px; line-height: 1.7; }
+#market-service-close { margin-left: auto; border: 0; background: #E9EEDE; color: #456B54; border-radius: 50%; width: 38px; height: 38px; font-size: 28px; flex-shrink: 0; cursor: pointer; }
+.market-bank-welcome { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 28px; background: #EEF2E5; margin: 24px 30px; border-radius: 20px; }
+.market-bank-welcome > span { font-size: 45px; }
+.market-bank-welcome strong { font-size: 19px; }
+.market-bank-welcome p { max-width: 390px; margin: 0; font-size: 13px; line-height: 1.7; color: #73836F; }
+.market-bank-services { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 30px 25px; }
+.market-bank-services article { padding: 20px; border: 1px solid #DDDCCA; border-radius: 16px; }
+.market-bank-services article > span:first-child { font-size: 28px; }
+.market-bank-services h3 { font-size: 17px; margin: 12px 0 7px; }
+.market-bank-services p { font-size: 12px; line-height: 1.7; color: #7B8573; }
+.market-soon { display: inline-block; padding: 5px 10px; border-radius: 7px; background: #E9E9D9; font-size: 11px; color: #898876; }
+.market-collection { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 26px 30px 10px; }
+.market-look { display: flex; flex-direction: column; align-items: center; gap: 10px; border: 1px solid #E3DBCB; border-radius: 17px; padding: 15px 7px; background: #F7F1E5; }
+.market-look svg { width: 91px; height: 96px; }
+.market-look strong { font-size: 13px; }
+.market-look span { font-size: 10px; color: #978B75; }
+.market-collection-note { padding: 0 30px; font-size: 12px; line-height: 1.7; color: #8A816E; }
+.market-service footer { display: flex; align-items: center; gap: 16px; padding: 20px 30px; border-top: 1px solid #E3DFCF; }
+.market-primary { background: #426F58; color: #FFF7E7; border: 0; border-radius: 12px; padding: 12px 21px; font: inherit; cursor: pointer; }
+.market-service footer span { margin-left: auto; font-size: 11px; color: #8B8F7C; }
+@media (max-width: 600px) {
+  #transit-card { padding: 17px; bottom: max(20px, env(safe-area-inset-bottom)); }
+  .transit-main strong { font-size: 16px; }
+  .market-service-backdrop { padding: 12px; }
+  .market-service { max-height: calc(100dvh - 24px); border-radius: 22px; }
+  .market-service header { padding: 22px 18px 18px; gap: 10px; }
+  .market-service h2 { font-size: 23px; }
+  .market-bank-welcome { margin: 18px; padding: 20px 14px; }
+  .market-bank-services { padding: 0 18px 18px; gap: 10px; }
+  .market-bank-services article { padding: 15px 11px; }
+  .market-collection { padding: 18px 18px 8px; gap: 9px; }
+  .market-look { padding: 11px 5px; }
+  .market-look svg { width: 67px; height: 76px; }
+  .market-look strong { font-size: 11px; }
+  .market-collection-note { padding: 0 18px; }
+  .market-service footer { padding: 17px 18px; }
+}
+@media (prefers-reduced-motion: reduce) { #transit-fade { transition: none; } }

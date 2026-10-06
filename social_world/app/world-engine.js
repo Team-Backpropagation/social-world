@@ -949,6 +949,35 @@
     let player = null, playerAvatarKey = '', guide = null, guideState = null, marker = null, zzz = null, knock = null, waitSpr = null;
     const hooks = { near: null, action: null, tick: null, view: null, blocked: () => false };
     let mode = 'village', running = false, nearTarget = null;
+    let marketWorld = null, villageScenery = null;
+    function isIndoor() { return mode === 'room' || mode === 'bank' || mode === 'clothing'; }
+    function indoorFocus() {
+      const p = mode === 'room' ? { x: RX, z: RZ } : window.MarketWorldData.rooms[mode];
+      return new THREE.Vector3(p.x + (player.position.x - p.x) * .35, 0, p.z + (player.position.z - p.z) * .35 + .6);
+    }
+    function ensureMarket() {
+      if (marketWorld || !window.createMarketWorld) return;
+      // Group the existing scenery after build() so its order and rnd() sequence stay intact.
+      villageScenery = new THREE.Group(); villageScenery.name = 'original-village-scenery';
+      const originals = scene.children.filter(o => !o.isLight && o !== sky && o !== skyDeco && o !== sun.target);
+      scene.add(villageScenery); originals.forEach(o => villageScenery.add(o));
+      // Clear only the new bus road/platform footprint, keeping all placement seeds intact.
+      villageScenery.traverse(o => {
+        if (!o.isInstancedMesh || !o.geometry.attributes.position) return;
+        const matrix = new THREE.Matrix4();
+        for (let i = 0; i < o.count; i++) {
+          o.getMatrixAt(i, matrix);
+          const x = matrix.elements[12], z = matrix.elements[14];
+          if (x >= 32 && x <= 58 && z >= 17.4 && z <= 25.2) {
+            matrix.scale(new THREE.Vector3(0, 0, 0)); o.setMatrixAt(i, matrix);
+          }
+        }
+        o.instanceMatrix.needsUpdate = true;
+      });
+      marketWorld = window.createMarketWorld({ THREE, scene, mesh, M, rbox, shade, textSprite, canvasTex,
+        colliders, doors, places, engine: api, player: () => player, animatePerson, reduceMotion });
+      grid = null;
+    }
     const keys = new Set(); let tapTarget = null, autoPath = null;
 
     function setAvatar(av) {
@@ -979,7 +1008,7 @@
     let grid = null;
     function buildGrid() {
       const cs = 0.5, x0 = -54, z0 = -19, nx = 217, nz = 149, blocked = new Uint8Array(nx * nz), pad = 0.5;
-      const cols = colliders.filter(c => (c.seg ? c.seg[1] < 60 : c.z < 60));
+      const cols = colliders.filter(c => (!c.area || c.area === 'village') && (c.seg ? c.seg[1] < 60 : c.z < 60));
       for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
         const x = x0 + i * cs, z = z0 + j * cs;
         for (const c of cols) {
@@ -1036,7 +1065,7 @@
       return out;
     }
     function route(from, to) {
-      if (mode === 'room' || from.z > 40) return [{ x: to.x, z: to.z }];
+      if (mode !== 'village' || from.z > 40) return [{ x: to.x, z: to.z }];
       return astar(from, to) || route0(from, to);
     }
     function route0(from, to) {
@@ -1076,9 +1105,9 @@
     const VIEW0R = { yaw: 0, pitch: Math.atan2(8.6, 9.2), dist: Math.hypot(8.6, 9.2) };
     const view = { yaw: 0, pitch: VIEW0.pitch, zoom: 1 }, viewT = { yaw: 0, pitch: VIEW0.pitch, zoom: 1 };
     const PITCH_MIN = 0.36, PITCH_MAX = 1.12, ROOM_YAW = 0.6;
-    function base() { return mode === 'room' ? VIEW0R : VIEW0; }
+    function base() { return isIndoor() ? VIEW0R : VIEW0; }
     function clampView(v) {
-      if (mode === 'room') v.yaw = Math.max(-ROOM_YAW, Math.min(ROOM_YAW, v.yaw));   // 방은 벽이 가리지 않는 만큼만
+      if (isIndoor()) v.yaw = Math.max(-ROOM_YAW, Math.min(ROOM_YAW, v.yaw));   // 방은 벽이 가리지 않는 만큼만
       v.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, v.pitch)); v.zoom = Math.max(0.6, Math.min(1.35, v.zoom));
     }
     function viewChanged() { const b = base(); return Math.abs(viewT.yaw) > 0.03 || Math.abs(viewT.pitch - b.pitch) > 0.03 || Math.abs(viewT.zoom - 1) > 0.03; }
@@ -1128,7 +1157,7 @@
     const RB = { x0: RX - 4.8, x1: RX + 4.8, z0: RZ - 3.8, z1: RZ + 3.9 };
     function collide(pos, r) {
       for (const c of colliders) {
-        if (c.off) continue;
+        if (c.off || (c.area && c.area !== mode)) continue;
         if (c.seg) {
           const [ax, az, bx, bz] = c.seg, vx = bx - ax, vz = bz - az, t = Math.max(0, Math.min(1, ((pos.x - ax) * vx + (pos.z - az) * vz) / (vx * vx + vz * vz)));
           const qx = ax + vx * t, qz = az + vz * t, dx = pos.x - qx, dz = pos.z - qz, d = Math.hypot(dx, dz), min = c.r + r;
@@ -1138,7 +1167,7 @@
         const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), min = c.r + r;
         if (d < min && d > 1e-4) { pos.x = c.x + dx / d * min; pos.z = c.z + dz / d * min; }
       }
-      const B = mode === 'room' ? RB : VB;
+      const B = mode === 'room' ? RB : marketWorld?.roomBounds(mode) || (mode === 'market' ? window.MarketWorldData.bounds : VB);
       pos.x = Math.min(B.x1, Math.max(B.x0, pos.x)); pos.z = Math.min(B.z1, Math.max(B.z0, pos.z));
     }
     function turnToward(obj, dx, dz, dt, rate = 10) { let d = Math.atan2(dx, dz) - obj.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); obj.rotation.y += d * Math.min(1, dt * rate); }
@@ -1151,7 +1180,7 @@
       { n: '동아리센터', x: 15, z: -11, w: 7, d: 5.5, c: '#A98BF0' }, { n: '게임방', x: 17.5, z: -1.5, r: 4.4, c: '#FFB45C' },
       { n: '카페', x: -11.8, z: -10.6, w: 6, d: 5, c: '#FF8FB3' }, { n: '내 집', x: 22, z: 12, w: 5.6, d: 5, c: '#6FB6F2' }
     ];
-    const MAP_AREA = [{ n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
+    const MAP_AREA = [{ n: '시장행 버스', x: 39, z: 24.2 }, { n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
     const NPC_DOT = { psych: '#B56CC0', policy: '#3F7FD6', job: '#2F9E8F', chief: '#E0A020', coco: '#2E6B4F' };
     let mm = null;
     function mmBase() {
@@ -1172,7 +1201,9 @@
       return c;
     }
     function drawMinimap() {
-      if (!mm || !player || mode !== 'village') return;
+      if (!mm || !player) return;
+      if (mode === 'market' && marketWorld) { marketWorld.drawMinimap(mm, player, view.yaw); return; }
+      if (mode !== 'village') return;
       if (!mm.base) mm.base = mmBase();
       { const cw = mm.canvas.clientWidth; if (cw && cw !== mm.size) attachMinimap(mm.canvas); }
       const dpr = mm.dpr, Sz = mm.size, R = Sz / 2, k = R / MAP_SPAN, g = mm.ctx, yaw = window.__SW_NORTH_FIXED ? 0 : view.yaw, px = player.position.x, pz = player.position.z;
@@ -1225,10 +1256,11 @@
     }
     const clock = new THREE.Clock(), tmpV = new THREE.Vector3();
     function nearest() {
+      if (marketWorld?.info()) return null;
       let best = null, bd = 99;
       const px = player.position.x, pz = player.position.z;
       if (mode === 'village') for (const n of npcObjs) { if (!n.visible) continue; const d = Math.hypot(px - n.x, pz - n.z); if (d < 3.0 && d < bd) { bd = d; best = { type: 'npc', id: n.id }; } }
-      for (const d0 of doors) { if (d0.area !== mode) continue; const d = Math.hypot(px - d0.x, pz - d0.z); if (d < d0.r && d < bd) { bd = d; best = { type: 'door', id: d0.id, label: d0.label }; } }
+      for (const d0 of doors) { if (d0.area !== mode) continue; const d = Math.hypot(px - d0.x, pz - d0.z); if (d < d0.r && d < bd) { bd = d; best = { type: d0.type || 'door', id: d0.id, label: d0.label }; } }
       return hooks.target ? hooks.target(best) : best;
     }
     function tick() {
@@ -1323,8 +1355,9 @@
       if (JSON.stringify(nt) !== JSON.stringify(nearTarget)) { nearTarget = nt; if (hooks.near) hooks.near(nt); }
       if (hooks.tick) hooks.tick(dt);
       updateFishingModels(t);
+      if (marketWorld) marketWorld.tick(dt, t);
 
-      if (mode === 'room') camFocus.lerp(new THREE.Vector3(RX + (player.position.x - RX) * 0.35, 0, RZ + (player.position.z - RZ) * 0.35 + 0.6), reduceMotion ? 1 : Math.min(1, dt * 3));
+      if (isIndoor()) camFocus.lerp(indoorFocus(), reduceMotion ? 1 : Math.min(1, dt * 3));
       else camFocus.lerp(player.position, reduceMotion ? 1 : Math.min(1, dt * 4));
       U.center.value.set(camFocus.x, 0, camFocus.z);
       petals.position.set(camFocus.x, -1, camFocus.z - 4);
@@ -1332,16 +1365,16 @@
         let dy = viewT.yaw - view.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
         view.yaw += dy * k; view.pitch += (viewT.pitch - view.pitch) * k; view.zoom += (viewT.zoom - view.zoom) * k; }
       U.yaw.value = view.yaw;
-      { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = mode === 'room' ? 1.6 : 3;
+      { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = isIndoor() ? 1.6 : 3;
         camera.position.set(camFocus.x + sy * Math.cos(view.pitch) * D, camFocus.y + Math.sin(view.pitch) * D, camFocus.z + cy * Math.cos(view.pitch) * D);
         camera.lookAt(camFocus.x - sy * ah, 0.9, camFocus.z - cy * ah); }
-      if (skyDeco) { skyDeco.visible = mode !== 'room'; skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
+      if (skyDeco) { skyDeco.visible = !isIndoor(); skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
       sun.position.copy(camFocus).addScaledVector(SUN_DIR, 50); sun.target.position.copy(camFocus); sun.target.updateMatrixWorld();
       if (mm && (mm.frame++ % 2 === 0)) drawMinimap();
       sky.position.copy(camera.position);
       tmpV.set(player.position.x, 0.9 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
       finalMat.uniforms.focusY.value += ((tmpV.y * 0.5 + 0.5) - finalMat.uniforms.focusY.value) * Math.min(1, dt * 5);
-      finalMat.uniforms.band.value = mode === 'room' ? 0.35 : 0.2;
+      finalMat.uniforms.band.value = isIndoor() ? 0.35 : 0.2;
       finalMat.uniforms.time.value = t;
       renderFrame();
       requestAnimationFrame(tick);
@@ -1397,7 +1430,7 @@
     }
     function updateFishingModels(t){
       ensureFishingModels();
-      if(!rodModel)return;rodModel.visible=rodEquipped;
+      if(!rodModel)return;rodModel.visible=rodEquipped && !marketWorld?.info();
       if(!fishingVisual){floatModel.visible=false;fishingLine.visible=false;fishingRipple.visible=false;return;}
       const {point,phase,progress}=fishingVisual;
       const dx=point.x-player.position.x,dz=point.z-player.position.z;
@@ -1420,17 +1453,26 @@
       setFishingVisual(value){ensureFishingModels();fishingVisual=value;if(!value)updateFishingModels(0);},
       fishingVisualInfo:()=>({equipped:rodEquipped,rodAttached:!!rodModel&&rodModel.parent===player,phase:fishingVisual?.phase||null,floatVisible:!!floatModel?.visible,floatPosition:floatModel?{x:floatModel.position.x,y:floatModel.position.y,z:floatModel.position.z}:null}),
       places: () => places,
+      startBusRide(destination, callbacks) { return marketWorld ? marketWorld.start(destination, callbacks) : false; },
+      finishBusRide() { marketWorld?.finish(); },
+      cancelBusRide() { marketWorld?.cancel(); },
+      busRideInfo: () => marketWorld?.info() || null,
+      marketInfo: () => ({ ...marketWorld?.debug(), villageVisible: villageScenery?.visible }),
       enter(m, opt = {}) {
         hooks.teleport?.();fishingVisual=null;
         build();
+        ensureMarket();
         U.k.value = BEND_K;
         if (!zzz) { zzz = textSprite('Z z z', { size: 70, color: '#5B7DB1', stroke: '#5B7DB1' }); zzz.visible = false; scene.add(zzz); }
         if (!knock) { knock = textSprite('똑똑!', { stroke: '#B56CC0' }); knock.visible = false; scene.add(knock); }
         if (!waitSpr) { waitSpr = textSprite('이쪽이야!', { stroke: '#B56CC0' }); waitSpr.visible = false; scene.add(waitSpr); }
         setAvatar(opt.avatar);
-        mode = m; keys.clear(); tapTarget = null; autoPath = null;
-        U.k.value = mode === 'room' ? 0 : BEND_K;   // 실내는 둥근 지평선을 끈다(바닥이 꺼져 보이지 않게)
-        if (mode === 'room' || opt.resetView) resetView(true); else { clampView(viewT); notifyView(); }
+        mode = m; marketWorld?.enter(mode);
+        if (villageScenery) villageScenery.visible = mode === 'village' || mode === 'room';
+        keys.clear(); tapTarget = null; autoPath = null;
+        U.k.value = isIndoor() ? 0 : BEND_K;   // 실내는 둥근 지평선을 끈다(바닥이 꺼져 보이지 않게)
+        if (isIndoor() || opt.resetView) resetView(true); else { clampView(viewT); notifyView(); }
+        if (mode === 'market' && opt.resetView) { view.zoom = viewT.zoom = 1.25; view.pitch = viewT.pitch = .72; notifyView(); }
         const sp = opt.spawn || (opt.spawnPlace && places[opt.spawnPlace]);
         if (sp) {
           player.position.set(sp.x, 0, sp.z);
@@ -1445,12 +1487,13 @@
         player.rotation.y = opt.facing != null ? opt.facing : Math.atan2(-player.position.x, -player.position.z);
         setSeated(player, !!opt.seated); player.userData.sleeping = !!opt.sleeping;
         if (opt.seated) player.rotation.y = Math.PI / 2;
-        camFocus.copy(mode === 'room' ? new THREE.Vector3(RX + (player.position.x - RX) * 0.35, 0, RZ + (player.position.z - RZ) * 0.35 + 0.6) : player.position);
+        camFocus.copy(isIndoor() ? indoorFocus() : player.position);
+        if (mm) { mm.base = null; mm.frame = 0; }
         nearTarget = undefined;
         document.body.classList.add('in-world');
         if (!running) { running = true; setGfx(gfxHigh); clock.getDelta(); requestAnimationFrame(tick); }
       },
-      leave() { hooks.teleport?.();fishingVisual=null;updateFishingModels(0); running = false; keys.clear(); document.body.classList.remove('in-world'); },
+      leave() { marketWorld?.cancel(); hooks.teleport?.();fishingVisual=null;updateFishingModels(0); running = false; keys.clear(); document.body.classList.remove('in-world'); },
       isRunning: () => running,
       mode: () => mode,
       wake() { player.userData.sleeping = false; setSeated(player, false); player.position.x += 0.6; player.rotation.y = Math.PI / 4; },
@@ -1474,7 +1517,7 @@
       setQuality(high) { setGfx(!!high); return gfxHigh; },
       setBindings(value) { bindings = { ...bindings, ...value }; keys.clear(); },
       pauseInput() { keys.clear(); tapTarget = null; autoPath = null; drag.id = null; },
-      mapBase: () => mmBase(),
+      mapBase: () => mode === 'market' || mode === 'bank' || mode === 'clothing' ? marketWorld.mapBase() : mmBase(),
       npcPositions: () => npcObjs.map(n => ({ id:n.id, x:n.x, z:n.z })),
       attachMinimap,
       minimapInfo: () => mm ? { size: mm.size, span: MAP_SPAN } : null,

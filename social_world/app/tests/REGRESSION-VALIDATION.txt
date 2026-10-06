@@ -22,7 +22,7 @@ PASS  [desktop] 루미 대화창 열림
 PASS  [desktop] 위기 선택지 → 109·1577-0199 안내
 PASS  [desktop] report_crisis 1회
 PASS  [desktop] npc_sessions — 원문 없이 신호 수치만
-PASS  [desktop] 지도 — 장소 12곳
+PASS  [desktop] 지도 — 장소 13곳(버스 정류장 포함)
 PASS  [desktop] 지도에서 공원 → 공원 앞으로 이동
 PASS  [desktop] M으로 지도 열고 닫기
 PASS  [desktop] 다른 동작에 쓰는 키는 거절
@@ -62,7 +62,7 @@ PASS  [mobile] 루미 대화창 열림
 PASS  [mobile] 위기 선택지 → 109·1577-0199 안내
 PASS  [mobile] report_crisis 1회
 PASS  [mobile] npc_sessions — 원문 없이 신호 수치만
-PASS  [mobile] 지도 — 장소 12곳
+PASS  [mobile] 지도 — 장소 13곳(버스 정류장 포함)
 PASS  [mobile] 지도에서 공원 → 공원 앞으로 이동
 PASS  [mobile] M으로 지도 열고 닫기
 PASS  [mobile] 다른 동작에 쓰는 키는 거절

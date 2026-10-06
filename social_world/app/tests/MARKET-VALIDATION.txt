@@ -1,0 +1,124 @@
+PASS 1280px /app/ bus stop and market destinations built
+PASS 1280px /app/ village map includes bus stop
+PASS 1280px /app/ stop interaction uses bus wording
+PASS 1280px /app/ bus status fits viewport
+PASS 1280px /app/ travelling blocks movement, map, inventory and repeated interaction
+PASS 1280px /app/ one bus presentation and no phone during travel
+PASS 1280px /app/ boarding hides avatar and transition fades to black
+PASS 1280px /app/ all seven bus phases execute in order
+PASS 1280px /app/ market is separate and avatar alights
+PASS 1280px /app/ arrival lands beside market stop
+PASS 1280px /app/ inventory survives travel unchanged
+PASS 1280px /app/ market map shows its four destinations
+PASS 1280px /app/ bank entrance opens a walkable interior
+PASS 1280px /app/ bank service screen fits viewport
+PASS 1280px /app/ bank displays preparation screens without fake balances
+PASS 1280px /app/ bank service blocks other panels
+PASS 1280px /app/ service keyboard focus stays inside dialog
+PASS 1280px /app/ bank service closes with Escape
+PASS 1280px /app/ bank exit returns to market square
+PASS 1280px /app/ clothing interior opens six-look collection screen
+PASS 1280px /app/ market and store visits produce no DB writes
+PASS 1280px /app/ mission screen keeps market return destination
+PASS 1280px /app/ mission screen returns to the market
+PASS 1280px /app/ club screen keeps market return destination
+PASS 1280px /app/ club screen returns to the market
+PASS 1280px /app/ return bus restores original village
+PASS 1280px /app/ return preserves avatar
+PASS 1280px /app/ skip cleans blackout and restores controls
+PASS 1280px /app/ leaving world cancels travel without stranded blackout
+PASS 1280px /app/ tutorial blocks bus travel
+PASS 1280px /app/ no browser errors: 
+PASS 390px /app/ bus stop and market destinations built
+PASS 390px /app/ village map includes bus stop
+PASS 390px /app/ stop interaction uses bus wording
+PASS 390px /app/ bus status fits viewport
+PASS 390px /app/ travelling blocks movement, map, inventory and repeated interaction
+PASS 390px /app/ one bus presentation and no phone during travel
+PASS 390px /app/ boarding hides avatar and transition fades to black
+PASS 390px /app/ all seven bus phases execute in order
+PASS 390px /app/ market is separate and avatar alights
+PASS 390px /app/ arrival lands beside market stop
+PASS 390px /app/ inventory survives travel unchanged
+PASS 390px /app/ market map shows its four destinations
+PASS 390px /app/ bank entrance opens a walkable interior
+PASS 390px /app/ bank service screen fits viewport
+PASS 390px /app/ bank displays preparation screens without fake balances
+PASS 390px /app/ bank service blocks other panels
+PASS 390px /app/ service keyboard focus stays inside dialog
+PASS 390px /app/ bank service closes with Escape
+PASS 390px /app/ bank exit returns to market square
+PASS 390px /app/ clothing interior opens six-look collection screen
+PASS 390px /app/ market and store visits produce no DB writes
+PASS 390px /app/ mission screen keeps market return destination
+PASS 390px /app/ mission screen returns to the market
+PASS 390px /app/ club screen keeps market return destination
+PASS 390px /app/ club screen returns to the market
+PASS 390px /app/ return bus restores original village
+PASS 390px /app/ return preserves avatar
+PASS 390px /app/ skip cleans blackout and restores controls
+PASS 390px /app/ leaving world cancels travel without stranded blackout
+PASS 390px /app/ tutorial blocks bus travel
+PASS 390px /app/ no browser errors: 
+PASS 1280px /socialworld-demo.html bus stop and market destinations built
+PASS 1280px /socialworld-demo.html village map includes bus stop
+PASS 1280px /socialworld-demo.html stop interaction uses bus wording
+PASS 1280px /socialworld-demo.html bus status fits viewport
+PASS 1280px /socialworld-demo.html travelling blocks movement, map, inventory and repeated interaction
+PASS 1280px /socialworld-demo.html one bus presentation and no phone during travel
+PASS 1280px /socialworld-demo.html boarding hides avatar and transition fades to black
+PASS 1280px /socialworld-demo.html all seven bus phases execute in order
+PASS 1280px /socialworld-demo.html market is separate and avatar alights
+PASS 1280px /socialworld-demo.html arrival lands beside market stop
+PASS 1280px /socialworld-demo.html inventory survives travel unchanged
+PASS 1280px /socialworld-demo.html market map shows its four destinations
+PASS 1280px /socialworld-demo.html bank entrance opens a walkable interior
+PASS 1280px /socialworld-demo.html bank service screen fits viewport
+PASS 1280px /socialworld-demo.html bank displays preparation screens without fake balances
+PASS 1280px /socialworld-demo.html bank service blocks other panels
+PASS 1280px /socialworld-demo.html service keyboard focus stays inside dialog
+PASS 1280px /socialworld-demo.html bank service closes with Escape
+PASS 1280px /socialworld-demo.html bank exit returns to market square
+PASS 1280px /socialworld-demo.html clothing interior opens six-look collection screen
+PASS 1280px /socialworld-demo.html market and store visits produce no DB writes
+PASS 1280px /socialworld-demo.html mission screen keeps market return destination
+PASS 1280px /socialworld-demo.html mission screen returns to the market
+PASS 1280px /socialworld-demo.html club screen keeps market return destination
+PASS 1280px /socialworld-demo.html club screen returns to the market
+PASS 1280px /socialworld-demo.html return bus restores original village
+PASS 1280px /socialworld-demo.html return preserves avatar
+PASS 1280px /socialworld-demo.html skip cleans blackout and restores controls
+PASS 1280px /socialworld-demo.html leaving world cancels travel without stranded blackout
+PASS 1280px /socialworld-demo.html tutorial blocks bus travel
+PASS 1280px /socialworld-demo.html no browser errors: 
+PASS 390px /socialworld-demo.html reduced-motion bus stop and market destinations built
+PASS 390px /socialworld-demo.html reduced-motion village map includes bus stop
+PASS 390px /socialworld-demo.html reduced-motion stop interaction uses bus wording
+PASS 390px /socialworld-demo.html reduced-motion bus status fits viewport
+PASS 390px /socialworld-demo.html reduced-motion travelling blocks movement, map, inventory and repeated interaction
+PASS 390px /socialworld-demo.html reduced-motion one bus presentation and no phone during travel
+PASS 390px /socialworld-demo.html reduced-motion boarding hides avatar and transition fades to black
+PASS 390px /socialworld-demo.html reduced-motion all seven bus phases execute in order
+PASS 390px /socialworld-demo.html reduced-motion market is separate and avatar alights
+PASS 390px /socialworld-demo.html reduced-motion arrival lands beside market stop
+PASS 390px /socialworld-demo.html reduced-motion inventory survives travel unchanged
+PASS 390px /socialworld-demo.html reduced-motion market map shows its four destinations
+PASS 390px /socialworld-demo.html reduced-motion bank entrance opens a walkable interior
+PASS 390px /socialworld-demo.html reduced-motion bank service screen fits viewport
+PASS 390px /socialworld-demo.html reduced-motion bank displays preparation screens without fake balances
+PASS 390px /socialworld-demo.html reduced-motion bank service blocks other panels
+PASS 390px /socialworld-demo.html reduced-motion service keyboard focus stays inside dialog
+PASS 390px /socialworld-demo.html reduced-motion bank service closes with Escape
+PASS 390px /socialworld-demo.html reduced-motion bank exit returns to market square
+PASS 390px /socialworld-demo.html reduced-motion clothing interior opens six-look collection screen
+PASS 390px /socialworld-demo.html reduced-motion market and store visits produce no DB writes
+PASS 390px /socialworld-demo.html reduced-motion mission screen keeps market return destination
+PASS 390px /socialworld-demo.html reduced-motion mission screen returns to the market
+PASS 390px /socialworld-demo.html reduced-motion club screen keeps market return destination
+PASS 390px /socialworld-demo.html reduced-motion club screen returns to the market
+PASS 390px /socialworld-demo.html reduced-motion return bus restores original village
+PASS 390px /socialworld-demo.html reduced-motion return preserves avatar
+PASS 390px /socialworld-demo.html reduced-motion skip cleans blackout and restores controls
+PASS 390px /socialworld-demo.html reduced-motion leaving world cancels travel without stranded blackout
+PASS 390px /socialworld-demo.html reduced-motion tutorial blocks bus travel
+PASS 390px /socialworld-demo.html reduced-motion no browser errors: 

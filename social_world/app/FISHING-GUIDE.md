@@ -76,7 +76,7 @@ Sound.play('fishingBite');
 
 `tests/fishing_test.cjs`는 Node와 Playwright로 실행하며, Supabase를 가짜 클라이언트로 대체합니다. 실제 팀 DB에 쓰지 않습니다. PC·모바일의 모듈 실행과 PC 번들 실행에서 입질 MP3 재생·중복 방지, 개별 크기, 계정별 저장, 패널 및 순간이동 시 취소, 기존 미션·동아리·NPC 흐름을 확인합니다.
 
-기존 `tests/ui_test.py`, 코코·이장 테스트는 그대로 보존했습니다. Python 테스트에는 Python `playwright` 패키지와 Chromium이, 낚시 테스트에는 Node `playwright` 패키지와 Chromium이 필요합니다.
+코코·이장 테스트는 그대로 보존했습니다. 기존 `tests/ui_test.py`는 시장행 버스 정류장 추가에 맞춰 지도 장소 수를 13개로 갱신했습니다. 낚시 테스트의 찌 잠김 확인은 고정 대기 대신 실제 잠김 상태를 기다립니다. 낚시 시간·확률·저장 방식은 변경하지 않았습니다. Python 테스트에는 Python `playwright` 패키지와 Chromium이, 낚시 테스트에는 Node `playwright` 패키지와 Chromium이 필요합니다.
 
 ```bash
 python social_world/app/bundle.py

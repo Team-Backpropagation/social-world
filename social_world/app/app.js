@@ -204,6 +204,7 @@
   function render(){
     var tut = document.getElementById("tut-backdrop"); if(tut && state.view !== "room") tut.remove();
     if(state.view === "plaza") return renderPlaza();
+    if(state.view === "market" || state.view === "market-bank" || state.view === "market-clothing") return renderMarket();
     if(state.view === "room") return renderRoom();
     hideWorld();
     if(state.view === "loading") return renderLoading();
@@ -557,7 +558,7 @@
   // 앱 대화창(NPC·튜토리얼·코코·이장)이 열려 있는가 — 휴대폰(ui.js)이 알림을 미룰 때도 쓴다
   function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop"); }
   // 3D 입력을 멈춰야 하는가 — 대화창 또는 휴대폰·지도(ui.js)가 열려 있을 때
-  function worldBlocked(){ return dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
+  function worldBlocked(){ return !!(window.MarketUI && window.MarketUI.isTravelling()) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
   // 현재 키 이름 — 휴대폰 설정에서 바꿀 수 있다(ui.js). ui.js가 없으면 기본 키
   function key(action){ return window.WorldUI ? window.WorldUI.keyLabel(action) : ({interact:"E",forward:"W",left:"A",back:"S",right:"D",map:"M"})[action]; }
   function hud(id){ return document.getElementById(id); }
@@ -602,26 +603,29 @@
 
   function updateHud(){
     var E = ENGINE; if(!E || !E.isRunning()) return;
-    var inRoom = state.view === "room";
-    hud("hud-sub").textContent = inRoom ? nick() + "의 방" : (state.tour ? "루미와 마을 한 바퀴" : "광장 · " + nick() + "님");
+    var inRoom = state.view === "room", inMarket = state.view.indexOf("market") === 0, marketIndoor = inMarket && state.view !== "market";
+    var travelling = !!(window.MarketUI && window.MarketUI.isTravelling());
+    document.querySelector(".hud-title h1").textContent = inMarket ? "이음 시장" : "이음 마을";
+    hud("hud-sub").textContent = inMarket ? (state.view === "market-bank" ? "이음 은행" : state.view === "market-clothing" ? "오늘의 옷장" : "시장 광장 · " + nick() + "님") : inRoom ? nick() + "의 방" : (state.tour ? "루미와 마을 한 바퀴" : "광장 · " + nick() + "님");
     var busyRoom = inRoom && state.room && state.room.phase !== "free";
     hud("hud-room").hidden = !inRoom || busyRoom;
-    var mmc = hud("hud-minimap"); if(mmc) mmc.hidden = inRoom;
+    var mmc = hud("hud-minimap"); if(mmc) mmc.hidden = inRoom || marketIndoor;
     hud("hud-help").hidden = !!state.tour || busyRoom;
     var move = esc(key("forward") + key("left") + key("back") + key("right")), ek = esc(key("interact"));
     hud("hud-help").innerHTML = inRoom
       ? '<b>' + move + '</b> 이동 · <b>끌기</b> 시점 · 문 앞에서 <b>' + ek + '</b>'
       : '<b>' + move + '</b> 이동 · <b>끌기</b> 시점 · <b>휠</b> 줌 · 가까이서 <b>' + ek + '</b> · <b>' + esc(key("map")) + '</b> 지도';
     var act = hud("hud-act"), t = state.near;
-    if(state.tour || busyRoom || !t){ act.hidden = true; }
+    if(state.tour || busyRoom || travelling || !t){ act.hidden = true; }
     else {
       act.hidden = false;
-      act.textContent = t.type === "fishing" ? t.label + " (" + key("interact") + ")"
+      act.textContent = t.type === "bus" || t.type === "service" || t.type === "exit" ? t.label + " (" + key("interact") + ")"
+        : t.type === "fishing" ? t.label + " (" + key("interact") + ")"
         : t.type === "npc" ? npcName(t.id) + " — 대화하기 (" + key("interact") + ")"
         : t.id === "room-door" ? "🚪 밖으로 나가기 (" + key("interact") + ")" : t.label + " 들어가기 (" + key("interact") + ")";
     }
     // 휴대폰 버튼·코코 알림 시점 (ui.js) — 투어 중이거나 방 튜토리얼 중엔 휴대폰을 숨긴다
-    if(window.WorldUI) window.WorldUI.sync({ inVillage: !inRoom, tour: !!state.tour, roomBusy: busyRoom });
+    if(window.WorldUI) window.WorldUI.sync({ inVillage: E.mode() === "village", tour: !!state.tour, roomBusy: busyRoom || travelling });
     drawTour();
   }
 
@@ -636,13 +640,17 @@
     if(window.WorldUI && window.WorldUI.interactFishing({ hiddenOnly: true })) return;
     if(!t) return;
     if(t.type === "fishing"){ if(window.WorldUI) window.WorldUI.interactFishing(); return; }
+    if(t.type === "bus"){ if(window.MarketUI) window.MarketUI.ride(); return; }
+    if(t.type === "service"){ if(window.MarketUI) window.MarketUI.openService(ENGINE.mode()); return; }
     if(t.type === "npc") openNpc(t.id);
     else doorAction(t.id);
   }
 
   function doorAction(id){
     var P = ENGINE.places();
-    if(id === "mission"){ state.spawn = P.mission; loadMissionRoom(); }
+    if(id === "market-bank" || id === "market-clothing"){ state.view = id; state.near = null; render(); }
+    else if(id === "bank-exit" || id === "clothing-exit"){ state.spawn = P[id === "bank-exit" ? "market-bank" : "market-clothing"]; state.view = "market"; state.near = null; render(); }
+    else if(id === "mission"){ state.spawn = P.mission; loadMissionRoom(); }
     else if(id === "club"){ state.spawn = P.club; loadClubRoom(); }
     else if(id === "home"){ openRoom(false); }
     else if(id === "room-door"){ state.spawn = P.home; state.view = "plaza"; render(); }
@@ -654,6 +662,27 @@
     state.spawn = null; state.spawnFacing = null;
     if(!showWorld("village", { spawn: spawn, facing: facing })) return;
     if(state.activeNpc) renderNpcModal();
+  }
+
+  function renderMarket(){
+    var mode = state.view === "market-bank" ? "bank" : state.view === "market-clothing" ? "clothing" : "market";
+    var spawn = state.spawn, facing = state.spawnFacing;
+    state.spawn = null; state.spawnFacing = null; state.near = null;
+    if(mode !== "market") spawn = ENGINE.places()[mode + "-inside"];
+    else if(!spawn) spawn = window.MarketWorldData.marketStop;
+    showWorld(mode, { spawn: spawn, facing: facing != null ? facing : Math.PI, resetView: true });
+  }
+  function rememberWorldReturn(){
+    if(!ENGINE || !ENGINE.isRunning()) return;
+    var mode = ENGINE.mode();
+    if(["market","bank","clothing"].indexOf(mode) < 0){ state.worldReturn = null; return; }
+    state.worldReturn = { spawn: mode === "market" ? ENGINE.playerPos() : ENGINE.places()[mode === "bank" ? "market-bank" : "market-clothing"] };
+  }
+  function returnFromRoomScreen(){
+    if(state.worldReturn){
+      state.spawn = state.worldReturn.spawn; state.worldReturn = null; state.view = "market";
+    } else state.view = "plaza";
+    render();
   }
 
   // ---------------- ③ 내 방 (3D 실내) ----------------
@@ -874,11 +903,11 @@
       return CONTACT_ORDER.map(function(id){ return NPCS.filter(function(n){ return n.id === id; })[0]; })
         .filter(Boolean).map(function(n){ return { id: n.id, name: n.name, emoji: n.emoji, color: n.color }; });
     },
-    busy: dialogOpen,
+    busy: function(){ return dialogOpen() || !!(window.MarketUI && window.MarketUI.isTravelling()); },
     openNpc: openNpc,
     teleport: function(spawn, facing){
-      if(state.tour || !ENGINE) return false;
-      state.near = null; state.spawn = spawn; state.spawnFacing = facing; state.view = "plaza"; render();
+      if(state.tour || !ENGINE || (window.MarketUI && window.MarketUI.isTravelling())) return false;
+      state.near = null; state.spawn = spawn; state.spawnFacing = facing; state.view = ["market", "bank", "clothing"].indexOf(ENGINE.mode()) >= 0 ? "market" : "plaza"; render();
       return true;
     },
     openMissionRoom: function(){ if(ENGINE) state.spawn = ENGINE.places().mission; loadMissionRoom(); },
@@ -886,6 +915,15 @@
     logout: logout,
     toast: showToast,
     onKeysChanged: updateHud
+  });
+
+  if(window.MarketUI) window.MarketUI.init({
+    engine: function(){ return ENGINE; },
+    blocked: dialogOpen,
+    tutorial: function(){ return !!state.tour || (state.view === "room" && state.room && state.room.phase !== "free"); },
+    arrive: function(mode, spawn){ state.near = null; state.spawn = spawn; state.view = mode === "market" ? "market" : "plaza"; render(); },
+    refresh: updateHud,
+    toast: showToast
   });
 
   // 테스트·디버그용 (콘솔에서 __sw().engine 등으로 확인)
@@ -990,6 +1028,8 @@
     });
   }
   function logout(){
+    if(window.MarketUI) window.MarketUI.reset();
+    state.worldReturn = null; state.spawn = null; state.spawnFacing = null;
     if(state.tour && state.tour.walking) clearInterval(state.tour.walking); state.tour = null;
     if(window.WorldUI) window.WorldUI.reset();
     hideWorld();
@@ -1133,6 +1173,7 @@
 
   // ---------------- mission room ----------------
   function loadMissionRoom(){
+    rememberWorldReturn();
     state.view = "mission";
     render();
     Promise.all([
@@ -1185,7 +1226,8 @@
       '</div>'
     ));
     bindTopbar();
-    el("#btn-back").addEventListener("click", function(){ state.view = "plaza"; render(); });
+    el("#btn-back").textContent = state.worldReturn ? "← 시장으로 돌아가기" : "← 광장으로 돌아가기";
+    el("#btn-back").addEventListener("click", returnFromRoomScreen);
     Array.prototype.forEach.call(app.querySelectorAll("[data-join]"), function(btn){
       btn.addEventListener("click", function(){
         var id = Number(btn.getAttribute("data-join"));
@@ -1207,6 +1249,7 @@
 
   // ---------------- club room ----------------
   function loadClubRoom(){
+    rememberWorldReturn();
     state.view = "club";
     render();
     Promise.all([
@@ -1257,7 +1300,8 @@
       '</div>'
     ));
     bindTopbar();
-    el("#btn-back").addEventListener("click", function(){ state.view = "plaza"; render(); });
+    el("#btn-back").textContent = state.worldReturn ? "← 시장으로 돌아가기" : "← 광장으로 돌아가기";
+    el("#btn-back").addEventListener("click", returnFromRoomScreen);
     el("#btn-toggle-form").addEventListener("click", function(){ state.showClubForm = !state.showClubForm; renderClubRoom(); });
     var form = el("#club-form");
     if(form){
