@@ -60,3 +60,52 @@ PR #13 시연본과 달라진 점: 예시 데이터(동아리 3개·미션 3개�
 
 `app.js`가 `WorldUI.init(host)`로 넘기는 것: `sb`, `userId`, `nickname`, `feedback`, `npcs`, `busy`(대화창 열림), `openNpc`, `teleport`, `openMissionRoom`, `openClubRoom`, `logout`, `toast`, `onKeysChanged`.
 `app.js`가 부르는 것: `attach(engine)`(3D 시작 때), `sync({inVillage, tour, roomBusy})`(HUD 갱신 때), `isOpen()`(입력 막기), `keyLabel(action)`(HUD 키 표시), `reset()`(로그아웃).
+
+## 5. 맵·장소 추가 가이드 (2026-10-06)
+
+고치는 곳은 이 폴더(`app/`)뿐이다. 고친 뒤 `python social_world/app/bundle.py`로 `../socialworld-demo.html`을 다시 만든다.
+
+### 5-1. 작업별로 고칠 파일
+
+| 하고 싶은 것 | 파일 | 위치 |
+|---|---|---|
+| 길·호수·나무·소품 추가 | `world-engine.js` | `build()` 안. 길은 `PATHS`, 산책로 구역은 "넓어진 마을" 블록 |
+| 새 건물·장소 추가 | `world-engine.js` | `build()` 안에 모양 + `places.○○`(서는 자리) + `colliders`(못 지나가는 곳) + `doors.push(...)`(E키로 들어가는 문) |
+| 그 장소에 들어갔을 때 동작 | `app.js` | 문 동작 분기(`id === "club"` 근처), 준비 중 안내 문구 목록(`cafe: "☕ 카페 안은…"`) |
+| 루미 투어에 장소 추가 | `app.js` | 투어 장소 목록(`cafe: { label:"카페", go:… }` 근처) |
+| NPC 추가 | `world-engine.js` + `app.js` | 엔진 `NPC_LOOK`(모습·위치), 앱 `NPCS`(이름·대사) |
+| 미니맵 표시 | `world-engine.js` | `MAP_BUILD`(건물 네모), `MAP_AREA`(구역 이름), `NPC_DOT`(NPC 점 색) |
+| 전체 지도(M) 장소 버튼 | `ui.js` | `MAP_POINTS`(이름표 위치), 엔진 `places()`에 없는 장소는 `EXTRA_SPOTS` |
+| 휴대폰·설정·알림 화면 | `ui.js`, `ui.css` | |
+| 로그인·대화창·HUD 스타일 | `world.css` | |
+| 하늘·빛·날씨 | `world-engine.js` | `build()` 앞 "하늘·빛"과 해·구름 블록, 후처리 `finalMat` |
+
+### 5-2. 맵을 넓힐 때 함께 맞출 값
+
+하나라도 빠지면 못 걷거나 지도가 어긋난다.
+
+| 값 | 파일 | 하는 일 |
+|---|---|---|
+| `VB` | `world-engine.js` | 걸을 수 있는 범위 |
+| `buildGrid()`의 `x0, z0, nx, nz` | `world-engine.js` | 자동 길찾기 격자 — `VB`를 덮어야 한다 |
+| 땅 크기 `G` | `world-engine.js` | 땅이 덮는 범위 |
+| `MAP_B` | `world-engine.js` | 미니맵·전체 지도 그림 범위 |
+| `mapPct`(`+58, /116, +34, /92`) | `ui.js` | 전체 지도 위치 계산 — **`MAP_B`와 숫자가 같아야 한다** |
+| `RX, RZ` | `world-engine.js` | 내 방 실내 위치 — 넓힌 맵과 겹치지 않게 멀리 |
+
+### 5-3. 주의할 점
+
+- **나무·풀 위치는 난수(`rnd()`) 순서로 정해진다.** `build()` 앞부분에 `rnd()`를 쓰는 코드를 새로 넣으면 뒤쪽 나무·풀 위치가 전부 바뀐다. 새 장식은 따로 난수를 만들어 쓴다(예: 해·구름 블록의 `const rnd = (() => { let q = 7177; … })()`).
+- **기존 건물·NPC 좌표는 옮기지 않는 게 좋다.** 튜토리얼 동선, 루미 투어, 코코·이장 위치와 연결돼 있다. 옮겼다면 아래 테스트로 투어·코코·이장이 제자리에 서는지 확인한다.
+- `MAP_POINTS`의 x,z는 지도 위 이름표 위치이고, 실제로 서는 자리는 엔진 `places()`(없으면 `EXTRA_SPOTS`)다.
+
+### 5-4. 확인 순서
+
+```bash
+python social_world/app/bundle.py
+python social_world/app/tests/ui_test.py      # 휴대폰·지도·설정 80항목
+python social_world/coco/tests/demo_test.py
+python social_world/chief/tests/demo_test.py
+```
+
+bundle 없이 바로 보려면 `social_world` 폴더에서 `python -m http.server` → `http://localhost:8000/app/`.
