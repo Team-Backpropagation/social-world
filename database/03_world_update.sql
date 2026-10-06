@@ -172,7 +172,12 @@ create table if not exists public.world_events (
 alter table public.world_events enable row level security;   -- 정책 없음 = 브라우저 차단
 
 -- 시민용 뷰: 공개 컬럼 + "내게 먼저 보여줄지"(정렬용). 근거·대상 코호트는 나가지 않는다
-create or replace view public.world_events_public as
+-- 뷰가 이미 있으면 건드리지 않는다 — 05_chief.sql이 이 뷰를 더 엄격하게(공개 상태만 + joined) 바꾸기 때문.
+-- 05 적용 후 03을 다시 실행해도 05의 뷰가 그대로 남는다(되돌리면 초안 이벤트가 시민에게 보이고 칸이 줄어 오류).
+do $do$ begin
+  if to_regclass('public.world_events_public') is null then
+    execute $v$
+create view public.world_events_public as
   select e.id, e.title, e.description, e.place, e.starts_at, e.ends_at,
          exists (
            select 1 from public.profiles p
@@ -182,7 +187,10 @@ create or replace view public.world_events_public as
              and coalesce(p.gender,'U') = coalesce(e.target_gender, coalesce(p.gender,'U'))
          ) as featured
   from public.world_events e
-  where e.ends_at is null or e.ends_at > now();
+  where e.ends_at is null or e.ends_at > now()
+    $v$;
+  end if;
+end $do$;
 revoke all on public.world_events_public from anon;
 grant select on public.world_events_public to authenticated;
 
@@ -201,9 +209,16 @@ alter table public.event_participation enable row level security;
 drop policy if exists "본인 참여 조회" on public.event_participation;
 create policy "본인 참여 조회" on public.event_participation
   for select to authenticated using (auth.uid() = user_id);
-drop policy if exists "본인 참여 생성" on public.event_participation;
-create policy "본인 참여 생성" on public.event_participation
-  for insert to authenticated with check (auth.uid() = user_id);
+-- 05_chief.sql을 적용한 뒤(world_events.status 칸이 있으면)에는 만들지 않는다 — 그때부터 참여는 join_world_event()로만.
+-- 05 적용 후 03을 다시 실행해도 05가 지운 이 정책이 되살아나지 않게 한다.
+do $do$ begin
+  if not exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'world_events' and column_name = 'status') then
+    drop policy if exists "본인 참여 생성" on public.event_participation;
+    create policy "본인 참여 생성" on public.event_participation
+      for insert to authenticated with check (auth.uid() = user_id);
+  end if;
+end $do$;
 
 
 -- ------------------------------------------------------------

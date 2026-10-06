@@ -9,8 +9,10 @@ psql -X -q -c "drop database if exists $DB" -c "create database $DB" >/dev/null 
 $PSQL -f database/tests/01_auth_stub.sql
 for f in 01_socialworld_base 02_loop_schema 03_world_update 04_coco 05_chief; do $PSQL -f database/$f.sql >/dev/null 2>&1; done
 $PSQL -f database/05_chief.sql >/dev/null 2>&1   # 두 번 실행해도 안전한지
-$PSQL -f database/03_world_update.sql >/dev/null 2>&1 && $PSQL -f database/05_chief.sql >/dev/null 2>&1   # 03을 다시 돌린 뒤 05를 다시 돌려도 되는지
-echo "PASS  01→02→03→04→05 적용, 05 재실행, 03→05 재적용 모두 오류 없음"
+# 05까지 적용된 DB에 03만 다시 돌려도 오류 없이, 05의 뷰·정책이 그대로 남는지 (팀 DB에서 실제로 난 오류: 42P16)
+if ! $PSQL -f database/03_world_update.sql >/tmp/rerun03.log 2>&1; then echo "FAIL  05 적용 후 03 재실행 오류"; tail -3 /tmp/rerun03.log; exit 1; fi
+$PSQL -f database/04_coco.sql >/dev/null && $PSQL -f database/05_chief.sql >/dev/null
+echo "PASS  01→02→03→04→05 적용, 05 재실행, 05 뒤 03→04→05 재적용 모두 오류 없음"
 $PSQL -f database/tests/20_chief_test.sql >/dev/null
 
 U1=00000000-0000-0000-0000-000000000001
