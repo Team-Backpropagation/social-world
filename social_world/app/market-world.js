@@ -5,7 +5,13 @@
   const data = root.MarketWorldData = {
     bounds: { x0: MX - 26, x1: MX + 26, z0: -23, z1: 23 },
     mapBounds: { x0: MX - 30, x1: MX + 30, z0: -27, z1: 27 },
-    villageStop: { x: 39, z: 24.2 },
+    villageStop: { x: 47.3, z: 14.2 },
+    villageRoad: { x: 52, width: 6.4, z0: -34, z1: 58 },
+    villagePath: { from: { x: 29, z: 6 }, to: { x: 47.3, z: 14.2 }, width: 2.6 },
+    villageClearZones: [
+      { x0: 48.2, x1: 56, z0: -34, z1: 58 },
+      { x0: 44.2, x1: 50, z0: 10, z1: 20 }
+    ],
     marketStop: { x: MX - 1.8, z: 14.8 },
     rooms: { bank: { x: MX, z: 100 }, clothing: { x: MX + 30, z: 100 } },
     points: [
@@ -18,18 +24,25 @@
   };
 
   root.createMarketWorld = function ({ THREE, scene, mesh, M, rbox, shade, textSprite, canvasTex,
-    colliders, doors, places, engine, player: getPlayer, animatePerson, reduceMotion }) {
+    colliders, doors, places, engine, player: getPlayer, animatePerson, reduceMotion, resolveCollisions }) {
     const plaza = new THREE.Group(); plaza.name = 'ieum-market'; scene.add(plaza);
     const interiors = {};
     const stop = new THREE.Group(); stop.name = 'village-bus-stop'; scene.add(stop);
     let ride = null;
+    const signFonts = [], stopSigns = [], benches = [];
+    let bankClock = null, clockSecond = null;
 
     function box(parent, w, h, d, color, x, y, z, radius = .12) {
       return mesh(rbox(w, h, d, radius), M(color), x, y, z, parent);
     }
-    function ground(parent, w, d, color, x, y, z) {
+    function ground(parent, w, d, color, x, y, z, heightAt) {
       const geometry = new THREE.PlaneGeometry(w, d, Math.ceil(w), Math.ceil(d));
       geometry.rotateX(-Math.PI / 2);
+      if (heightAt) {
+        const p = geometry.attributes.position;
+        for (let i = 0; i < p.count; i++) p.setY(i, heightAt(p.getZ(i) + z));
+        geometry.computeVertexNormals();
+      }
       const floor = mesh(geometry, M(color), x, y, z, parent);
       floor.receiveShadow = true;
       return floor;
@@ -39,24 +52,46 @@
       sign.position.set(x, y, z); parent.add(sign); return sign;
     }
     function facadeSign(parent, value, width, x, y, z) {
-      const tex = canvasTex(1024, 192, (g, w, h) => {
+      // Google Fonts splits Korean into subsets. Paint one complete system font
+      // first, then repaint the entire title only after all its glyphs load.
+      const entry = { text: value, font: 'system', redraws: 0 }; signFonts.push(entry);
+      const paint = (g, w, h, family) => {
         g.fillStyle = '#FFF3D9'; g.fillRect(0, 0, w, h);
         g.fillStyle = '#365C4C'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.font = '700 92px "Gowun Dodum", sans-serif'; g.fillText(value, w / 2, h / 2, w - 80);
-      });
+        g.font = '700 92px ' + family; g.fillText(value, w / 2, h / 2, w - 80);
+      };
+      const tex = canvasTex(1024, 192, (g, w, h) => paint(g, w, h, '"Malgun Gothic", "Apple SD Gothic Neo", sans-serif'));
+      document.fonts?.load('400 92px "Gowun Dodum"', value).then(faces => {
+        if (!faces.length || !document.fonts.check('400 92px "Gowun Dodum"', value)) return;
+        paint(tex.image.getContext('2d'), tex.image.width, tex.image.height, '"Gowun Dodum"');
+        tex.needsUpdate = true; entry.font = 'Gowun Dodum'; entry.redraws++;
+      }).catch(() => {});
       box(parent, width + .15, .9, .14, '#456E5B', x, y, z);
       mesh(new THREE.PlaneGeometry(width, .76), M('#FFFFFF', { map: tex }), x, y, z + .08, parent);
     }
-    function poleSign(parent, x, z, title, subtitle) {
-      box(parent, .15, 2.7, .15, '#456957', x, 1.35, z);
-      box(parent, 2.2, .85, .18, '#F8F0DB', x, 2.7, z);
-      const tex = canvasTex(512, 192, (g, w, h) => {
-        g.fillStyle = '#F8F0DB'; g.fillRect(0, 0, w, h);
-        g.textAlign = 'center'; g.fillStyle = '#31584B';
-        g.font = '700 62px "Gowun Dodum", sans-serif'; g.fillText(title, w / 2, 83);
-        g.font = '36px "Gowun Dodum", sans-serif'; g.fillText(subtitle, w / 2, 146);
+    function poleSign(parent, x, z) {
+      const g = new THREE.Group(); g.name = 'yellow-bus-stop-sign'; parent.add(g); g.position.set(x, 0, z);
+      box(g, .14, 2.55, .14, '#626664', 0, 1.275, 0, .04);
+      box(g, .46, .12, .38, '#424845', 0, .06, 0, .04);
+      box(g, 1.02, 1.53, .16, '#F6C72F', 0, 2.55, 0, .08);
+      const tex = canvasTex(384, 576, (c, w, h) => {
+        c.fillStyle = '#F6C72F'; c.fillRect(0, 0, w, h);
+        c.strokeStyle = '#252B27'; c.lineWidth = 12; c.beginPath(); c.roundRect(22, 22, w - 44, h - 44, 24); c.stroke();
+        c.fillStyle = '#252B27'; c.beginPath(); c.roundRect(104, 98, 176, 244, 30); c.fill();
+        c.fillRect(83, 150, 17, 54); c.fillRect(284, 150, 17, 54);
+        c.fillRect(112, 323, 34, 51); c.fillRect(238, 323, 34, 51);
+        c.fillStyle = '#F6C72F'; c.beginPath(); c.roundRect(122, 132, 140, 111, 15); c.fill();
+        c.fillRect(162, 112, 60, 8);
+        for (const xx of [136, 248]) { c.beginPath(); c.arc(xx, 289, 13, 0, Math.PI * 2); c.fill(); }
+        c.strokeStyle = '#252B27'; c.lineWidth = 8; c.beginPath(); c.moveTo(43, 405); c.lineTo(w - 43, 405); c.stroke();
+        c.fillStyle = '#252B27'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.font = '700 90px "Malgun Gothic", "Apple SD Gothic Neo", sans-serif'; c.fillText('버스', w / 2, 480);
       });
-      mesh(new THREE.PlaneGeometry(2.05, .77), M('#FFFFFF', { map: tex }), x, 2.7, z + .1, parent);
+      for (const side of [-1, 1]) {
+        const face = mesh(new THREE.PlaneGeometry(.94, 1.41), M('#FFFFFF', { map: tex }), 0, 2.55, side * .09, g);
+        face.rotation.y = side === -1 ? Math.PI : 0;
+      }
+      shade(g); stopSigns.push({ x, z, width: 1.02, height: 1.53, color: '#F6C72F', text: '버스', icon: 'bus', twoSided: true });
     }
     function plant(parent, x, z, color = '#6F9A64', scale = 1) {
       const g = new THREE.Group(); parent.add(g); g.position.set(x, 0, z);
@@ -69,10 +104,60 @@
       const area = parent === plaza ? 'market' : parent.userData.area;
       if (area) colliders.push({ x: x + (parent === plaza ? 0 : parent.position.x), z: z + (parent === plaza ? 0 : parent.position.z), r: .42 * scale, area });
     }
-    function bench(parent, x, z) {
-      box(parent, 2.8, .15, .7, '#B48960', x, .65, z);
-      box(parent, 2.8, .8, .12, '#B48960', x, 1.08, z - .35);
-      [-1, 1].forEach(dx => box(parent, .15, .6, .55, '#547362', x + dx, .3, z));
+    function bench(parent, x, z, { angle = 0, double = false, id } = {}) {
+      const g = new THREE.Group(); g.name = id || 'market-bench'; parent.add(g);
+      g.position.set(x, 0, z); g.rotation.y = angle;
+      const seats = double ? [-.43, .43] : [0];
+      for (const zz of seats) {
+        box(g, 2.8, .15, .7, '#B48960', 0, .65, zz);
+        for (const xx of [-1, 1]) box(g, .15, .6, .55, '#547362', xx, .3, zz);
+      }
+      // Shared backrest gives the square benches seats facing both directions.
+      box(g, 2.8, .8, .12, '#B48960', 0, 1.08, double ? 0 : -.35);
+      const cx = x + parent.position.x, cz = z + parent.position.z;
+      const dx = Math.cos(angle) * 1.4, dz = -Math.sin(angle) * 1.4;
+      const area = parent === plaza ? 'market' : parent === stop ? 'village' : parent.userData.area;
+      colliders.push({ seg: [cx - dx, cz - dz, cx + dx, cz + dz], r: double ? .82 : .4, area });
+      benches.push(g); g.userData.seats = seats.length; g.userData.area = area;
+      shade(g); return g;
+    }
+    function wallClock(parent) {
+      const g = new THREE.Group(); g.name = 'bank-clock'; parent.add(g); g.position.set(3.35, 4.03, 3.99); g.scale.setScalar(.9);
+      const casing = mesh(new THREE.CylinderGeometry(.64, .64, .13, 48), M('#486E60', { r: .4 }), 0, 0, 0, g);
+      casing.rotation.x = Math.PI / 2;
+      mesh(new THREE.TorusGeometry(.59, .035, 8, 48), M('#D7BE87', { r: .35 }), 0, 0, .085, g);
+      const dial = canvasTex(512, 512, (c) => {
+        c.fillStyle = '#FFF7E6'; c.fillRect(0, 0, 512, 512);
+        c.fillStyle = '#4B6559';
+        for (let i = 0; i < 60; i++) {
+          c.save(); c.translate(256, 256); c.rotate(i * Math.PI / 30);
+          c.fillRect(i % 5 ? -2 : -4, -222, i % 5 ? 4 : 8, i % 5 ? 9 : 22); c.restore();
+        }
+        c.font = '700 49px "Malgun Gothic", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        for (const [text, x, y] of [['12', 256, 89], ['3', 426, 256], ['6', 256, 427], ['9', 87, 256]]) c.fillText(text, x, y);
+      });
+      mesh(new THREE.CircleGeometry(.565, 48), M('#FFFFFF', { map: dial }), 0, 0, .09, g);
+      function hand(name, length, width, color, z) {
+        const p = new THREE.Group(); p.name = name; g.add(p); p.position.z = z;
+        const s = new THREE.Shape(); s.moveTo(-width / 2, -.075); s.lineTo(width / 2, -.075);
+        s.lineTo(width / 2, length * .68); s.lineTo(0, length); s.lineTo(-width / 2, length * .68); s.closePath();
+        mesh(new THREE.ExtrudeGeometry(s, { depth: .035, bevelEnabled: true, bevelSize: .008, bevelThickness: .006, bevelSegments: 2, steps: 1 }), M(color, { r: .45 }), 0, 0, 0, p);
+        return p;
+      }
+      const hour = hand('bank-clock-hour', .31, .065, '#35564A', .115);
+      const minute = hand('bank-clock-minute', .43, .04, '#35564A', .16);
+      const hub = mesh(new THREE.SphereGeometry(.052, 12, 8), M('#D7BE87', { r: .35 }), 0, 0, .225, g); hub.scale.z = .55;
+      bankClock = { group: g, hour, minute, time: null }; shade(g); updateClock();
+    }
+    function updateClock() {
+      if (!bankClock) return;
+      const now = new Date(), second = Math.floor(now.getTime() / 1000);
+      if (second === clockSecond) return;
+      clockSecond = second;
+      const minute = now.getMinutes() + now.getSeconds() / 60;
+      bankClock.hour.rotation.z = -((now.getHours() % 12) + minute / 60) * Math.PI / 6;
+      bankClock.minute.rotation.z = -minute * Math.PI / 30;
+      bankClock.time = { hours: now.getHours(), minutes: now.getMinutes(), seconds: now.getSeconds() };
     }
     function road(parent, centerX, z, width) {
       ground(parent, width, 5.4, '#7D8B89', centerX, .065, z);
@@ -83,12 +168,24 @@
     }
 
     // No calls to the original engine's rnd(): additions do not move its trees or grass.
-    road(stop, 45, 20.3, 26);
-    box(stop, 5.4, .08, 2.6, '#E4D8BE', 39, .09, 23.5);
-    poleSign(stop, 38, 22.7, '버스 정류장', '이음 시장행');
-    bench(stop, 41, 24.6);
-    colliders.push({ x: 38, z: 22.7, r: .2, area: 'village' });
-    colliders.push({ seg: [39.6, 24.6, 42.4, 24.6], r: .4, area: 'village' });
+    const vr = data.villageRoad, roadHeight = z => Math.max(0, Math.min(4.85, (-20 - z) / 8.5 * 4.85));
+    ground(stop, vr.width, vr.z1 - vr.z0, '#7D8B89', vr.x, .065, (vr.z0 + vr.z1) / 2, roadHeight);
+    for (const side of [-1, 1]) ground(stop, .14, vr.z1 - vr.z0, '#FFF1B5', vr.x + side * (vr.width / 2 - .25), .09, (vr.z0 + vr.z1) / 2, roadHeight);
+    for (let z = vr.z0 + 2; z < vr.z1; z += 4) ground(stop, .12, 1.7, '#FFF1B5', vr.x, .095, z, roadHeight);
+    // North end joins the existing raised riverbank; the ramp crosses the river.
+    for (const x of [vr.x - vr.width / 2 - .12, vr.x + vr.width / 2 + .12]) {
+      for (let z = -29; z < -20; z += 1.5) box(stop, .14, .9, .14, '#6D7D76', x, roadHeight(z) + .5, z, .03);
+      ground(stop, .2, 9, '#B7C5B9', x, 1.0, -24.5, roadHeight);
+    }
+    ground(stop, 3.8, 8.8, '#E4D8BE', 47.15, .09, 15.1);
+    // Short pedestrian connection from the eastern walking trail to the stop.
+    const vp = data.villagePath, connector = new THREE.Group(); stop.add(connector);
+    connector.position.set((vp.from.x + vp.to.x) / 2, 0, (vp.from.z + vp.to.z) / 2);
+    connector.rotation.y = Math.atan2(vp.to.x - vp.from.x, vp.to.z - vp.from.z);
+    ground(connector, vp.width, Math.hypot(vp.to.x - vp.from.x, vp.to.z - vp.from.z), '#EADFC4', 0, .055, 0);
+    poleSign(stop, 46.1, 12.3);
+    bench(stop, 45.8, 18.2, { angle: Math.PI / 2, id: 'village-stop-bench' });
+    colliders.push({ x: 46.1, z: 12.3, r: .25, area: 'village' });
     places.bus = { ...data.villageStop };
     doors.push({ id: 'bus', label: '시장행 버스 부르기', ...places.bus, r: 2.4, area: 'village', type: 'bus' });
 
@@ -98,9 +195,9 @@
     for (let x = MX - 21; x <= MX + 21; x += 3) ground(plaza, .035, 34, '#D9C5A5', x, .037, 0);
     for (let z = -17; z <= 15; z += 3) ground(plaza, 43, .035, '#D9C5A5', MX, .037, z);
     road(plaza, MX, 18, 66);
-    poleSign(plaza, MX - 4.2, 14.8, '버스 정류장', '이음 마을행');
+    poleSign(plaza, MX - 4.2, 14.8);
     colliders.push({ x: MX - 4.2, z: 14.8, r: .2, area: 'market' });
-    bench(plaza, MX + 5, 14.3);
+    bench(plaza, MX - 7.2, 14.3, { id: 'market-stop-bench' });
     places['market-bus'] = { ...data.marketStop };
     places['market-square'] = { x: MX, z: 3 };
     doors.push({ id: 'market-bus', label: '마을행 버스 부르기', ...data.marketStop, r: 2.3, area: 'market', type: 'bus' });
@@ -124,10 +221,7 @@
           mesh(new THREE.CylinderGeometry(.17, .22, 3.7, 10), M('#FFF2D5'), xx, 2.0, 4.0, g);
           box(g, .55, .17, .55, '#D2C2A8', xx, .23, 4.0);
         });
-        const clock = mesh(new THREE.CircleGeometry(.57, 32), M('#FFF5D8'), 3.4, 4.0, 3.85, g);
-        box(g, .04, .32, .035, '#48675B', 3.4, 4.1, 3.9);
-        box(g, .3, .04, .035, '#48675B', 3.52, 4, 3.9);
-        clock.name = 'bank-clock';
+        wallClock(g);
       } else {
         for (let i = 0; i < 12; i++) {
           const awning = box(g, .8, .13, 1.65, i % 2 ? '#FFF4DC' : '#D78676', -4.4 + i * .8, 3.42, 4.1);
@@ -159,8 +253,8 @@
     box(plaza, 4.5, .3, 2.7, '#EEE3C9', MX, .28, 1);
     label(plaza, '시장 광장', MX, 1.05, 1, 64);
     for (const [x, z] of [[MX - 21, -17], [MX + 21, -17], [MX - 21, 10], [MX + 21, 10]]) plant(plaza, x, z, '#799D68', 1.3);
-    bench(plaza, MX - 8, 7); bench(plaza, MX + 8, 7);
-    for (const x of [MX - 8, MX + 8]) colliders.push({ seg: [x - 1.4, 7, x + 1.4, 7], r: .4, area: 'market' });
+    bench(plaza, MX - 8, 7, { double: true, id: 'market-square-west-bench' });
+    bench(plaza, MX + 8, 7, { double: true, id: 'market-square-east-bench' });
     colliders.push({ seg: [MX - 2.5, 1, MX + 2.5, 1], r: 1.6, area: 'market' });
     shade(plaza);
 
@@ -188,8 +282,7 @@
           box(g, .85, .7, .3, '#6F8B7A', -3.6 + col * .95, .7 + row * .8, -4.3);
           box(g, .13, .08, .08, '#ECD091', -3.6 + col * .95, .7 + row * .8, -4.09);
         }
-        bench(g, -2.5, 1.8);
-        colliders.push({ seg: [p.x - 3.9, p.z + 1.8, p.x - 1.1, p.z + 1.8], r: .4, area: kind });
+        bench(g, -2.5, 1.8, { angle: Math.PI, id: 'bank-counter-bench' });
         colliders.push({ seg: [p.x - 3.2, p.z - 1.8, p.x + 3.2, p.z - 1.8], r: .6, area: kind });
       } else {
         const colors = ['#86A494', '#D89280', '#D8C285', '#9BA9C3'];
@@ -235,9 +328,111 @@
     label(bus, '이음 순환버스', .6, 3.55, 0, 58);
     shade(bus); bus.visible = false;
 
-    function park(mode) { return mode === 'village' ? { x: 41, z: 20.3 } : { x: MX, z: 18 }; }
+    function park(mode) { return mode === 'village' ? { x: data.villageRoad.x, z: 16 } : { x: MX, z: 18 }; }
+    function angle(mode) { return mode === 'village' ? -Math.PI / 2 : 0; }
     function landing(mode) { return mode === 'village' ? data.villageStop : data.marketStop; }
-    function doorPoint(mode) { const p = park(mode); return { x: p.x - 1.8, z: p.z + 1.75 }; }
+    function busPoint(mode, x, z) {
+      const p = park(mode), a = angle(mode), c = Math.cos(a), s = Math.sin(a);
+      return { x: p.x + x * c + z * s, z: p.z - x * s + z * c };
+    }
+    function setBus(mode, offset = 0) {
+      const p = busPoint(mode, offset, 0); bus.position.set(p.x, 0, p.z); bus.rotation.y = angle(mode);
+      bus.userData.area = mode;
+    }
+    function doorPoint(mode) { return busPoint(mode, -1.8, 2.3); }
+    function localPoint(p) {
+      const dx = p.x - bus.position.x, dz = p.z - bus.position.z, a = bus.rotation.y;
+      return { x: dx * Math.cos(a) - dz * Math.sin(a), z: dx * Math.sin(a) + dz * Math.cos(a) };
+    }
+    // An oriented, solid vehicle footprint also protects normal engine movement.
+    function collideBus(p, radius) {
+      if (!bus.visible || bus.userData.area !== engine.mode()) return;
+      const q = localPoint(p), hx = 3.86 + radius, hz = 1.63 + radius;
+      if (Math.abs(q.x) >= hx || Math.abs(q.z) >= hz) return;
+      if (hx - Math.abs(q.x) < hz - Math.abs(q.z)) q.x = (q.x < 0 ? -1 : 1) * hx;
+      else q.z = (q.z < 0 ? -1 : 1) * hz;
+      const a = bus.rotation.y;
+      p.x = bus.position.x + q.x * Math.cos(a) + q.z * Math.sin(a);
+      p.z = bus.position.z - q.x * Math.sin(a) + q.z * Math.cos(a);
+    }
+    function segmentDistance(p, a, b) {
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+      return Math.hypot(p.x - a.x - dx * t, p.z - a.z - dz * t);
+    }
+    function walkable(p, area) {
+      const radius = .46, q = localPoint(p);
+      if (Math.abs(q.x) < 3.86 + radius && Math.abs(q.z) < 1.63 + radius) return false;
+      const bounds = area === 'market' ? data.bounds : { x0: -52, x1: 56, z0: -19, z1: 52 };
+      if (p.x < bounds.x0 || p.x > bounds.x1 || p.z < bounds.z0 || p.z > bounds.z1) return false;
+      return !colliders.some(c => {
+        if (c.off || (c.area && c.area !== area)) return false;
+        const d = c.seg ? segmentDistance(p, { x: c.seg[0], z: c.seg[1] }, { x: c.seg[2], z: c.seg[3] }) : Math.hypot(p.x - c.x, p.z - c.z);
+        return d < c.r + radius;
+      });
+    }
+    function clearLine(a, b, area) {
+      const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / .12));
+      for (let i = 0; i <= steps; i++) if (!walkable({ x: a.x + (b.x - a.x) * i / steps, z: a.z + (b.z - a.z) * i / steps }, area)) return false;
+      return true;
+    }
+    function walkingRoute(from, to, area) {
+      if (clearLine(from, to, area)) return [from, to];
+      const cs = .3, x0 = Math.min(from.x, to.x, bus.position.x - 5) - 3, z0 = Math.min(from.z, to.z, bus.position.z - 5) - 3;
+      const nx = Math.ceil((Math.max(from.x, to.x, bus.position.x + 5) + 3 - x0) / cs) + 1;
+      const nz = Math.ceil((Math.max(from.z, to.z, bus.position.z + 5) + 3 - z0) / cs) + 1;
+      const at = i => ({ x: x0 + i % nx * cs, z: z0 + Math.floor(i / nx) * cs });
+      const free = new Uint8Array(nx * nz), distance = new Float32Array(nx * nz).fill(Infinity), came = new Int32Array(nx * nz).fill(-1);
+      for (let i = 0; i < free.length; i++) free[i] = walkable(at(i), area) ? 1 : 0;
+      function nearest(p) {
+        let best = -1, d = Infinity;
+        for (let i = 0; i < free.length; i++) if (free[i]) {
+          const q = at(i), n = Math.hypot(q.x - p.x, q.z - p.z);
+          if (n < d && n < 1.3 && clearLine(p, q, area)) { best = i; d = n; }
+        }
+        return best;
+      }
+      const start = nearest(from), goal = nearest(to);
+      if (start < 0 || goal < 0) return null;
+      const open = [start], closed = new Uint8Array(free.length); distance[start] = 0;
+      const heuristic = i => Math.hypot(at(i).x - at(goal).x, at(i).z - at(goal).z) / cs;
+      while (open.length) {
+        let best = 0;
+        for (let i = 1; i < open.length; i++) if (distance[open[i]] + heuristic(open[i]) < distance[open[best]] + heuristic(open[best])) best = i;
+        const cur = open.splice(best, 1)[0]; if (cur === goal) break;
+        if (closed[cur]) continue; closed[cur] = 1;
+        const x = cur % nx, z = Math.floor(cur / nx);
+        for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+          if (!dx && !dz) continue;
+          const xx = x + dx, zz = z + dz, next = zz * nx + xx;
+          if (xx < 0 || xx >= nx || zz < 0 || zz >= nz || !free[next] || closed[next]) continue;
+          if (dx && dz && (!free[z * nx + xx] || !free[zz * nx + x])) continue;
+          const d = distance[cur] + Math.hypot(dx, dz);
+          if (d < distance[next]) { distance[next] = d; came[next] = cur; open.push(next); }
+        }
+      }
+      if (start !== goal && came[goal] < 0) return null;
+      const points = [to]; for (let i = goal; i !== start && i >= 0; i = came[i]) points.push(at(i)); points.push(at(start)); points.reverse();
+      const result = [from]; let index = 0;
+      while (index < points.length) {
+        let next = points.length - 1;
+        while (next > index && !clearLine(result.at(-1), points[next], area)) next--;
+        result.push(points[next]); index = next + 1;
+      }
+      return result;
+    }
+    function routeLength(points) { return points.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - points[i].x, p.z - points[i].z), 0); }
+    function walk(points, progress, t, dt) {
+      let distance = routeLength(points) * progress;
+      for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1], b = points[i], length = Math.hypot(b.x - a.x, b.z - a.z);
+        if (distance > length && i < points.length - 1) { distance -= length; continue; }
+        const f = length ? Math.min(1, distance / length) : 1;
+        positionPlayer({ x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f });
+        const p = getPlayer(); p.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+        collideBus(p.position, .4); animatePerson(p, progress < 1, t, dt); return;
+      }
+    }
     function positionPlayer(p, visible = true) {
       const player = getPlayer(); if (!player) return;
       player.position.set(p.x, 0, p.z); player.visible = visible;
@@ -245,12 +440,21 @@
     }
     function phase(name) {
       if (!ride) return;
+      if (name === 'boarding' || name === 'alighting') {
+        const area = name === 'boarding' ? ride.source : ride.destination;
+        const from = name === 'boarding' ? ride.origin : doorPoint(area), to = name === 'boarding' ? doorPoint(area) : landing(area);
+        if (name === 'boarding') resolveCollisions(from, .48);
+        ride.path = walkingRoute(from, to, area);
+        // A blocked route never falls back to walking through the vehicle.
+        if (!ride.path) { cancel(); return; }
+        ride.walkDuration = Math.max(1300, routeLength(ride.path) / 3.4 * 1000 + 350);
+      }
       ride.phase = name; ride.at = performance.now(); ride.cb.onPhase?.(name);
     }
     function transfer() {
       if (!ride || ride.transferred) return;
       ride.transferred = true; ride.cb.onTransfer(ride.destination, landing(ride.destination));
-      const p = park(ride.destination); bus.position.set(p.x + 14, 0, p.z);
+      setBus(ride.destination, 14);
     }
     function finish() {
       if (!ride) return;
@@ -266,34 +470,39 @@
     }
     const timings = { approach: 1700, boarding: 1300, departure: 850, blackout: 900, arriving: 1100, alighting: 1300, farewell: 700 };
     function tick(dt, t) {
+      updateClock();
       if (!ride) return;
       const scale = Math.max(.03, Number(data.durationScale) || 1) * (reduceMotion ? .35 : 1);
-      const progress = Math.min(1, (performance.now() - ride.at) / (timings[ride.phase] * scale));
+      const duration = ['boarding', 'alighting'].includes(ride.phase) ? ride.walkDuration : timings[ride.phase];
+      const progress = Math.min(1, (performance.now() - ride.at) / (duration * scale));
       const smooth = progress * progress * (3 - 2 * progress);
-      const source = park(ride.source), dest = park(ride.destination), player = getPlayer();
-      if (ride.phase === 'approach') bus.position.set(source.x + 25 * (1 - smooth), 0, source.z);
+      const player = getPlayer();
+      if (ride.phase === 'approach') setBus(ride.source, 25 * (1 - smooth));
       if (ride.phase === 'boarding') {
         busDoor.position.x = -1.8 + Math.min(1, progress * 3) * 1.25;
-        const door = doorPoint(ride.source);
-        positionPlayer({ x: ride.origin.x + (door.x - ride.origin.x) * smooth, z: ride.origin.z + (door.z - ride.origin.z) * smooth });
-        player.rotation.y = Math.atan2(door.x - ride.origin.x, door.z - ride.origin.z);
-        animatePerson(player, progress < 1, t, dt);
+        const walking = Math.max(0, Math.min(1, (progress - .12) / .76));
+        walk(ride.path, walking, t, dt);
+        if (progress > .88) {
+          const p = busPoint(ride.source, -1.8, 2.3 - (progress - .88) / .12 * .6);
+          // Disappear at the open doorway, before the avatar overlaps the body.
+          positionPlayer(p, localPoint(p).z > 2.1);
+        }
       }
       if (ride.phase === 'departure') {
-        busDoor.position.x = -1.8; bus.position.set(source.x - smooth * 14, 0, source.z); positionPlayer(doorPoint(ride.source), false);
+        busDoor.position.x = -1.8; setBus(ride.source, -smooth * 14); positionPlayer(doorPoint(ride.source), false);
       }
       if (ride.phase === 'blackout') {
         if (progress >= .55 && !ride.transferred) transfer();
         positionPlayer(doorPoint(ride.transferred ? ride.destination : ride.source), false);
       }
-      if (ride.phase === 'arriving') { bus.position.set(dest.x + 14 * (1 - smooth), 0, dest.z); positionPlayer(doorPoint(ride.destination), false); }
+      if (ride.phase === 'arriving') { setBus(ride.destination, 14 * (1 - smooth)); positionPlayer(doorPoint(ride.destination), false); }
       if (ride.phase === 'alighting') {
         busDoor.position.x = -1.8 + Math.min(1, progress * 3) * 1.25;
-        const from = doorPoint(ride.destination), to = landing(ride.destination);
-        positionPlayer({ x: from.x + (to.x - from.x) * smooth, z: from.z + (to.z - from.z) * smooth });
-        player.rotation.y = Math.atan2(to.x - from.x, to.z - from.z); animatePerson(player, progress < 1, t, dt);
+        if (progress < .12) positionPlayer(doorPoint(ride.destination), false);
+        else walk(ride.path, Math.min(1, (progress - .12) / .88), t, dt);
       }
-      if (ride.phase === 'farewell') { busDoor.position.x = -1.8; bus.position.set(dest.x - smooth * 22, 0, dest.z); }
+      if (ride.phase === 'farewell') { busDoor.position.x = -1.8; setBus(ride.destination, -smooth * 22); }
+      if (player.visible) collideBus(player.position, .4);
       if (progress < 1) return;
       const phases = Object.keys(timings), next = phases[phases.indexOf(ride.phase) + 1];
       if (next) phase(next); else finish();
@@ -333,7 +542,16 @@
       g.beginPath(); g.arc(R, R, R - 2, 0, Math.PI * 2); g.strokeStyle = '#FFF8E8'; g.lineWidth = 3; g.stroke();
     }
     return {
-      tick, mapBase, drawMinimap, finish, cancel,
+      tick, mapBase, drawMinimap, finish, cancel, collide: collideBus,
+      drawVillageMap(g, P, scale) {
+        const r = data.villageRoad, [x, z] = P(r.x - r.width / 2, r.z0);
+        g.fillStyle = '#7D8B89'; g.fillRect(x, z, r.width * scale, (r.z1 - r.z0) * scale);
+        g.strokeStyle = '#FFF1B5'; g.lineWidth = Math.max(1, .12 * scale); g.setLineDash([1.7 * scale, 2.3 * scale]);
+        g.beginPath(); g.moveTo(...P(r.x, r.z0)); g.lineTo(...P(r.x, r.z1)); g.stroke(); g.setLineDash([]);
+        g.strokeStyle = '#EADFC4'; g.lineWidth = data.villagePath.width * scale;
+        g.beginPath(); g.moveTo(...P(data.villagePath.from.x, data.villagePath.from.z)); g.lineTo(...P(data.villagePath.to.x, data.villagePath.to.z)); g.stroke();
+        const platform = P(45.25, 10.7); g.fillStyle = '#E4D8BE'; g.fillRect(...platform, 3.8 * scale, 8.8 * scale);
+      },
       enter(mode) {
         if (ride && !(ride.transferred && mode === ride.destination)) cancel();
         plaza.visible = mode === 'market'; stop.visible = mode === 'village';
@@ -343,11 +561,15 @@
         if (ride || !['village', 'market'].includes(engine.mode()) || destination === engine.mode()) return false;
         engine.pauseInput(); const p = getPlayer();
         ride = { source: engine.mode(), destination, origin: { x: p.position.x, z: p.position.z }, cb, transferred: false };
-        bus.visible = true; phase('approach'); return true;
+        bus.visible = true; setBus(ride.source, 25); phase('approach'); return true;
       },
       info: () => ride ? { phase: ride.phase, source: ride.source, destination: ride.destination, transferred: ride.transferred } : null,
       roomBounds(mode) { const p = data.rooms[mode]; return p ? { x0: p.x - 4.5, x1: p.x + 4.5, z0: p.z - 4.4, z1: p.z + 4.3 } : null; },
-      debug: () => ({ marketVisible: plaza.visible, interiors: Object.fromEntries(Object.entries(interiors).map(([k, g]) => [k, g.visible])), busVisible: bus.visible, playerVisible: getPlayer()?.visible })
+      debug: () => ({ marketVisible: plaza.visible, interiors: Object.fromEntries(Object.entries(interiors).map(([k, g]) => [k, g.visible])), busVisible: bus.visible, playerVisible: getPlayer()?.visible,
+        clock: bankClock ? { ...bankClock.time, hourAngle: bankClock.hour.rotation.z, minuteAngle: bankClock.minute.rotation.z, hands3D: bankClock.hour.children[0].geometry.type === 'ExtrudeGeometry' && bankClock.minute.children[0].geometry.type === 'ExtrudeGeometry' } : null,
+        benches: benches.map(g => ({ id: g.name, area: g.userData.area, x: g.position.x + g.parent.position.x, z: g.position.z + g.parent.position.z, angle: g.rotation.y, seats: g.userData.seats })),
+        bus: { x: bus.position.x, z: bus.position.z, angle: bus.rotation.y, halfLength: 3.86, halfWidth: 1.63, colliderActive: bus.visible && bus.userData.area === engine.mode(), doorOpen: busDoor.position.x > -1.7 },
+        walkingPath: ride?.path?.map(p => ({ ...p })) || null, signs: stopSigns.map(p => ({ ...p })), signFonts: signFonts.map(p => ({ ...p })) })
     };
   };
 })(window);

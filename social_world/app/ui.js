@@ -201,7 +201,7 @@
     { id: 'forest', name: '숲길', x: -38, z: 22 },
     { id: 'flowers', name: '꽃 언덕', x: 36, z: 38 },
     { id: 'field', name: '들판', x: 42, z: 6 },
-    { id: 'bus', name: '시장행 버스', x: 39, z: 24.2 }
+    { id: 'bus', name: '시장행 버스', ...window.MarketWorldData.villageStop }
   ];
   // 엔진 places()에 없는 산책로 장소
   var EXTRA_SPOTS = { lake: { x: 10, z: 36.8 }, forest: { x: -38, z: 22 }, flowers: { x: 36, z: 38 }, field: { x: 42, z: 6 } };

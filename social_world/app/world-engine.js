@@ -487,13 +487,18 @@
         }
         g.position.set(x, y, z); g.scale.setScalar(s); g.rotation.y = x * 1.7 + z;
         scene.add(shade(g));
-        if (!y) { colliders.push({ x, z, r: 0.6 * s }); blob(x, z, 1.9 * s, 0.32); }
+        if (!y) {
+          const collider = { x, z, r: 0.6 * s }; colliders.push(collider);
+          g.userData.landscape = { collider, shadow: blob(x, z, 1.9 * s, 0.32) };
+        }
       }
       function bush(x, z, s = 1, fl = null) {
         const g = new THREE.Group();
         leafy(g, [{ x: 0, y: 0.55, z: 0, r: 0.85, n: 70, size: 0.45, pal: PAL.bush, flat: 0.7 }, { x: 0.6, y: 0.45, z: 0.3, r: 0.6, n: 40, size: 0.42, pal: PAL.bush, flat: 0.7 }], 0.03);
         if (fl) for (let i = 0; i < 9; i++) { const a = rnd() * 6.28; mesh(new THREE.SphereGeometry(0.09, 8, 6), M(fl), Math.cos(a) * 0.8, 0.5 + rnd() * 0.5, Math.sin(a) * 0.8, g); }
-        g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(shade(g)); colliders.push({ x, z, r: 0.9 * s }); blob(x, z, 1.4 * s, 0.28);
+        g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(shade(g));
+        const collider = { x, z, r: 0.9 * s }; colliders.push(collider);
+        g.userData.landscape = { collider, shadow: blob(x, z, 1.4 * s, 0.28) };
       }
       [
         [-17, -13.5, 'pine', 1.1], [-19, -7, 'round', 1.1], [-20, 4, 'pine', 1.2], [-18, 14, 'round', 1.15], [-10, 19.5, 'blossom', 1],
@@ -961,21 +966,35 @@
       villageScenery = new THREE.Group(); villageScenery.name = 'original-village-scenery';
       const originals = scene.children.filter(o => !o.isLight && o !== sky && o !== skyDeco && o !== sun.target);
       scene.add(villageScenery); originals.forEach(o => villageScenery.add(o));
-      // Clear only the new bus road/platform footprint, keeping all placement seeds intact.
+      // Clear only the eastern road, platform and connecting path after all rnd() calls.
+      const data = window.MarketWorldData, path = data.villagePath;
+      const clearFootprint = (x, z, pad = 0) => {
+        if (data.villageClearZones.some(b => x >= b.x0 - pad && x <= b.x1 + pad && z >= b.z0 - pad && z <= b.z1 + pad)) return true;
+        const dx = path.to.x - path.from.x, dz = path.to.z - path.from.z;
+        const t = Math.max(0, Math.min(1, ((x - path.from.x) * dx + (z - path.from.z) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - path.from.x - dx * t, z - path.from.z - dz * t) <= path.width / 2 + pad;
+      };
+      const landscape = [];
       villageScenery.traverse(o => {
+        if (o.userData.landscape && clearFootprint(o.position.x, o.position.z, 1.1)) landscape.push(o);
         if (!o.isInstancedMesh || !o.geometry.attributes.position) return;
         const matrix = new THREE.Matrix4();
         for (let i = 0; i < o.count; i++) {
           o.getMatrixAt(i, matrix);
           const x = matrix.elements[12], z = matrix.elements[14];
-          if (x >= 32 && x <= 58 && z >= 17.4 && z <= 25.2) {
+          if (clearFootprint(x, z)) {
             matrix.scale(new THREE.Vector3(0, 0, 0)); o.setMatrixAt(i, matrix);
           }
         }
         o.instanceMatrix.needsUpdate = true;
       });
+      for (const o of landscape) {
+        const { collider, shadow } = o.userData.landscape;
+        collider.off = true; o.visible = false; shadow.visible = false;
+        MAPDATA.trees = MAPDATA.trees.filter(([x, z]) => x !== o.position.x || z !== o.position.z);
+      }
       marketWorld = window.createMarketWorld({ THREE, scene, mesh, M, rbox, shade, textSprite, canvasTex,
-        colliders, doors, places, engine: api, player: () => player, animatePerson, reduceMotion });
+        colliders, doors, places, engine: api, player: () => player, animatePerson, reduceMotion, resolveCollisions: collide });
       grid = null;
     }
     const keys = new Set(); let tapTarget = null, autoPath = null;
@@ -1007,8 +1026,8 @@
     // ---------------- 길찾기: 0.5칸 격자 A* + 직선 당기기 (건물·울타리·벤치를 돌아간다)
     let grid = null;
     function buildGrid() {
-      const cs = 0.5, x0 = -54, z0 = -19, nx = 217, nz = 149, blocked = new Uint8Array(nx * nz), pad = 0.5;
-      const cols = colliders.filter(c => (!c.area || c.area === 'village') && (c.seg ? c.seg[1] < 60 : c.z < 60));
+      const cs = 0.5, x0 = -54, z0 = -19, nx = 225, nz = 149, blocked = new Uint8Array(nx * nz), pad = 0.5;
+      const cols = colliders.filter(c => !c.off && (!c.area || c.area === 'village') && (c.seg ? c.seg[1] < 60 : c.z < 60));
       for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
         const x = x0 + i * cs, z = z0 + j * cs;
         for (const c of cols) {
@@ -1153,7 +1172,7 @@
     }
 
     // ---------------- 이동·충돌
-    const VB = { x0: -52, x1: 52, z0: -19, z1: 52 };
+    const VB = { x0: -52, x1: 56, z0: -19, z1: 52 };
     const RB = { x0: RX - 4.8, x1: RX + 4.8, z0: RZ - 3.8, z1: RZ + 3.9 };
     function collide(pos, r) {
       for (const c of colliders) {
@@ -1167,6 +1186,7 @@
         const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), min = c.r + r;
         if (d < min && d > 1e-4) { pos.x = c.x + dx / d * min; pos.z = c.z + dz / d * min; }
       }
+      marketWorld?.collide(pos, r);
       const B = mode === 'room' ? RB : marketWorld?.roomBounds(mode) || (mode === 'market' ? window.MarketWorldData.bounds : VB);
       pos.x = Math.min(B.x1, Math.max(B.x0, pos.x)); pos.z = Math.min(B.z1, Math.max(B.z0, pos.z));
     }
@@ -1180,7 +1200,7 @@
       { n: '동아리센터', x: 15, z: -11, w: 7, d: 5.5, c: '#A98BF0' }, { n: '게임방', x: 17.5, z: -1.5, r: 4.4, c: '#FFB45C' },
       { n: '카페', x: -11.8, z: -10.6, w: 6, d: 5, c: '#FF8FB3' }, { n: '내 집', x: 22, z: 12, w: 5.6, d: 5, c: '#6FB6F2' }
     ];
-    const MAP_AREA = [{ n: '시장행 버스', x: 39, z: 24.2 }, { n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
+    const MAP_AREA = [{ n: '시장행 버스', ...window.MarketWorldData.villageStop }, { n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
     const NPC_DOT = { psych: '#B56CC0', policy: '#3F7FD6', job: '#2F9E8F', chief: '#E0A020', coco: '#2E6B4F' };
     let mm = null;
     function mmBase() {
@@ -1195,6 +1215,7 @@
       { const [px, py] = P(0, 0); g.fillStyle = '#F6E7C6'; g.beginPath(); g.arc(px, py, 9.4 * MAP_S, 0, 7); g.fill(); g.fillStyle = '#7FD0EA'; g.beginPath(); g.arc(px, py, 3.2 * MAP_S, 0, 7); g.fill(); }
       for (const l of MAPDATA.lakes) { const [px, py] = P(l.x, l.z); g.fillStyle = '#7FD0EA'; g.beginPath(); g.arc(px, py, l.r * MAP_S, 0, 7); g.fill(); }
       for (const t of MAPDATA.till) { const [a, b] = P(t.x0, t.z0), [c2, d] = P(t.x1, t.z1); g.fillStyle = '#B98B5E'; g.fillRect(a, b, c2 - a, d - b); }
+      marketWorld?.drawVillageMap(g, P, MAP_S);
       for (const b of MAP_BUILD) { const [px, py] = P(b.x, b.z); g.fillStyle = b.c; g.strokeStyle = '#3E4454'; g.lineWidth = 3; g.beginPath();
         if (b.r) g.arc(px, py, b.r * MAP_S, 0, 7); else if (g.roundRect) g.roundRect(px - b.w * MAP_S / 2, py - b.d * MAP_S / 2, b.w * MAP_S, b.d * MAP_S, 8); else g.rect(px - b.w * MAP_S / 2, py - b.d * MAP_S / 2, b.w * MAP_S, b.d * MAP_S);
         g.fill(); g.stroke(); }
@@ -1376,6 +1397,7 @@
       finalMat.uniforms.focusY.value += ((tmpV.y * 0.5 + 0.5) - finalMat.uniforms.focusY.value) * Math.min(1, dt * 5);
       finalMat.uniforms.band.value = isIndoor() ? 0.35 : 0.2;
       finalMat.uniforms.time.value = t;
+      hooks.afterView?.();
       renderFrame();
       requestAnimationFrame(tick);
     }
@@ -1458,6 +1480,12 @@
       cancelBusRide() { marketWorld?.cancel(); },
       busRideInfo: () => marketWorld?.info() || null,
       marketInfo: () => ({ ...marketWorld?.debug(), villageVisible: villageScenery?.visible }),
+      playerHeadScreen() {
+        if (!running || mode !== 'market' || !player?.visible) return null;
+        const p = new THREE.Vector3(player.position.x, 2.6 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
+        const b = renderer.domElement.getBoundingClientRect();
+        return { x: b.left + (p.x / 2 + .5) * b.width, y: b.top + (.5 - p.y / 2) * b.height, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2 };
+      },
       enter(m, opt = {}) {
         hooks.teleport?.();fishingVisual=null;
         build();

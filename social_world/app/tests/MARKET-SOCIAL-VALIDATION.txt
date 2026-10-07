@@ -1,0 +1,146 @@
+PASS 1280px /app/ Asia/Seoul chat not created in village
+PASS 1280px /app/ Asia/Seoul chat absent during outbound bus ride
+PASS 1280px /app/ Asia/Seoul market chat appears and fits viewport
+PASS 1280px /app/ Asia/Seoul clock hour and minute hands use 3D extruded geometry
+PASS 1280px /app/ Asia/Seoul both square benches have two opposing seats
+PASS 1280px /app/ Asia/Seoul bank bench faces counter
+PASS 1280px /app/ Asia/Seoul village stop bench faces road
+PASS 1280px /app/ Asia/Seoul market stop bench moves beside sign and stays single-sided
+PASS 1280px /app/ Asia/Seoul local clock handles 3:15:30 including midnight and computer-time changes
+PASS 1280px /app/ Asia/Seoul local clock handles 23:59:0 including midnight and computer-time changes
+PASS 1280px /app/ Asia/Seoul local clock handles 0:0:0 including midnight and computer-time changes
+PASS 1280px /app/ Asia/Seoul local clock handles 14:30:0 including midnight and computer-time changes
+PASS 1280px /app/ Asia/Seoul expanded chat fits viewport
+PASS 1280px /app/ Asia/Seoul typing blocks movement, map, inventory and interaction
+PASS 1280px /app/ Asia/Seoul send adds message and speech bubble
+PASS 1280px /app/ Asia/Seoul chat uses current nickname and bubble fits viewport
+PASS 1280px /app/ Asia/Seoul chat panel stays clear of arrival toast
+PASS 1280px /app/ Asia/Seoul speech bubble anchors above actual player head
+PASS 1280px /app/ Asia/Seoul Escape releases chat input
+PASS 1280px /app/ Asia/Seoul movement resumes after leaving input
+PASS 1280px /app/ Asia/Seoul speech bubble follows moving avatar
+PASS 1280px /app/ Asia/Seoul Korean IME Enter does not send unfinished composition
+PASS 1280px /app/ Asia/Seoul whitespace does not send empty message
+PASS 1280px /app/ Asia/Seoul user text is rendered safely as literal text
+PASS 1280px /app/ Asia/Seoul message length capped at 80 characters
+PASS 1280px /app/ Asia/Seoul local chat history bounded to 30 messages
+PASS 1280px /app/ Asia/Seoul chat makes no production or fake database writes
+PASS 1280px /app/ Asia/Seoul speech expires without retaining stale balloon
+PASS 1280px /app/ Asia/Seoul Enter opens collapsed chat and focuses input
+PASS 1280px /app/ Asia/Seoul bank interior hides chat and clears speech
+PASS 1280px /app/ Asia/Seoul clothing interior hides chat
+PASS 1280px /app/ Asia/Seoul market return keeps current-session chat history
+PASS 1280px /app/ Asia/Seoul return travel hides chat
+PASS 1280px /app/ Asia/Seoul village keeps market chat hidden
+PASS 1280px /app/ Asia/Seoul reset clears account chat and is repeatable
+PASS 1280px /app/ Asia/Seoul no browser errors: 
+PASS 390px /app/ America/Los_Angeles chat not created in village
+PASS 390px /app/ America/Los_Angeles chat absent during outbound bus ride
+PASS 390px /app/ America/Los_Angeles market chat appears and fits viewport
+PASS 390px /app/ America/Los_Angeles clock hour and minute hands use 3D extruded geometry
+PASS 390px /app/ America/Los_Angeles both square benches have two opposing seats
+PASS 390px /app/ America/Los_Angeles bank bench faces counter
+PASS 390px /app/ America/Los_Angeles village stop bench faces road
+PASS 390px /app/ America/Los_Angeles market stop bench moves beside sign and stays single-sided
+PASS 390px /app/ America/Los_Angeles local clock handles 3:15:30 including midnight and computer-time changes
+PASS 390px /app/ America/Los_Angeles local clock handles 23:59:0 including midnight and computer-time changes
+PASS 390px /app/ America/Los_Angeles local clock handles 0:0:0 including midnight and computer-time changes
+PASS 390px /app/ America/Los_Angeles local clock handles 14:30:0 including midnight and computer-time changes
+PASS 390px /app/ America/Los_Angeles expanded chat fits viewport
+PASS 390px /app/ America/Los_Angeles mobile input moves above virtual keyboard
+PASS 390px /app/ America/Los_Angeles typing blocks movement, map, inventory and interaction
+PASS 390px /app/ America/Los_Angeles send adds message and speech bubble
+PASS 390px /app/ America/Los_Angeles chat uses current nickname and bubble fits viewport
+PASS 390px /app/ America/Los_Angeles chat panel stays clear of arrival toast
+PASS 390px /app/ America/Los_Angeles speech bubble anchors above actual player head
+PASS 390px /app/ America/Los_Angeles Escape releases chat input
+PASS 390px /app/ America/Los_Angeles movement resumes after leaving input
+PASS 390px /app/ America/Los_Angeles speech bubble follows moving avatar
+PASS 390px /app/ America/Los_Angeles Korean IME Enter does not send unfinished composition
+PASS 390px /app/ America/Los_Angeles whitespace does not send empty message
+PASS 390px /app/ America/Los_Angeles user text is rendered safely as literal text
+PASS 390px /app/ America/Los_Angeles message length capped at 80 characters
+PASS 390px /app/ America/Los_Angeles local chat history bounded to 30 messages
+PASS 390px /app/ America/Los_Angeles chat makes no production or fake database writes
+PASS 390px /app/ America/Los_Angeles speech expires without retaining stale balloon
+PASS 390px /app/ America/Los_Angeles Enter opens collapsed chat and focuses input
+PASS 390px /app/ America/Los_Angeles bank interior hides chat and clears speech
+PASS 390px /app/ America/Los_Angeles clothing interior hides chat
+PASS 390px /app/ America/Los_Angeles market return keeps current-session chat history
+PASS 390px /app/ America/Los_Angeles return travel hides chat
+PASS 390px /app/ America/Los_Angeles village keeps market chat hidden
+PASS 390px /app/ America/Los_Angeles reset clears account chat and is repeatable
+PASS 390px /app/ America/Los_Angeles no browser errors: 
+PASS 1280px /socialworld-demo.html Asia/Seoul chat not created in village
+PASS 1280px /socialworld-demo.html Asia/Seoul chat absent during outbound bus ride
+PASS 1280px /socialworld-demo.html Asia/Seoul market chat appears and fits viewport
+PASS 1280px /socialworld-demo.html Asia/Seoul clock hour and minute hands use 3D extruded geometry
+PASS 1280px /socialworld-demo.html Asia/Seoul both square benches have two opposing seats
+PASS 1280px /socialworld-demo.html Asia/Seoul bank bench faces counter
+PASS 1280px /socialworld-demo.html Asia/Seoul village stop bench faces road
+PASS 1280px /socialworld-demo.html Asia/Seoul market stop bench moves beside sign and stays single-sided
+PASS 1280px /socialworld-demo.html Asia/Seoul local clock handles 3:15:30 including midnight and computer-time changes
+PASS 1280px /socialworld-demo.html Asia/Seoul local clock handles 23:59:0 including midnight and computer-time changes
+PASS 1280px /socialworld-demo.html Asia/Seoul local clock handles 0:0:0 including midnight and computer-time changes
+PASS 1280px /socialworld-demo.html Asia/Seoul local clock handles 14:30:0 including midnight and computer-time changes
+PASS 1280px /socialworld-demo.html Asia/Seoul expanded chat fits viewport
+PASS 1280px /socialworld-demo.html Asia/Seoul typing blocks movement, map, inventory and interaction
+PASS 1280px /socialworld-demo.html Asia/Seoul send adds message and speech bubble
+PASS 1280px /socialworld-demo.html Asia/Seoul chat uses current nickname and bubble fits viewport
+PASS 1280px /socialworld-demo.html Asia/Seoul chat panel stays clear of arrival toast
+PASS 1280px /socialworld-demo.html Asia/Seoul speech bubble anchors above actual player head
+PASS 1280px /socialworld-demo.html Asia/Seoul Escape releases chat input
+PASS 1280px /socialworld-demo.html Asia/Seoul movement resumes after leaving input
+PASS 1280px /socialworld-demo.html Asia/Seoul speech bubble follows moving avatar
+PASS 1280px /socialworld-demo.html Asia/Seoul Korean IME Enter does not send unfinished composition
+PASS 1280px /socialworld-demo.html Asia/Seoul whitespace does not send empty message
+PASS 1280px /socialworld-demo.html Asia/Seoul user text is rendered safely as literal text
+PASS 1280px /socialworld-demo.html Asia/Seoul message length capped at 80 characters
+PASS 1280px /socialworld-demo.html Asia/Seoul local chat history bounded to 30 messages
+PASS 1280px /socialworld-demo.html Asia/Seoul chat makes no production or fake database writes
+PASS 1280px /socialworld-demo.html Asia/Seoul speech expires without retaining stale balloon
+PASS 1280px /socialworld-demo.html Asia/Seoul Enter opens collapsed chat and focuses input
+PASS 1280px /socialworld-demo.html Asia/Seoul bank interior hides chat and clears speech
+PASS 1280px /socialworld-demo.html Asia/Seoul clothing interior hides chat
+PASS 1280px /socialworld-demo.html Asia/Seoul market return keeps current-session chat history
+PASS 1280px /socialworld-demo.html Asia/Seoul return travel hides chat
+PASS 1280px /socialworld-demo.html Asia/Seoul village keeps market chat hidden
+PASS 1280px /socialworld-demo.html Asia/Seoul reset clears account chat and is repeatable
+PASS 1280px /socialworld-demo.html Asia/Seoul no browser errors: 
+PASS 390px /socialworld-demo.html America/Los_Angeles chat not created in village
+PASS 390px /socialworld-demo.html America/Los_Angeles chat absent during outbound bus ride
+PASS 390px /socialworld-demo.html America/Los_Angeles market chat appears and fits viewport
+PASS 390px /socialworld-demo.html America/Los_Angeles clock hour and minute hands use 3D extruded geometry
+PASS 390px /socialworld-demo.html America/Los_Angeles both square benches have two opposing seats
+PASS 390px /socialworld-demo.html America/Los_Angeles bank bench faces counter
+PASS 390px /socialworld-demo.html America/Los_Angeles village stop bench faces road
+PASS 390px /socialworld-demo.html America/Los_Angeles market stop bench moves beside sign and stays single-sided
+PASS 390px /socialworld-demo.html America/Los_Angeles local clock handles 3:15:30 including midnight and computer-time changes
+PASS 390px /socialworld-demo.html America/Los_Angeles local clock handles 23:59:0 including midnight and computer-time changes
+PASS 390px /socialworld-demo.html America/Los_Angeles local clock handles 0:0:0 including midnight and computer-time changes
+PASS 390px /socialworld-demo.html America/Los_Angeles local clock handles 14:30:0 including midnight and computer-time changes
+PASS 390px /socialworld-demo.html America/Los_Angeles expanded chat fits viewport
+PASS 390px /socialworld-demo.html America/Los_Angeles mobile input moves above virtual keyboard
+PASS 390px /socialworld-demo.html America/Los_Angeles typing blocks movement, map, inventory and interaction
+PASS 390px /socialworld-demo.html America/Los_Angeles send adds message and speech bubble
+PASS 390px /socialworld-demo.html America/Los_Angeles chat uses current nickname and bubble fits viewport
+PASS 390px /socialworld-demo.html America/Los_Angeles chat panel stays clear of arrival toast
+PASS 390px /socialworld-demo.html America/Los_Angeles speech bubble anchors above actual player head
+PASS 390px /socialworld-demo.html America/Los_Angeles Escape releases chat input
+PASS 390px /socialworld-demo.html America/Los_Angeles movement resumes after leaving input
+PASS 390px /socialworld-demo.html America/Los_Angeles speech bubble follows moving avatar
+PASS 390px /socialworld-demo.html America/Los_Angeles Korean IME Enter does not send unfinished composition
+PASS 390px /socialworld-demo.html America/Los_Angeles whitespace does not send empty message
+PASS 390px /socialworld-demo.html America/Los_Angeles user text is rendered safely as literal text
+PASS 390px /socialworld-demo.html America/Los_Angeles message length capped at 80 characters
+PASS 390px /socialworld-demo.html America/Los_Angeles local chat history bounded to 30 messages
+PASS 390px /socialworld-demo.html America/Los_Angeles chat makes no production or fake database writes
+PASS 390px /socialworld-demo.html America/Los_Angeles speech expires without retaining stale balloon
+PASS 390px /socialworld-demo.html America/Los_Angeles Enter opens collapsed chat and focuses input
+PASS 390px /socialworld-demo.html America/Los_Angeles bank interior hides chat and clears speech
+PASS 390px /socialworld-demo.html America/Los_Angeles clothing interior hides chat
+PASS 390px /socialworld-demo.html America/Los_Angeles market return keeps current-session chat history
+PASS 390px /socialworld-demo.html America/Los_Angeles return travel hides chat
+PASS 390px /socialworld-demo.html America/Los_Angeles village keeps market chat hidden
+PASS 390px /socialworld-demo.html America/Los_Angeles reset clears account chat and is repeatable
+PASS 390px /socialworld-demo.html America/Los_Angeles no browser errors: 

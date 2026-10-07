@@ -558,7 +558,7 @@
   // 앱 대화창(NPC·튜토리얼·코코·이장)이 열려 있는가 — 휴대폰(ui.js)이 알림을 미룰 때도 쓴다
   function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop"); }
   // 3D 입력을 멈춰야 하는가 — 대화창 또는 휴대폰·지도(ui.js)가 열려 있을 때
-  function worldBlocked(){ return !!(window.MarketUI && window.MarketUI.isTravelling()) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
+  function worldBlocked(){ return !!(window.MarketUI && (window.MarketUI.isTravelling() || window.MarketUI.isTyping())) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
   // 현재 키 이름 — 휴대폰 설정에서 바꿀 수 있다(ui.js). ui.js가 없으면 기본 키
   function key(action){ return window.WorldUI ? window.WorldUI.keyLabel(action) : ({interact:"E",forward:"W",left:"A",back:"S",right:"D",map:"M"})[action]; }
   function hud(id){ return document.getElementById(id); }
@@ -570,7 +570,8 @@
     E.hooks.blocked = worldBlocked;
     E.hooks.near = function(t){ state.near = t; updateHud(); };
     E.hooks.action = onWorldAction;
-    E.hooks.tick = function(dt){ onWorldTick(dt); if(window.WorldUI) window.WorldUI.tick(dt); };
+    E.hooks.tick = function(dt){ onWorldTick(dt); if(window.WorldUI) window.WorldUI.tick(dt); if(window.MarketUI) window.MarketUI.tick(); };
+    E.hooks.afterView = function(){ if(window.MarketUI) window.MarketUI.drawSpeech(); };
     E.hooks.target = function(t){ return window.WorldUI ? window.WorldUI.target(t) : t; };
     E.hooks.movementBlocked = function(){ return !!(window.WorldUI && window.WorldUI.isFishing()); };
     E.hooks.teleport = function(){ if(window.WorldUI) window.WorldUI.cancelFishing(); };
@@ -587,7 +588,7 @@
     updateHud();
     return true;
   }
-  function hideWorld(){ if(ENGINE) ENGINE.leave(); document.body.classList.remove("in-world"); }
+  function hideWorld(){ if(ENGINE) ENGINE.leave(); if(window.MarketUI) window.MarketUI.sync(); document.body.classList.remove("in-world"); }
 
   function renderNoWebGL(){
     app.innerHTML = "";
@@ -626,6 +627,7 @@
     }
     // 휴대폰 버튼·코코 알림 시점 (ui.js) — 투어 중이거나 방 튜토리얼 중엔 휴대폰을 숨긴다
     if(window.WorldUI) window.WorldUI.sync({ inVillage: E.mode() === "village", tour: !!state.tour, roomBusy: busyRoom || travelling });
+    if(window.MarketUI) window.MarketUI.sync();
     drawTour();
   }
 
@@ -919,6 +921,7 @@
 
   if(window.MarketUI) window.MarketUI.init({
     engine: function(){ return ENGINE; },
+    nickname: nick,
     blocked: dialogOpen,
     tutorial: function(){ return !!state.tour || (state.view === "room" && state.room && state.room.phase !== "free"); },
     arrive: function(mode, spawn){ state.near = null; state.spawn = spawn; state.view = mode === "market" ? "market" : "plaza"; render(); },

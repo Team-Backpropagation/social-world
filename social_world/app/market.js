@@ -2,6 +2,106 @@
 (function (root) {
   'use strict';
   let host = null, travelling = false, destination = null, service = null, focusBefore = null;
+  let chat = null, speech = null, speechUntil = 0, composing = false;
+  const chatHistory = [];
+  function chatAvailable() {
+    const e = host?.engine();
+    return !!e?.isRunning() && e.mode() === 'market' && !travelling && !service && !host.blocked() && !host.tutorial() && !root.WorldUI?.isOpen();
+  }
+  function isTyping() { return !!chat && !chat.hidden && document.activeElement === chat.querySelector('input'); }
+  function clearSpeech() { speech?.remove(); speech = null; speechUntil = 0; }
+  function expandChat(expanded, focus = false) {
+    if (!chat) return;
+    chat.classList.toggle('is-collapsed', !expanded);
+    const button = chat.querySelector('#market-chat-toggle'); button.setAttribute('aria-expanded', String(expanded));
+    button.querySelector('.market-chat-chevron').textContent = expanded ? '−' : '+';
+    if (!expanded && isTyping()) chat.querySelector('input').blur();
+    host?.engine()?.pauseInput();
+    if (focus) chat.querySelector('input').focus();
+  }
+  function createChat() {
+    chat = document.createElement('section'); chat.id = 'market-chat'; chat.setAttribute('aria-label', '시장 채팅');
+    chat.innerHTML = '<button type="button" id="market-chat-toggle" aria-expanded="true" aria-controls="market-chat-content"><span class="market-chat-symbol" aria-hidden="true">' +
+      '<svg viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-6 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h6"/></svg></span>' +
+      '<strong>시장 채팅</strong><span class="market-chat-chevron" aria-hidden="true">−</span></button>' +
+      '<div id="market-chat-content"><div id="market-chat-log" role="log" aria-live="polite" aria-relevant="additions"><p class="market-chat-empty">시장에서 나누고 싶은 말을 남겨 보세요.</p></div>' +
+      '<form id="market-chat-form"><label class="market-sr-only" for="market-chat-input">시장 채팅 메시지</label><input id="market-chat-input" name="message" type="text" maxlength="80" autocomplete="off" placeholder="메시지 입력…" enterkeyhint="send"><button type="submit" aria-label="메시지 보내기">보내기</button></form>' +
+      '<p class="market-chat-hint">Enter로 입력 · Esc로 이동 · 최대 80자</p></div>';
+    document.body.append(chat);
+    chat.querySelector('#market-chat-toggle').onclick = () => expandChat(chat.classList.contains('is-collapsed'));
+    const input = chat.querySelector('input');
+    input.onfocus = () => host?.engine()?.pauseInput();
+    input.onblur = () => { composing = false; };
+    input.addEventListener('compositionstart', () => { composing = true; });
+    input.addEventListener('compositionend', () => { composing = false; });
+    input.onkeydown = e => {
+      if (e.key === 'Enter' && (composing || e.isComposing || e.keyCode === 229)) { e.preventDefault(); e.stopPropagation(); }
+    };
+    chat.querySelector('form').onsubmit = e => {
+      e.preventDefault(); if (composing || !chatAvailable()) return;
+      const text = Array.from(input.value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim()).slice(0, 80).join('');
+      if (!text) return;
+      const now = new Date(), nickname = String(host.nickname?.() || '나');
+      const message = { nickname, text, time: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') };
+      chatHistory.push(message); if (chatHistory.length > 30) chatHistory.shift();
+      appendChatMessage(message); input.value = ''; input.focus();
+      clearSpeech(); speech = document.createElement('div'); speech.id = 'market-chat-bubble'; speech.setAttribute('aria-hidden', 'true');
+      speech.textContent = text; document.body.append(speech);
+      speechUntil = performance.now() + Math.max(5000, Math.min(9000, Array.from(text).length * 70 + 2500));
+      drawSpeech();
+    };
+    renderChatHistory();
+    expandChat(!(root.matchMedia && root.matchMedia('(max-width: 600px)').matches));
+  }
+  function renderChatHistory() {
+    const log = chat?.querySelector('#market-chat-log'); if (!log || !chatHistory.length) return;
+    log.replaceChildren();
+    for (const message of chatHistory) appendChatMessage(message);
+  }
+  function appendChatMessage(message) {
+    const log = chat?.querySelector('#market-chat-log'); if (!log) return;
+    log.querySelector('.market-chat-empty')?.remove();
+    const row = document.createElement('div'); row.className = 'market-chat-message';
+    const name = document.createElement('strong'); name.textContent = message.nickname;
+    const time = document.createElement('time'); time.textContent = message.time;
+    const body = document.createElement('p'); body.textContent = message.text;
+    row.append(name, time, body); log.append(row);
+    while (log.children.length > 30) log.firstElementChild.remove();
+    log.scrollTop = log.scrollHeight;
+  }
+  function syncChat() {
+    const e = host?.engine(), inMarket = !!e?.isRunning() && e.mode() === 'market' && !travelling;
+    if (inMarket && !chat) createChat();
+    if (chat) {
+      const available = chatAvailable();
+      if (!available && isTyping()) chat.querySelector('input').blur();
+      chat.hidden = !available;
+      document.body.classList.toggle('has-market-chat', available);
+      placeChatAboveKeyboard();
+    }
+    if (!inMarket) clearSpeech();
+    else if (speech) speech.hidden = !chatAvailable();
+  }
+  function placeChatAboveKeyboard() {
+    if (!chat) return;
+    const viewport = root.visualViewport;
+    const covered = viewport && root.innerWidth <= 600 ? Math.max(0, root.innerHeight - viewport.height - viewport.offsetTop) : 0;
+    const bottom = covered > 0 ? 'calc(' + Math.max(122, covered + 14) + 'px + env(safe-area-inset-bottom))' : '';
+    if (chat.style.bottom !== bottom) chat.style.bottom = bottom;
+  }
+  root.visualViewport?.addEventListener('resize', placeChatAboveKeyboard);
+  root.visualViewport?.addEventListener('scroll', placeChatAboveKeyboard);
+  function drawSpeech() {
+    if (!speech) return;
+    if (performance.now() >= speechUntil) { clearSpeech(); return; }
+    const p = host?.engine()?.playerHeadScreen?.();
+    speech.hidden = !chatAvailable() || !p?.visible;
+    if (speech.hidden) return;
+    const half = speech.offsetWidth / 2;
+    const x = Math.max(half + 12, Math.min(root.innerWidth - half - 12, p.x));
+    speech.style.left = x + 'px'; speech.style.top = Math.max(speech.offsetHeight + 20, p.y - 12) + 'px';
+    speech.style.setProperty('--chat-tail-x', Math.max(15, Math.min(speech.offsetWidth - 15, p.x - x + half)) + 'px');
+  }
   const messages = {
     approach: ['버스가 오고 있어요', '정류장에서 잠시 기다려 주세요.'],
     boarding: ['버스에 올라타요', '문이 열렸어요. 천천히 올라타세요.'],
@@ -67,6 +167,13 @@
     host.engine()?.pauseInput(); modal.querySelector('#market-service-close').focus();
   }
   document.addEventListener('keydown', e => {
+    if (chatAvailable() && !service) {
+      if (isTyping() && e.key === 'Escape' && !e.isComposing && !composing) {
+        e.preventDefault(); e.stopImmediatePropagation(); chat.querySelector('input').blur(); host?.engine()?.pauseInput(); return;
+      }
+      const typing = e.target?.matches?.('input,textarea,select,button,a,[contenteditable="true"]');
+      if (e.key === 'Enter' && !typing && !e.isComposing && !composing) { e.preventDefault(); e.stopImmediatePropagation(); expandChat(true, true); return; }
+    }
     if (!service) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeService(); return; }
     if (e.key === 'Tab') {
@@ -78,7 +185,9 @@
   root.MarketUI = {
     init(value) { host = value; }, ride, openService, closeService,
     isTravelling: () => travelling,
-    reset() { closeService(); host?.engine()?.cancelBusRide(); cleanup(); },
-    state: () => ({ travelling, destination, service })
+    isTyping, sync: syncChat, drawSpeech,
+    tick() { syncChat(); if (speech && performance.now() >= speechUntil) clearSpeech(); },
+    reset() { closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatHistory.length = 0; composing = false; document.body.classList.remove('has-market-chat'); },
+    state: () => ({ travelling, destination, service, typing: isTyping(), chatVisible: !!chat && !chat.hidden, messages: chatHistory.length, speech: speech?.textContent || null })
   };
 })(window);

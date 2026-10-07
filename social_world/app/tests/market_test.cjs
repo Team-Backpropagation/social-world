@@ -40,15 +40,36 @@ async function fits(page, selector, width, height) {
       if (three) await ctx.route('**/*three@*/**', r => r.fulfill({ contentType: 'text/javascript', body: three }));
       await ctx.route(/https:\/\/fonts\.(googleapis|gstatic)\.com\//, r => r.fulfill({ contentType: 'text/css', body: '' }));
       await ctx.addInitScript(() => { window.__SW_LITE = true; });
+      await ctx.addInitScript(() => {
+        window.__fontRequests = [];
+        const load = document.fonts.load.bind(document.fonts);
+        document.fonts.load = (font, text) => { __fontRequests.push({ font, text }); return load(font, text); };
+      });
       const page = await ctx.newPage(), errors = []; page.on('pageerror', e => errors.push(e.message));
       await page.goto('http://127.0.0.1:' + server.address().port + entry, { waitUntil: 'commit' });
       await page.waitForFunction(() => window.MarketUI && window.__sw?.().engine?.isRunning(), null, { timeout: 90000 });
       check(await page.evaluate(() => !!__sw().engine.places().bus && !!__sw().engine.places()['market-bank']), tag + ' bus stop and market destinations built');
+      check(await page.evaluate(() => {
+        const d = MarketWorldData, r = d.villageRoad, p = __sw().engine.places().bus;
+        return r.x >= 50 && r.z0 === -34 && r.z1 === 58 && p.x < r.x - r.width / 2 && p.z > r.z0 + 20 && p.z < r.z1 - 20;
+      }), tag + ' stop moved to western curb of full north-south eastern road');
+      check(await page.evaluate(() => {
+        const c = __sw().engine.mapBase(), g = c.getContext('2d');
+        return [-30, 0, 42, 56].every(z => { const p = g.getImageData((53 + 58) * 4, (z + 34) * 4, 1, 1).data; return p[0] === 125 && p[1] === 139 && p[2] === 137; });
+      }), tag + ' full road is drawn in village map at north, centre and south');
+      check(await page.evaluate(() => __sw().engine.marketInfo().signs.every(s => s.height > s.width && s.text === '버스' && s.icon === 'bus' && s.color === '#F6C72F' && s.twoSided)), tag + ' both stops use narrow yellow bus pictogram signs');
+      check(await page.evaluate(() => __fontRequests.some(r => r.text === '오늘의 옷장' && r.font.includes('Gowun Dodum'))), tag + ' clothing facade loads every glyph of full title together');
       await page.evaluate(() => {
-        window.__phases = []; window.__phaseViews = {};
+        window.__phases = []; window.__phaseViews = {}; window.__travelSamples = [];
+        function sample() {
+          if (!MarketUI.isTravelling()) return;
+          __travelSamples.push({ phase: __sw().engine.busRideInfo()?.phase, p: __sw().engine.playerPos(), ...__sw().engine.marketInfo() });
+          requestAnimationFrame(sample);
+        }
         window.addEventListener('socialworld:bus-phase', e => {
           __phases.push(e.detail.phase);
           __phaseViews[e.detail.phase] = { ...__sw().engine.marketInfo(), black: document.querySelector('#transit-fade').classList.contains('is-black') };
+          if (e.detail.phase === 'approach') requestAnimationFrame(sample);
         });
       });
       await page.keyboard.press('m');
@@ -69,6 +90,15 @@ async function fits(page, selector, width, height) {
       check(await page.evaluate(() => __phaseViews.blackout.black && !__phaseViews.blackout.playerVisible), tag + ' boarding hides avatar and transition fades to black');
       await page.waitForFunction(() => !MarketUI.isTravelling() && __sw().engine.mode() === 'market', null, { timeout: 15000 });
       check(await page.evaluate(() => JSON.stringify(__phases) === JSON.stringify(['approach', 'boarding', 'departure', 'blackout', 'arriving', 'alighting', 'farewell'])), tag + ' all seven bus phases execute in order');
+      check(await page.evaluate(() => __travelSamples.filter(s => s.playerVisible && s.busVisible).every(s => {
+        const dx = s.p.x - s.bus.x, dz = s.p.z - s.bus.z, c = Math.cos(s.bus.angle), a = Math.sin(s.bus.angle);
+        return Math.abs(dx * c - dz * a) >= s.bus.halfLength + .39 || Math.abs(dx * a + dz * c) >= s.bus.halfWidth + .39;
+      })), tag + ' every visible outbound transit frame stays outside rotated bus body');
+      check(await page.evaluate(() => {
+        const p = __phaseViews.alighting.walkingPath;
+        return p.length > 2 && p.some(q => Math.abs(q.x - 180) > 4.2);
+      }), tag + ' market alighting follows waypoints around front of bus');
+      check(await page.evaluate(() => __travelSamples.some(s => s.bus.colliderActive) && !__sw().engine.marketInfo().bus.colliderActive), tag + ' vehicle collider activates during travel and clears on completion');
       check(await page.evaluate(() => { const i = __sw().engine.marketInfo(); return i.marketVisible && !i.villageVisible && i.playerVisible && !i.busVisible; }), tag + ' market is separate and avatar alights');
       check(await page.evaluate(() => { const p = __sw().engine.playerPos(), s = MarketWorldData.marketStop; return Math.hypot(p.x - s.x, p.z - s.z) < .03; }), tag + ' arrival lands beside market stop');
       check(await page.evaluate(saved => JSON.stringify(WorldUI.fishing.store.getState()) === saved, inventory), tag + ' inventory survives travel unchanged');
@@ -106,11 +136,23 @@ async function fits(page, selector, width, height) {
         await page.waitForFunction(() => __sw().engine.isRunning() && __sw().engine.mode() === 'market');
         check(await page.evaluate(() => __sw().state.view === 'market' && __sw().engine.marketInfo().marketVisible), tag + ' ' + room + ' screen returns to the market');
       }
-      await goMap(page, 'market-bus'); await page.keyboard.press('e'); await page.locator('#transit-card').waitFor();
-      await page.locator('#transit-skip').click(); await page.waitForFunction(() => !MarketUI.isTravelling() && __sw().engine.mode() === 'village');
+      await goMap(page, 'market-bus');
+      await page.evaluate(() => { __travelSamples.length = 0; __phases.length = 0; });
+      await page.keyboard.press('e'); await page.locator('#transit-card').waitFor();
+      await page.waitForFunction(() => !MarketUI.isTravelling() && __sw().engine.mode() === 'village', null, { timeout: 20000 });
+      check(await page.evaluate(() => __phaseViews.boarding.walkingPath.length > 2), tag + ' return boarding routes around bus instead of crossing body');
+      check(await page.evaluate(() => __travelSamples.filter(s => s.playerVisible && s.busVisible).every(s => {
+        const dx = s.p.x - s.bus.x, dz = s.p.z - s.bus.z, c = Math.cos(s.bus.angle), a = Math.sin(s.bus.angle);
+        return Math.abs(dx * c - dz * a) >= s.bus.halfLength + .39 || Math.abs(dx * a + dz * c) >= s.bus.halfWidth + .39;
+      })), tag + ' every visible return transit frame stays outside bus body');
       check(await page.evaluate(() => __sw().engine.marketInfo().villageVisible && !__sw().engine.marketInfo().marketVisible), tag + ' return bus restores original village');
       check(await page.evaluate(saved => JSON.stringify(__sw().state.profile.avatar) === saved, avatar), tag + ' return preserves avatar');
       check(await page.locator('#transit-card').count() === 0 && await page.locator('#transit-fade').count() === 0 && await page.locator('#phone-launch').isVisible(), tag + ' skip cleans blackout and restores controls');
+      await near(page, 'bus'); await page.keyboard.press('e'); await page.locator('#transit-skip').click();
+      await page.waitForFunction(() => !MarketUI.isTravelling() && __sw().engine.mode() === 'market');
+      check(await page.evaluate(() => !__sw().engine.marketInfo().bus.colliderActive && __sw().engine.marketInfo().playerVisible), tag + ' skip deactivates vehicle collider and restores avatar');
+      await page.evaluate(() => MarketUI.ride()); await page.locator('#transit-skip').click();
+      await page.waitForFunction(() => !MarketUI.isTravelling() && __sw().engine.mode() === 'village');
       await near(page, 'bus'); await page.keyboard.press('e'); await page.locator('#transit-card').waitFor();
       await page.evaluate(() => __sw().engine.leave());
       check(await page.evaluate(() => !MarketUI.isTravelling() && !__sw().engine.busRideInfo()) && await page.locator('#transit-fade').count() === 0, tag + ' leaving world cancels travel without stranded blackout');
