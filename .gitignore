@@ -37,3 +37,6 @@ kenney_asset/
 
 #UI데모본(이전)
 _archive/
+
+# 하루 — 복지로 API 응답 확인용 샘플(haru_probe.py가 만듦, 다시 받을 수 있음)
+risk_agent/haru_samples/

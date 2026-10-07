@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>운영팀 의견함 미리보기</title>
+<style>body{margin:0;background:#F5F7F8}.note{margin:0;padding:8px 16px;font:13px system-ui,sans-serif;background:#FFF6E3;color:#5A4410}</style>
+</head>
+<body>
+<p class="note">미리보기(가짜 DB) — 운영팀: staff@eum.test / test1234 · 명단에 없는 계정: citizen@eum.test / test1234 · ?missing=1 이면 07 적용 전 상태</p>
+<main id="root"></main>
+<script src="../feedback/fake-db.js"></script>
+<script src="feedback-admin.js"></script>
+<script>
+const mode = /[?&]missing=1/.test(location.search) ? 'missing' : 'ok';
+FeedbackAdmin.mount({ sb: FakeFeedbackDB.client('staff', mode), root: document.getElementById('root') });
+</script>
+</body>
+</html>

@@ -994,6 +994,45 @@ body {
   color: #3b785b
 }
 
+.home-apps.four {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px
+}
+
+.home-apps.four .app-icon {
+  width: 56px;
+  height: 56px
+}
+
+.home-apps button:nth-child(4) .app-icon {
+  background: #dfe9f1;
+  color: #2f6f8f
+}
+
+.home-apps .app-icon {
+  position: relative
+}
+
+.app-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center
+}
+
+.app-badge[hidden] {
+  display: none
+}
+
 .app-icon .icon {
   width: 27px;
   height: 27px
@@ -2181,6 +2220,7 @@ select:disabled {
         colliders.push({ x, z, r: 5.2 }, { x: -3, z: z + 1.5, r: 3.4 }, { x: 3, z: z + 1.5, r: 3.4 }); blob(x, z + 1, 13, 0.3);
         signpost(-2.6, -11.4, '지원센터', 0.25);
         places.support = { x: 0, z: -10.6 };
+        places.haru = { x: 4.2, z: -11.0 };
       }
       // 미션방
       {
@@ -2376,8 +2416,8 @@ select:disabled {
       }
       // NPC
       const NPC_LOOK = {
-        policy: { x: -5, z: -3.2, color: '#5B7DB1', look: { shirt: '#FFFDF7', bottom: '#5B7DB1', hair: '#3B2E2A', skin: SKIN[1], style: 'short' } },
-        job:    { x: 5.2, z: -3.6, color: '#E08A4A', look: { shirt: '#F6E3C4', bottom: '#E08A4A', hair: '#2E2622', skin: SKIN[3], hat: '#8E6242', style: 'short' } },
+        // 하루 — 지원센터 문 오른쪽(문 판정점과 4.2 떨어져 E키 대상이 겹치지 않음). 정책추천·취업상담 창구를 합쳤다(10/7)
+        haru:   { x: places.haru.x, z: places.haru.z, color: '#22706B', look: { shirt: '#FFFDF7', bottom: '#22706B', hair: '#3B2E2A', skin: SKIN[1], style: 'short' } },
         psych:  { x: places.lumi.x, z: places.lumi.z, color: '#B56CC0', look: LUMI_LOOK },
         chief:  { x: -4.2, z: 4.6, color: '#B08A3E', look: { shirt: '#B08A3E', bottom: '#5A4A3C', hair: '#B9B4AA', skin: SKIN[0], hat: '#6B4A36', style: 'short' } },
         coco:   { x: places.coco.x, z: places.coco.z, color: '#2E6B4F', look: { shirt: '#F4B942', bottom: '#2E6B4F', hair: '#3B2E2A', skin: SKIN[2], hat: '#2E6B4F', style: 'short' } }
@@ -2385,8 +2425,7 @@ select:disabled {
       npcObjs = Object.keys(NPC_LOOK).map(id => {
         const n = NPC_LOOK[id], p = person({ ...n.look, scale: 1.1 }); p.position.set(n.x, 0, n.z); p.rotation.y = Math.atan2(-n.x, -n.z);
         const mk = mesh(new THREE.OctahedronGeometry(0.17, 0), M(n.color, { em: n.color, ei: 0.5, r: 0.4 }), 0, 2.15, 0, p); mk.scale.set(1, 1.35, 1);
-        if (id === 'policy') mesh(rbox(0.3, 0.38, 0.05, 0.03), M('#FFF8EC'), 0.32, 0.55, 0.22, p);
-        if (id === 'job') mesh(rbox(0.42, 0.3, 0.14, 0.05), M('#6B4A36'), 0.38, 0.36, 0.05, p);
+        if (id === 'haru') mesh(rbox(0.3, 0.38, 0.05, 0.03), M('#FFF8EC'), 0.32, 0.55, 0.22, p);   // 안내 서류판
         if (id === 'psych') mesh(rbox(0.26, 0.3, 0.26, 0.06), M('#FCE3A6', { em: '#F7C66A', ei: 1.2 }), 0.4, 0.42, 0.1, p);
         if (id === 'coco') mesh(new THREE.SphereGeometry(0.16, 14, 10), M('#E0654A'), 0.36, 0.5, 0.14, p);  // 공 — 활동 담당
         const col = { x: n.x, z: n.z, r: 0.7, npc: true }; colliders.push(col);
@@ -2753,7 +2792,7 @@ select:disabled {
       { n: '카페', x: -11.8, z: -10.6, w: 6, d: 5, c: '#FF8FB3' }, { n: '내 집', x: 22, z: 12, w: 5.6, d: 5, c: '#6FB6F2' }
     ];
     const MAP_AREA = [{ n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
-    const NPC_DOT = { psych: '#B56CC0', policy: '#3F7FD6', job: '#2F9E8F', chief: '#E0A020', coco: '#2E6B4F' };
+    const NPC_DOT = { psych: '#B56CC0', haru: '#22706B', chief: '#E0A020', coco: '#2E6B4F' };
     let mm = null;
     function mmBase() {
       const W = (MAP_B.x1 - MAP_B.x0) * MAP_S, H = (MAP_B.z1 - MAP_B.z0) * MAP_S, c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -3343,6 +3382,8 @@ select:disabled {
  * - 참여는 join_world_event(id) 함수로만 한다(초안·종료 이벤트 참여 차단은 DB가 한다).
  * - LLM·자유 입력 없음. 대사는 템플릿(v2에서 LLM 대사로 바꿀 자리: LINES).
  * - 03·05 적용 전이거나 이벤트가 없으면 인사와 안내만 하고 멈추지 않는다.
+ * - [마을에 건의하기] — feedback/feedback.js가 있으면 마을 의견함 폼을 연다(07_feedback_chat.sql, 창구 'chief').
+ *   이장은 전달만 한다. 답은 운영팀(사람)이 쓰고 시민 휴대폰 '내 의견함'에 온다.
  */
 (function (global) {
   'use strict';
@@ -3362,7 +3403,8 @@ select:disabled {
     joined: function (place) { return '좋아요! 그날 ' + place + '에서 봐요.'; },
     already: '벌써 신청해 뒀네요. 그날 봐요!',
     closed: '아, 그 모임은 지금 신청을 받지 않아요.',
-    bye: '언제든 광장에 들러요. 🎩'
+    bye: '언제든 광장에 들러요. 🎩',
+    suggest: '마을에 바라는 점이나 불편한 점이 있으면 말해 줘요. 운영팀 사람들이 직접 읽고 답해 줄 거예요. 답은 휴대폰 "내 의견함"으로 갈 거예요.'
   };
 
   var STYLE_ID = 'chief-style';
@@ -3386,7 +3428,7 @@ select:disabled {
     '.chief-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}',
     '.chief-act{font:inherit;font-size:14px;padding:8px 12px;border-radius:10px;border:0;background:var(--ch-gold);color:#fff;cursor:pointer}',
     '.chief-act[disabled]{background:var(--ch-gold-soft);color:var(--ch-gold);cursor:default}',
-    '.chief-foot{display:flex;margin-top:16px}',
+    '.chief-foot{display:flex;gap:8px;margin-top:16px}',
     '.chief-btn{flex:1;font:inherit;font-size:14px;padding:10px;border-radius:12px;border:1.5px solid var(--ch-line);background:#fff;color:var(--ch-ink);cursor:pointer}',
     '.chief-btn:hover{border-color:var(--ch-gold)}',
     '.chief-btn:focus-visible,.chief-close:focus-visible,.chief-act:focus-visible{outline:3px solid #F4B942;outline-offset:2px}'
@@ -3475,10 +3517,18 @@ select:disabled {
     }
 
     function say(text) { bubbleText.textContent = text; }
-    function footer() {
+    function footer(back) {
       return el('div', { class: 'chief-foot' }, [
+        back ? el('button', { class: 'chief-btn', type: 'button', text: '이번 주 모임 보기', onclick: load })
+             : (global.Feedback ? el('button', { class: 'chief-btn', type: 'button', text: '마을에 건의하기', onclick: suggest }) : null),
         el('button', { class: 'chief-btn', type: 'button', text: '대화 마치기', onclick: close })
       ]);
+    }
+    function suggest() {
+      say(LINES.suggest);
+      setBody([global.Feedback.compose({ sb: sb, channel: 'chief', place: opts.place || '광장', onCancel: load }), footer(true)]);
+      var first = body.querySelector('.fb-kind');
+      if (first) first.focus();
     }
     function setBody(nodes) {
       body.innerHTML = '';
@@ -3545,6 +3595,749 @@ select:disabled {
   }
 
   global.Chief = { open: open, _lines: LINES };
+})(window);
+
+</script>
+<!-- ../haru/haru.js -->
+<script>
+/*
+ * 하루 v1 — 지원센터 정책 안내 NPC 화면 모듈
+ *
+ * 쓰는 법 (socialworld-demo.html 등):
+ *   <script src="haru/haru.js"><\/script>
+ *   Haru.open({
+ *     sb,                               // 이미 로그인된 supabase 클라이언트
+ *     profile: { sgg_code },            // 선택 — 지원 지역(강남구·춘천시) 밖이면 "전국 정책만" 안내
+ *     onClose: () => { ... },           // 창을 닫았을 때 (선택)
+ *     logDemand: async (row) => {...}   // 수요 기록 방식을 바꾸고 싶을 때 (선택)
+ *   })
+ *
+ * - 정책 고르기는 DB 함수가 한다: recommend_programs(메뉴, 개수, 특정대상) · program_counts(메뉴) — 06_haru.sql
+ * - LLM을 쓰지 않는다. 자유 입력은 [정보가 달라요] 신고 한 곳뿐이고, 저장 전에 DB가 위기 검사를 한다(07).
+ * - 신청은 시민이 직접 한다. 하루는 어디서 어떻게 하는지 알려 주고 복지로 링크를 새 탭으로 연다.
+ *
+ * 수요 기록(03 npc_demand_logs): npc_type = 일·취업 메뉴는 'job', 나머지는 'policy'. category = 메뉴 이름
+ *   recommend  화면에 보인 카드마다          view          [자세히]를 열었을 때
+ *   apply_click 복지로·홈페이지 링크를 열 때   self_reported [신청했어요]
+ *   ineligible 나이·지역이 안 맞아 빠진 정책이 있을 때 메뉴마다 1줄(item_id = 'count:N')
+ *   특정 대상 정책(장애인·저소득 등)은 펼쳤는지, 무엇을 눌렀는지 기록하지 않는다.
+ * 기록이 실패해도 화면은 멈추지 않는다(콘솔 경고만).
+ */
+(function (global) {
+  'use strict';
+
+  var MENUS = [
+    { key: 'housing', label: '주거비',      hint: '월세·전세·주거 지원' },
+    { key: 'living',  label: '생활비',      hint: '생활 지원·교통비·금융' },
+    { key: 'mind',    label: '마음건강',    hint: '심리 상담·마음 돌봄' },
+    { key: 'social',  label: '사람 만나기', hint: '문화·여가 프로그램' },
+    { key: 'job',     label: '일·취업',     hint: '취업 준비·일자리' }
+  ];
+  var SHOW = 3;          // 처음 보이는 카드 수
+  var MAX = 6;           // 더 보기까지 합친 최대 수
+  var REGIONS = { '11680': '강남구', '51110': '춘천시' };
+
+  var LINES = {
+    hello:      '안녕하세요, 지원센터 하루예요. 어떤 지원이 궁금하세요? 사는 곳과 나이대에 맞는 정책을 찾아 드릴게요.',
+    otherRegion:'지금은 강남구·춘천시 사업만 모아 두어서, 그 밖의 지역은 전국 정책만 보여 드릴 수 있어요.',
+    loading:    '잠깐만요, 찾아보는 중이에요…',
+    result:     function (label) { return label + ' 관련해서 받을 수 있을 만한 정책이에요. 신청은 직접 하셔야 하고, 어디서 어떻게 하는지 알려 드릴게요.'; },
+    empty:      '지금은 딱 맞는 정책을 못 찾았어요. 보건복지상담센터(129)에 물어보시면 더 자세히 알려 줄 거예요.',
+    special:    '특정 대상 정책이에요. 해당되는지는 각 정책의 대상·선정 기준을 확인해 주세요.',
+    needProfile:'처음 설문을 마치면 사는 곳과 나이대에 맞춰 찾아 드릴 수 있어요.',
+    needLogin:  '먼저 마을에 들어오셔야 찾아 드릴 수 있어요.',
+    failed:     '지금은 목록을 못 불러왔어요. 조금 뒤에 다시 물어봐 주세요.',
+    opened:     '신청은 새 창에서 직접 해 주세요. 마치면 "신청했어요"를 눌러 주세요.',
+    applied:    '잘하셨어요! 결과가 나오기까지 시간이 걸릴 수 있어요.',
+    reportAsk:  '어떤 점이 다른지 알려 주시면 운영팀이 확인할게요.',
+    reportSaved:'고마워요, 운영팀에 전했어요. 답이 오면 휴대폰 "내 의견함"에서 볼 수 있어요.',
+    reportMany: '오늘은 의견을 많이 보내 주셨어요. 내일 다시 보내 주세요.',
+    reportCrisis:'많이 힘드신 것 같아요. 지금 바로 이야기할 수 있는 곳을 알려 드릴게요.',
+    reportFail: '지금은 의견을 받을 수 없어요. 조금 뒤에 다시 보내 주세요.'
+  };
+
+  var STYLE_ID = 'haru-style';
+  var CSS = [
+    '.haru-backdrop{position:fixed;inset:0;background:rgba(18,34,36,.40);display:flex;align-items:flex-end;justify-content:center;z-index:9000}',
+    '@media (min-width:600px){.haru-backdrop{align-items:center}}',
+    '.haru-panel{--h-teal:#22706B;--h-teal-soft:#E1F1EF;--h-sun:#F2B544;--h-sun-soft:#FDF2DA;--h-warn:#9A5B12;--h-warn-soft:#FBEBD3;--h-ink:#1D2A2A;--h-muted:#56676A;--h-line:#D3E2E0;--h-red:#C0392B;',
+    '  width:100%;max-width:460px;max-height:90vh;overflow:auto;background:#FAFCFC;color:var(--h-ink);border-radius:18px 18px 0 0;padding:20px 18px 22px;font:inherit;line-height:1.55;box-sizing:border-box}',
+    '@media (min-width:600px){.haru-panel{border-radius:18px}}',
+    '.haru-head{display:flex;gap:12px;align-items:flex-start}',
+    '.haru-face{flex:0 0 48px;height:48px;border-radius:50%;background:var(--h-teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px}',
+    '.haru-bubble{position:relative;background:var(--h-teal-soft);border-radius:14px;padding:10px 14px;font-size:15px;flex:1;min-width:0}',
+    '.haru-bubble:before{content:"";position:absolute;left:-7px;top:16px;border:7px solid transparent;border-right-color:var(--h-teal-soft);border-left:0}',
+    '.haru-name{font-size:13px;color:var(--h-muted);margin:0 0 2px}',
+    '.haru-close{margin-left:auto;background:none;border:0;font-size:22px;line-height:1;color:var(--h-muted);cursor:pointer;padding:4px 6px;border-radius:8px}',
+    '.haru-note{font-size:13px;color:var(--h-muted);margin:10px 0 0;padding:8px 10px;background:#fff;border:1px dashed var(--h-line);border-radius:10px}',
+    '.haru-menus{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}',
+    '.haru-menu{font:inherit;text-align:left;padding:11px 12px;border-radius:12px;border:1.5px solid var(--h-line);background:#fff;color:var(--h-ink);cursor:pointer;min-width:0}',
+    '.haru-menu strong{display:block;font-size:15px}',
+    '.haru-menu small{display:block;font-size:12px;color:var(--h-muted)}',
+    '.haru-menu:hover,.haru-btn:hover{border-color:var(--h-teal)}',
+    '.haru-menu:last-child:nth-child(odd){grid-column:1 / -1}',
+    '.haru-btn{font:inherit;font-size:14px;text-align:center;padding:10px 12px;border-radius:12px;border:1.5px solid var(--h-line);background:#fff;color:var(--h-ink);cursor:pointer}',
+    '.haru-panel button:focus-visible,.haru-panel a:focus-visible,.haru-panel textarea:focus-visible{outline:3px solid var(--h-sun);outline-offset:2px}',
+    '.haru-list{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}',
+    '.haru-item{border:1px solid var(--h-line);border-left:6px solid var(--h-teal);border-radius:4px 12px 12px 4px;background:#fff;padding:12px 14px;min-width:0}',
+    '.haru-item[data-scope="local"]{border-left-color:var(--h-sun)}',
+    '.haru-item[data-special="1"]{border-left-color:#8A7BB8}',
+    '.haru-tags{display:flex;flex-wrap:wrap;gap:6px;margin:0}',
+    '.haru-tag{font-size:12px;padding:1px 8px;border-radius:999px;background:var(--h-teal-soft);color:var(--h-teal)}',
+    '.haru-tag.local{background:var(--h-sun-soft);color:#7A5410}',
+    '.haru-tag.special{background:#EEEAF7;color:#4F4380}',
+    '.haru-title{font-size:16px;font-weight:600;margin:6px 0 2px;overflow-wrap:anywhere}',
+    '.haru-org{font-size:12px;color:var(--h-muted);margin:0}',
+    '.haru-summary{font-size:14px;margin:6px 0 0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
+    '.haru-reason{font-size:13px;margin:8px 0 0;padding:6px 10px;background:var(--h-teal-soft);border-radius:8px}',
+    '.haru-age{font-size:13px;margin:6px 0 0;padding:6px 10px;background:var(--h-warn-soft);color:var(--h-warn);border-radius:8px}',
+    '.haru-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}',
+    '.haru-act{font:inherit;font-size:14px;padding:8px 12px;border-radius:10px;border:0;background:var(--h-teal);color:#fff;cursor:pointer}',
+    '.haru-act.secondary{background:#fff;color:var(--h-teal);border:1.5px solid var(--h-teal)}',
+    '.haru-act[disabled]{background:var(--h-line);color:var(--h-muted);cursor:default;border-color:transparent}',
+    '.haru-link{font:inherit;font-size:13px;background:none;border:0;padding:4px 2px;color:var(--h-muted);text-decoration:underline;cursor:pointer;margin-left:auto}',
+    '.haru-detail{margin:10px 0 0;padding:10px 12px;background:#F4F8F8;border-radius:10px;font-size:14px}',
+    '.haru-detail dt{font-weight:600;font-size:13px;color:var(--h-teal);margin-top:8px}',
+    '.haru-detail dt:first-child{margin-top:0}',
+    '.haru-detail dd{margin:2px 0 0;white-space:pre-line;overflow-wrap:anywhere}',
+    '.haru-detail a{color:var(--h-teal)}',
+    '.haru-checked{font-size:12px;color:var(--h-muted);margin:10px 0 0}',
+    '.haru-more{width:100%;margin-top:10px}',
+    '.haru-extra{margin-top:14px;display:flex;flex-direction:column;gap:6px}',
+    '.haru-special-btn{text-align:left}',
+    '.haru-muted{font-size:13px;color:var(--h-muted);margin:0}',
+    '.haru-report{margin-top:10px;padding:10px 12px;border:1.5px solid var(--h-line);border-radius:10px;background:#fff}',
+    '.haru-report label{display:block;font-size:13px;color:var(--h-muted);margin-bottom:6px}',
+    '.haru-report textarea{width:100%;box-sizing:border-box;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--h-line);border-radius:8px;resize:vertical;min-height:72px}',
+    '.haru-count{font-size:12px;color:var(--h-muted);text-align:right;margin:2px 0 6px}',
+    '.haru-report-msg{font-size:13px;margin:8px 0 0}',
+    '.haru-crisis{margin:10px 0 0;padding:12px 14px;border:3px solid #d64545;border-radius:12px;background:#fff5f5;color:#3a1515}',
+    '.haru-crisis b{display:block;margin-bottom:4px}',
+    '.haru-crisis p{margin:4px 0}',
+    '.haru-crisis .num{font-size:20px;font-weight:800;color:var(--h-red);user-select:all;margin-left:6px}',
+    '.haru-foot{display:flex;gap:8px;margin-top:16px}',
+    '.haru-foot .haru-btn{flex:1}',
+    '@media (prefers-reduced-motion:no-preference){.haru-panel{animation:haru-up .18s ease-out}@keyframes haru-up{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}}'
+  ].join('\n');
+
+  function injectStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    var s = document.createElement('style');
+    s.id = STYLE_ID;
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === 'text') n.textContent = attrs[k];
+      else if (k === 'class') n.className = attrs[k];
+      else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] !== null && attrs[k] !== undefined && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return n;
+  }
+
+  function menuOf(key) { return MENUS.filter(function (m) { return m.key === key; })[0]; }
+
+  // 수요 기록 기본값 — 03_world_update.sql의 npc_demand_logs 칸 이름 기준
+  async function defaultLogDemand(sb, row) {
+    try {
+      var res = await sb.from('npc_demand_logs').insert({
+        npc_type: row.menu === 'job' ? 'job' : 'policy',
+        action: row.action,
+        category: menuOf(row.menu).label,
+        item_id: row.itemId || null
+      });
+      if (res && res.error) console.warn('[haru] 수요 기록 실패', res.error.message);
+    } catch (e) {
+      console.warn('[haru] 수요 기록 실패', e);
+    }
+  }
+
+  function errorLine(err) {
+    var msg = (err && (err.message || err.details)) || '';
+    if (msg.indexOf('profile_required') >= 0) return LINES.needProfile;
+    if (msg.indexOf('login_required') >= 0) return LINES.needLogin;
+    return LINES.failed;
+  }
+
+  // 문의처 글에서 전화번호를 찾아 바로 걸기 링크로 만든다
+  var PHONE = /(0\d{1,2}-\d{3,4}-\d{4}|1\d{3}-\d{4}|\b1\d{2}\b)/;
+  function contactNode(text) {
+    var m = text && text.match(PHONE);
+    if (!m) return document.createTextNode(text || '');
+    var i = text.indexOf(m[0]);
+    return el('span', null, [text.slice(0, i), el('a', { href: 'tel:' + m[0].replace(/-/g, ''), text: m[0] }), text.slice(i + m[0].length)]);
+  }
+
+  function safeUrl(u) {
+    return typeof u === 'string' && /^https?:\/\//i.test(u) ? u : null;
+  }
+
+  function crisisBox() {
+    return el('div', { class: 'haru-crisis', role: 'alert' }, [
+      el('b', { text: '지금 바로 이야기할 수 있는 곳' }),
+      el('p', null, ['자살예방 상담전화', el('span', { class: 'num', text: '109' }), ' 24시간 · 무료']),
+      el('p', null, ['정신건강 상담전화', el('span', { class: 'num', text: '1577-0199' })]),
+      el('p', { text: '위급하면 112 또는 119에 바로 연락하세요. 카페 앞 루미에게 이야기해도 괜찮아요.' })
+    ]);
+  }
+
+  function open(opts) {
+    opts = opts || {};
+    var sb = opts.sb;
+    if (!sb) throw new Error('Haru.open: sb(supabase 클라이언트)가 필요합니다');
+    var log = opts.logDemand || function (row) { return defaultLogDemand(sb, row); };
+    var sgg = opts.profile && opts.profile.sgg_code;
+    injectStyle();
+
+    var lastFocus = document.activeElement;
+    var bubbleText = el('p', { style: 'margin:0', 'aria-live': 'polite' });
+    var body = el('div');
+    var closeBtn = el('button', { class: 'haru-close', type: 'button', 'aria-label': '하루와 대화 닫기', text: '×', onclick: close });
+    var panel = el('div', { class: 'haru-panel', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'haru-dialog-name' }, [
+      el('div', { class: 'haru-head' }, [
+        el('div', { class: 'haru-face', 'aria-hidden': 'true', text: '하루' }),
+        el('div', { class: 'haru-bubble' }, [
+          el('p', { class: 'haru-name', id: 'haru-dialog-name', text: '하루 · 지원센터 정책 안내' }),
+          bubbleText
+        ]),
+        closeBtn
+      ]),
+      body
+    ]);
+    var backdrop = el('div', { class: 'haru-backdrop', onclick: function (e) { if (e.target === backdrop) close(); } }, [panel]);
+    var closed = false;
+
+    function focusables() { return panel.querySelectorAll('button:not([disabled]), a[href], textarea'); }
+    function onKey(e) {
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key !== 'Tab') return;
+      var f = focusables();
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+
+    function close() {
+      if (closed) return;
+      closed = true;
+      document.removeEventListener('keydown', onKey, true);
+      if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+      if (opts.onClose) opts.onClose();
+    }
+
+    function say(text) { bubbleText.textContent = text; }
+    function setBody(nodes, focusSel) {
+      body.innerHTML = '';
+      nodes.forEach(function (n) { if (n) body.appendChild(n); });
+      var first = body.querySelector(focusSel || 'button:not([disabled])');
+      if (first) first.focus();
+      panel.scrollTop = 0;
+    }
+
+    function showMenus() {
+      say(LINES.hello);
+      var nodes = [el('div', { class: 'haru-menus', role: 'group', 'aria-label': '궁금한 지원 고르기' }, MENUS.map(function (m) {
+        return el('button', { class: 'haru-menu', type: 'button', 'data-menu': m.key, onclick: function () { load(m.key); } },
+          [el('strong', { text: m.label }), el('small', { text: m.hint })]);
+      }))];
+      if (sgg && !REGIONS[sgg]) nodes.push(el('p', { class: 'haru-note', text: LINES.otherRegion }));
+      setBody(nodes);
+    }
+
+    function footer() {
+      return el('div', { class: 'haru-foot' }, [
+        el('button', { class: 'haru-btn', type: 'button', text: '다른 지원 보기', onclick: showMenus }),
+        el('button', { class: 'haru-btn', type: 'button', text: '대화 마치기', onclick: close })
+      ]);
+    }
+
+    async function rpc(name, args) {
+      try { return await sb.rpc(name, args); } catch (e) { return { error: e }; }
+    }
+
+    async function load(menu) {
+      var m = menuOf(menu);
+      say(LINES.loading);
+      setBody([]);
+      var both = await Promise.all([
+        rpc('recommend_programs', { p_menu: menu, p_limit: MAX, p_special: false }),
+        rpc('program_counts', { p_menu: menu })
+      ]);
+      if (closed) return;
+      var res = both[0], cnt = both[1];
+      if (res.error) { say(errorLine(res.error)); setBody([footer()]); return; }
+      var items = res.data || [];
+      var counts = (!cnt.error && cnt.data && cnt.data[0]) || { eligible: items.length, special: 0, ineligible: 0 };
+
+      if (counts.ineligible > 0) log({ menu: menu, action: 'ineligible', itemId: 'count:' + counts.ineligible });
+
+      var nodes = [];
+      var list = el('ul', { class: 'haru-list', 'aria-label': m.label + ' 정책' });
+      if (items.length) {
+        say(LINES.result(m.label));
+        items.slice(0, SHOW).forEach(function (it) { list.appendChild(card(it, menu, false)); log({ menu: menu, action: 'recommend', itemId: it.serv_id }); });
+        nodes.push(list);
+        if (items.length > SHOW) {
+          var rest = items.slice(SHOW);
+          var more = el('button', { class: 'haru-btn haru-more', type: 'button', text: '더 보기 (' + rest.length + '개)', onclick: function () {
+            rest.forEach(function (it) { list.appendChild(card(it, menu, false)); log({ menu: menu, action: 'recommend', itemId: it.serv_id }); });
+            more.remove();
+            var next = list.children[SHOW] && list.children[SHOW].querySelector('button');
+            if (next) next.focus();
+          } });
+          nodes.push(more);
+        }
+      } else {
+        say(LINES.empty);
+      }
+      nodes.push(extras(menu, counts));
+      nodes.push(footer());
+      setBody(nodes);
+    }
+
+    // 특정 대상 정책(접힘)과 '조건이 안 맞아 뺀 수'
+    function extras(menu, counts) {
+      var box = el('div', { class: 'haru-extra' });
+      if (counts.special > 0) {
+        var holder = el('div');
+        var btn = el('button', { class: 'haru-btn haru-special-btn', type: 'button', 'aria-expanded': 'false',
+          text: '▸ 특정 대상 정책 ' + counts.special + '개 보기 (장애인·저소득 등)',
+          onclick: async function () {
+            if (btn.getAttribute('aria-expanded') === 'true') {
+              holder.innerHTML = ''; btn.setAttribute('aria-expanded', 'false');
+              btn.textContent = '▸ 특정 대상 정책 ' + counts.special + '개 보기 (장애인·저소득 등)';
+              return;
+            }
+            btn.disabled = true;
+            var r = await rpc('recommend_programs', { p_menu: menu, p_limit: 10, p_special: true });   // 기록하지 않는다
+            btn.disabled = false;
+            if (closed) return;
+            holder.innerHTML = '';
+            if (r.error) { holder.appendChild(el('p', { class: 'haru-muted', text: LINES.failed })); return; }
+            holder.appendChild(el('p', { class: 'haru-muted', text: LINES.special }));
+            var ul = el('ul', { class: 'haru-list' });
+            (r.data || []).forEach(function (it) { ul.appendChild(card(it, menu, true)); });
+            holder.appendChild(ul);
+            btn.setAttribute('aria-expanded', 'true');
+            btn.textContent = '▾ 특정 대상 정책 접기';
+          } });
+        box.appendChild(btn);
+        box.appendChild(holder);
+      }
+      if (counts.ineligible > 0) {
+        box.appendChild(el('p', { class: 'haru-muted', text: '나이·지역 조건이 맞지 않아 뺀 정책이 ' + counts.ineligible + '개 있어요.' }));
+      }
+      return box.childNodes.length ? box : null;
+    }
+
+    // special=true면 기록하지 않고, 신고 버튼도 두지 않는다(무엇을 펼쳤는지 남지 않게)
+    function card(it, menu, special) {
+      var track = special ? function () {} : function (action) { log({ menu: menu, action: action, itemId: it.serv_id }); };
+      var tags = el('p', { class: 'haru-tags' }, [
+        el('span', { class: 'haru-tag' + (it.is_local ? ' local' : ''), text: it.is_local ? ((it.region_label || '').split(' ').pop() || '우리 동네') : '전국' }),
+        it.online_apply ? el('span', { class: 'haru-tag', text: '온라인 신청' }) : null,
+        special && it.target_groups && it.target_groups.length ? el('span', { class: 'haru-tag special', text: '대상: ' + it.target_groups.join(' · ') }) : null
+      ]);
+      var detail = null;
+      var actions = el('div', { class: 'haru-actions' });
+      var detailBtn = el('button', { class: 'haru-act secondary', type: 'button', text: '자세히', 'aria-expanded': 'false', onclick: function () {
+        if (detail) { detail.remove(); detail = null; detailBtn.setAttribute('aria-expanded', 'false'); detailBtn.textContent = '자세히'; return; }
+        detail = detailBox(it);
+        li.insertBefore(detail, actions);
+        detailBtn.setAttribute('aria-expanded', 'true');
+        detailBtn.textContent = '접기';
+        track('view');
+      } });
+      actions.appendChild(detailBtn);
+
+      var url = safeUrl(it.detail_url) || safeUrl(it.homepage);
+      var doneBtn = null;
+      if (url) {
+        actions.appendChild(el('button', { class: 'haru-act', type: 'button', text: '복지로에서 보기', onclick: function () {
+          track('apply_click');
+          window.open(url, '_blank', 'noopener,noreferrer');
+          if (doneBtn) doneBtn.disabled = false;
+          say(LINES.opened);
+        } }));
+        if (!special) {
+          doneBtn = el('button', { class: 'haru-act secondary', type: 'button', text: '신청했어요', disabled: true, onclick: function () {
+            track('self_reported');
+            doneBtn.textContent = '신청했다고 기록했어요';
+            doneBtn.disabled = true;
+            say(LINES.applied);
+          } });
+          actions.appendChild(doneBtn);
+        }
+      }
+      if (!special) {
+        actions.appendChild(el('button', { class: 'haru-link', type: 'button', text: '정보가 달라요', onclick: function () { reportForm(it, li, actions); } }));
+      }
+
+      var li = el('li', { class: 'haru-item', 'data-scope': it.is_local ? 'local' : 'central', 'data-special': special ? '1' : null, 'data-id': it.serv_id }, [
+        tags,
+        el('p', { class: 'haru-title', text: it.name }),
+        it.org ? el('p', { class: 'haru-org', text: it.org }) : null,
+        it.summary ? el('p', { class: 'haru-summary', text: it.summary }) : null,
+        it.reason ? el('p', { class: 'haru-reason', text: '하루: ' + it.reason }) : null,
+        it.age_note ? el('p', { class: 'haru-age', text: '⚠ 나이 조건 확인 — 대상 나이를 복지로에서 꼭 확인해 주세요.' }) : null,
+        actions
+      ]);
+      return li;
+    }
+
+    function detailBox(it) {
+      var rows = [['지원 대상', it.target_text], ['선정 기준', it.criteria_text], ['지원 내용', it.benefit_text], ['신청 방법', it.apply_text]];
+      var dl = el('dl', { style: 'margin:0' });
+      rows.forEach(function (r) {
+        if (!r[1]) return;
+        dl.appendChild(el('dt', { text: r[0] }));
+        dl.appendChild(el('dd', { text: r[1] }));
+      });
+      if (it.contact) { dl.appendChild(el('dt', { text: '문의' })); dl.appendChild(el('dd', null, [contactNode(it.contact)])); }
+      var hp = safeUrl(it.homepage);
+      if (hp) { dl.appendChild(el('dt', { text: '홈페이지' })); dl.appendChild(el('dd', null, [el('a', { href: hp, target: '_blank', rel: 'noopener noreferrer', text: hp })])); }
+      if (!dl.childNodes.length) dl.appendChild(el('dd', { text: '자세한 내용은 복지로에서 확인해 주세요.' }));
+      return el('div', { class: 'haru-detail' }, [
+        dl,
+        el('p', { class: 'haru-checked', text: (it.last_checked ? '복지로 기준 ' + it.last_checked + ' 확인 · ' : '') + '최종 자격은 복지로나 담당 기관에서 확인해 주세요.' })
+      ]);
+    }
+
+    // [정보가 달라요] — 07의 submit_feedback(channel 'haru', kind 'info', 정책 id)
+    function reportForm(it, li, actions) {
+      var old = li.querySelector('.haru-report');
+      if (old) { old.remove(); return; }
+      var id = 'haru-report-' + it.serv_id;
+      var ta = el('textarea', { id: id, maxlength: '300', rows: '3', placeholder: '예: 신청 기간이 끝났어요 / 링크가 안 열려요' });
+      var count = el('p', { class: 'haru-count', text: '0 / 300' });
+      var msg = el('div', { class: 'haru-report-msg', 'aria-live': 'polite' });
+      var send = el('button', { class: 'haru-act', type: 'button', text: '보내기' });
+      var cancel = el('button', { class: 'haru-act secondary', type: 'button', text: '취소', onclick: function () { box.remove(); } });
+      ta.addEventListener('input', function () { count.textContent = ta.value.length + ' / 300'; });
+      send.addEventListener('click', async function () {
+        var text = ta.value.trim();
+        if (!text) { msg.textContent = '어떤 점이 다른지 한 줄만 적어 주세요.'; ta.focus(); return; }
+        send.disabled = true;
+        var r = await rpc('submit_feedback', { p_channel: 'haru', p_kind: 'info', p_place: '지원센터', p_body: text, p_serv_id: it.serv_id });
+        if (closed) return;
+        var out = r.error ? 'error' : r.data;
+        msg.innerHTML = '';
+        if (out === 'saved') {
+          box.replaceChildren(el('p', { class: 'haru-report-msg', text: LINES.reportSaved }));
+          say(LINES.reportSaved);
+        } else if (out === 'crisis') {
+          box.replaceChildren(el('p', { class: 'haru-report-msg', text: LINES.reportCrisis }), crisisBox());
+          say(LINES.reportCrisis);
+        } else {
+          msg.textContent = out === 'too_many' ? LINES.reportMany : LINES.reportFail;
+          send.disabled = out === 'too_many';
+        }
+      });
+      var box = el('div', { class: 'haru-report' }, [
+        el('label', { for: id, text: LINES.reportAsk }),
+        ta, count,
+        el('div', { class: 'haru-actions' }, [send, cancel]),
+        msg
+      ]);
+      li.appendChild(box);
+      ta.focus();
+    }
+
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(backdrop);
+    showMenus();
+    return { close: close };
+  }
+
+  global.Haru = { open: open, _lines: LINES, _menus: MENUS };
+})(window);
+
+</script>
+<!-- ../feedback/feedback.js -->
+<script>
+/*
+ * 마을 의견함 — 시민 쪽 화면 부품 (07_feedback_chat.sql)
+ *
+ *   <script src="feedback/feedback.js"><\/script>
+ *   Feedback.compose({ sb, channel: 'chief', place: '광장', onDone })  → 의견 쓰기 폼(DOM). 이장 대화창·휴대폰에서 쓴다
+ *   Feedback.inbox({ sb, onChange, onCompose })                       → '내 의견함' 목록·대화(DOM). 휴대폰 화면에 붙인다
+ *                                                                        onChange(안 읽은 수) — 불러올 때·읽을 때
+ *   Feedback.unread(sb)                                                → 안 읽은 운영팀 답이 달린 의견 수(Promise<number>)
+ *
+ * - 저장·위기 검사·가리기·횟수 제한은 DB 함수가 한다(submit_feedback · reply_my_feedback). 화면은 결과만 보여 준다.
+ * - 운영팀 답장은 사람이 쓴 것으로 표시한다("운영팀 · 사람이 직접 쓴 답"). 이장·하루는 전해 주는 역할만.
+ * - 07 적용 전이면 "지금은 의견을 받을 수 없어요"로 안내하고 멈추지 않는다.
+ */
+(function (global) {
+  'use strict';
+
+  var KINDS = [
+    { key: 'feature',       label: '이런 게 있으면 좋겠어요' },
+    { key: 'inconvenience', label: '불편해요' },
+    { key: 'bug',           label: '오류가 있어요' }
+  ];
+  var KIND_LABEL = { feature: '기능 요청', inconvenience: '불편', bug: '오류', info: '정책 정보' };
+  var STATUS = { 'new': '접수됨', seen: '확인했어요', done: '반영했어요' };
+  var CHANNEL = { chief: '이장에게', haru: '하루에게' };
+  var COURIER = { chief: '🎩 이장이 운영팀 답을 전해 왔어요', haru: '하루가 운영팀 답을 전해 왔어요' };
+
+  var LINES = {
+    ask:      '마을에 바라는 점, 불편한 점, 오류를 알려 주세요. 운영팀(사람)이 읽고 답해요.',
+    saved:    '운영팀에 전할게요. 답이 오면 휴대폰 "내 의견함"에서 볼 수 있어요.',
+    many:     '오늘은 의견을 많이 보내 주셨어요. 내일 다시 보내 주세요.',
+    crisis:   '많이 힘드신 것 같아요. 지금 바로 이야기할 수 있는 곳을 알려 드릴게요.',
+    failed:   '지금은 의견을 받을 수 없어요. 조금 뒤에 다시 보내 주세요.',
+    empty:    '아직 보낸 의견이 없어요.',
+    loadFail: '의견함을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.',
+    keep:     '보낸 의견은 90일 뒤 자동으로 지워져요. 운영팀에게는 이름 대신 번호로만 보여요.',
+    noBody:   '한 줄만 적어 주세요.'
+  };
+
+  var STYLE_ID = 'feedback-style';
+  var CSS = [
+    '.fb{--fb-ink:#1F2A2A;--fb-muted:#5A6667;--fb-line:#D8E1E0;--fb-accent:#2F6F8F;--fb-soft:#E7F0F4;--fb-staff:#FFF6E3;--fb-staff-line:#E9CF95;--fb-red:#C0392B;font:inherit;color:var(--fb-ink);line-height:1.55}',
+    '.fb *{box-sizing:border-box}',
+    '.fb p{margin:0}',
+    '.fb-form{display:flex;flex-direction:column;gap:10px}',
+    '.fb-kinds{display:flex;flex-wrap:wrap;gap:6px;border:0;margin:0;padding:0}',
+    '.fb-kinds legend{font-size:13px;color:var(--fb-muted);margin-bottom:6px;padding:0}',
+    '.fb-kind{font:inherit;font-size:13px;padding:6px 10px;border-radius:999px;border:1.5px solid var(--fb-line);background:#fff;color:var(--fb-ink);cursor:pointer}',
+    '.fb-kind[aria-pressed="true"]{border-color:var(--fb-accent);background:var(--fb-soft);color:var(--fb-accent);font-weight:600}',
+    '.fb label{font-size:13px;color:var(--fb-muted)}',
+    '.fb textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--fb-line);border-radius:10px;resize:vertical;min-height:80px;background:#fff;color:var(--fb-ink)}',
+    '.fb-count{font-size:12px;color:var(--fb-muted);text-align:right}',
+    '.fb-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}',
+    '.fb-btn{font:inherit;font-size:14px;padding:8px 14px;border-radius:10px;border:0;background:var(--fb-accent);color:#fff;cursor:pointer}',
+    '.fb-btn.secondary{background:#fff;color:var(--fb-accent);border:1.5px solid var(--fb-accent)}',
+    '.fb-btn.danger{background:#fff;color:var(--fb-red);border:1.5px solid var(--fb-red)}',
+    '.fb-btn[disabled]{background:var(--fb-line);color:var(--fb-muted);border-color:transparent;cursor:default}',
+    '.fb button:focus-visible,.fb textarea:focus-visible{outline:3px solid #F4B942;outline-offset:2px}',
+    '.fb-msg{font-size:13px;min-height:1px}',
+    '.fb-note{font-size:12px;color:var(--fb-muted)}',
+    '.fb-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}',
+    '.fb-item{border:1px solid var(--fb-line);border-radius:12px;background:#fff}',
+    '.fb-head{width:100%;text-align:left;font:inherit;background:none;border:0;padding:10px 12px;cursor:pointer;color:var(--fb-ink);display:flex;flex-direction:column;gap:2px}',
+    '.fb-meta{font-size:12px;color:var(--fb-muted);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}',
+    '.fb-status{font-size:11px;padding:1px 8px;border-radius:999px;background:var(--fb-soft);color:var(--fb-accent)}',
+    '.fb-status[data-s="done"]{background:#E6F2E9;color:#2E6B4F}',
+    '.fb-new{font-size:11px;padding:1px 8px;border-radius:999px;background:var(--fb-red);color:#fff;font-weight:600}',
+    '.fb-preview{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}',
+    '.fb-thread{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}',
+    '.fb-bubble{padding:8px 10px;border-radius:12px;font-size:14px;white-space:pre-line;overflow-wrap:anywhere;max-width:92%}',
+    '.fb-bubble.me{align-self:flex-end;background:var(--fb-soft)}',
+    '.fb-bubble.staff{align-self:flex-start;background:var(--fb-staff);border:1px solid var(--fb-staff-line)}',
+    '.fb-who{display:block;font-size:11px;color:var(--fb-muted);margin-bottom:2px}',
+    '.fb-courier{font-size:12px;color:#7A5410;margin-top:2px}',
+    '.fb-crisis{padding:12px 14px;border:3px solid #d64545;border-radius:12px;background:#fff5f5;color:#3a1515}',
+    '.fb-crisis b{display:block;margin-bottom:4px}',
+    '.fb-crisis .num{font-size:20px;font-weight:800;color:var(--fb-red);user-select:all;margin-left:6px}'
+  ].join('\n');
+
+  function injectStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    var s = document.createElement('style');
+    s.id = STYLE_ID;
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === 'text') n.textContent = attrs[k];
+      else if (k === 'class') n.className = attrs[k];
+      else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] !== null && attrs[k] !== undefined && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return n;
+  }
+
+  async function rpc(sb, name, args) {
+    try { return await sb.rpc(name, args); } catch (e) { return { error: e }; }
+  }
+
+  function when(iso) {
+    try {
+      return new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch (e) { return ''; }
+  }
+
+  function crisisBox() {
+    return el('div', { class: 'fb-crisis', role: 'alert' }, [
+      el('b', { text: '지금 바로 이야기할 수 있는 곳' }),
+      el('p', null, ['자살예방 상담전화', el('span', { class: 'num', text: '109' }), ' 24시간 · 무료']),
+      el('p', null, ['정신건강 상담전화', el('span', { class: 'num', text: '1577-0199' })]),
+      el('p', { text: '위급하면 112 또는 119에 바로 연락하세요. 카페 앞 루미에게 이야기해도 괜찮아요.' })
+    ]);
+  }
+
+  var uid = 0;
+  function textArea(label, max, placeholder) {
+    var id = 'fb-ta-' + (++uid);
+    var ta = el('textarea', { id: id, maxlength: String(max), rows: '3', placeholder: placeholder || '' });
+    var count = el('p', { class: 'fb-count', text: '0 / ' + max });
+    ta.addEventListener('input', function () { count.textContent = ta.value.length + ' / ' + max; });
+    return { ta: ta, nodes: [el('label', { for: id, text: label }), ta, count] };
+  }
+
+  // ---------------------------------------------------------------- 의견 쓰기
+  function compose(opts) {
+    injectStyle();
+    var sb = opts.sb;
+    var kind = null;
+    var msg = el('p', { class: 'fb-msg', 'aria-live': 'polite' });
+    var kindBtns = KINDS.map(function (k) {
+      return el('button', { class: 'fb-kind', type: 'button', 'aria-pressed': 'false', 'data-kind': k.key, text: k.label, onclick: function () {
+        kind = k.key;
+        kindBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.kind === kind ? 'true' : 'false'); });
+      } });
+    });
+    var area = textArea('어떤 내용인가요?', 300, '예: 지도에서 공원 가는 길이 헷갈려요');
+    var send = el('button', { class: 'fb-btn', type: 'button', text: '보내기' });
+    var cancel = opts.onCancel ? el('button', { class: 'fb-btn secondary', type: 'button', text: '취소', onclick: opts.onCancel }) : null;
+    var root = el('div', { class: 'fb fb-form' }, [
+      el('p', { class: 'fb-note', text: LINES.ask }),
+      el('fieldset', { class: 'fb-kinds' }, [el('legend', { text: '종류' })].concat(kindBtns)),
+    ].concat(area.nodes, [el('div', { class: 'fb-row' }, [send, cancel]), msg]));
+
+    send.addEventListener('click', async function () {
+      var text = area.ta.value.trim();
+      if (!kind) { msg.textContent = '종류를 하나 골라 주세요.'; kindBtns[0].focus(); return; }
+      if (!text) { msg.textContent = LINES.noBody; area.ta.focus(); return; }
+      send.disabled = true;
+      var r = await rpc(sb, 'submit_feedback', { p_channel: opts.channel || 'chief', p_kind: kind, p_place: opts.place || null, p_body: text, p_serv_id: null });
+      var out = r.error ? 'error' : r.data;
+      if (out === 'saved') {
+        root.replaceChildren(el('p', { class: 'fb-msg', role: 'status', text: LINES.saved }));
+      } else if (out === 'crisis') {
+        root.replaceChildren(el('p', { class: 'fb-msg', text: LINES.crisis }), crisisBox());
+      } else {
+        msg.textContent = out === 'too_many' ? LINES.many : LINES.failed;
+        send.disabled = out === 'too_many';
+        if (r.error) console.warn('[feedback] 보내기 실패', r.error.message || r.error);
+      }
+      if (opts.onDone) opts.onDone(out);
+    });
+    return root;
+  }
+
+  // ---------------------------------------------------------------- 내 의견함
+  function inbox(opts) {
+    injectStyle();
+    var sb = opts.sb;
+    var root = el('div', { class: 'fb' });
+    var openId = null;
+    var current = [];
+    function changed() { if (opts.onChange) opts.onChange(current.filter(function (x) { return x.unread; }).length); }
+
+    async function load() {
+      root.replaceChildren(el('p', { class: 'fb-note', text: '불러오는 중…' }));
+      var r = await rpc(sb, 'my_feedback', {});
+      if (r.error) { root.replaceChildren(el('p', { class: 'fb-msg', text: LINES.loadFail })); return; }
+      render(r.data || []);
+    }
+
+    function render(rows) {
+      current = rows;
+      var top = el('div', { class: 'fb-row', style: 'justify-content:space-between;margin-bottom:10px' }, [
+        el('p', { class: 'fb-note', text: rows.length ? '보낸 의견 ' + rows.length + '개' : LINES.empty }),
+        opts.onCompose ? el('button', { class: 'fb-btn secondary', type: 'button', text: '새 의견 보내기', onclick: opts.onCompose }) : null
+      ]);
+      var list = el('ul', { class: 'fb-list' }, rows.map(item));
+      root.replaceChildren(top, list, el('p', { class: 'fb-note', style: 'margin-top:10px', text: LINES.keep }));
+      changed();
+    }
+
+    function item(f) {
+      var li = el('li', { class: 'fb-item', 'data-id': String(f.id) });
+      var thread = null;
+      var head = el('button', { class: 'fb-head', type: 'button', 'aria-expanded': 'false', onclick: toggle }, [
+        el('span', { class: 'fb-meta' }, [
+          f.unread ? el('span', { class: 'fb-new', text: '새 답' }) : null,
+          el('span', { class: 'fb-status', 'data-s': f.status, text: STATUS[f.status] || f.status }),
+          el('span', { text: (CHANNEL[f.channel] || '') + ' · ' + (KIND_LABEL[f.kind] || f.kind) + (f.program_name ? ' · ' + f.program_name : '') }),
+          el('span', { text: when(f.created_at) })
+        ]),
+        el('span', { class: 'fb-preview', text: f.body })
+      ]);
+      li.appendChild(head);
+
+      function toggle() {
+        if (thread) { thread.remove(); thread = null; head.setAttribute('aria-expanded', 'false'); openId = null; return; }
+        thread = threadView(f);
+        li.appendChild(thread);
+        head.setAttribute('aria-expanded', 'true');
+        openId = f.id;
+        if (f.unread) {
+          f.unread = false;
+          var badge = head.querySelector('.fb-new'); if (badge) badge.remove();
+          rpc(sb, 'read_my_feedback', { p_id: f.id });
+          changed();
+        }
+      }
+      if (openId === f.id) setTimeout(toggle, 0);
+      return li;
+    }
+
+    function threadView(f) {
+      var nodes = [el('p', { class: 'fb-bubble me' }, [el('span', { class: 'fb-who', text: '나 · ' + when(f.created_at) + (f.place ? ' · ' + f.place : '') }), f.body])];
+      var courierShown = false;
+      (f.messages || []).forEach(function (m) {
+        if (m.who === 'staff') {
+          if (!courierShown) { nodes.push(el('p', { class: 'fb-courier', text: COURIER[f.channel] || COURIER.chief })); courierShown = true; }
+          nodes.push(el('p', { class: 'fb-bubble staff' }, [el('span', { class: 'fb-who', text: '운영팀 · 사람이 직접 쓴 답 · ' + when(m.at) }), m.body]));
+        } else {
+          nodes.push(el('p', { class: 'fb-bubble me' }, [el('span', { class: 'fb-who', text: '나 · ' + when(m.at) }), m.body]));
+        }
+      });
+      var area = textArea('운영팀에 더 전할 말', 300, '');
+      var msg = el('p', { class: 'fb-msg', 'aria-live': 'polite' });
+      var send = el('button', { class: 'fb-btn', type: 'button', text: '답장 보내기' });
+      var del = el('button', { class: 'fb-btn danger', type: 'button', text: '이 의견 지우기' });
+      send.addEventListener('click', async function () {
+        var text = area.ta.value.trim();
+        if (!text) { msg.textContent = LINES.noBody; area.ta.focus(); return; }
+        send.disabled = true;
+        var r = await rpc(sb, 'reply_my_feedback', { p_id: f.id, p_body: text });
+        var out = r.error ? 'error' : r.data;
+        if (out === 'saved') { openId = f.id; load(); return; }
+        if (out === 'crisis') { box.replaceChildren(el('p', { class: 'fb-msg', text: LINES.crisis }), crisisBox()); return; }
+        msg.textContent = out === 'too_many' ? LINES.many : LINES.failed;
+        send.disabled = out === 'too_many';
+      });
+      var confirmStep = false;
+      del.addEventListener('click', async function () {
+        if (!confirmStep) { confirmStep = true; del.textContent = '정말 지울까요? 한 번 더 누르면 지워져요'; return; }
+        del.disabled = true;
+        var r = await rpc(sb, 'delete_my_feedback', { p_id: f.id });
+        if (r.error || r.data === false) { msg.textContent = '지우지 못했어요. 잠시 뒤 다시 해 주세요.'; del.disabled = false; return; }
+        openId = null;
+        load();
+      });
+      var box = el('div', { class: 'fb-form' }, area.nodes.concat([el('div', { class: 'fb-row' }, [send, del]), msg]));
+      nodes.push(box);
+      return el('div', { class: 'fb-thread' }, nodes);
+    }
+
+    load();
+    root.reload = load;
+    return root;
+  }
+
+  async function unread(sb) {
+    var r = await rpc(sb, 'my_feedback_unread', {});
+    return r.error ? 0 : (Number(r.data) || 0);
+  }
+
+  global.Feedback = { compose: compose, inbox: inbox, unread: unread, _lines: LINES };
 })(window);
 
 </script>
@@ -3674,6 +4467,9 @@ select:disabled {
  *   keyLabel(action)      'interact' → 'E' 같은 현재 키 이름
  *   close() / reset()     화면 닫기 / 로그아웃 때 알림 상태 초기화
  *
+ * 내 의견함(2026-10-07): ../feedback/feedback.js가 있으면 휴대폰에 '내 의견함' 앱이 생긴다(07_feedback_chat.sql).
+ *   휴대폰을 열 때·마을에 들어올 때 운영팀 새 답 수를 확인해 배지로 보여 준다.
+ *
  * 저장: 이 브라우저 localStorage 에 설정(미니맵 방향·화질·키·효과음)만 남긴다.
  *       대화 내용·알림 내용은 어디에도 저장하지 않는다.
  */
@@ -3700,6 +4496,7 @@ select:disabled {
     chat: 'M21 11a9 8 0 0 1-9 8H6l-4 3 1-7a8 8 0 0 1 9-12 9 8 0 0 1 9 8ZM8 10h8M8 14h5',
     club: 'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87M12 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
     mission: 'M9 4h6v4H9zM9 6H5v15h14V6h-4M8 14l3 3 5-6',
+    mail: 'M3 6h18v12H3zM3 7l9 7 9-7',
     home: 'm3 10 9-7 9 7M5 9v12h14V9M10 21v-7h4v7',
     close: 'm6 6 12 12M6 18 18 6',
     back: 'm15 5-7 7 7 7',
@@ -3725,8 +4522,7 @@ select:disabled {
   // 연락처에 보이는 역할 설명 (이름·이모지·색은 앱의 NPC 목록을 따른다)
   var NPC_ROLE = {
     psych: '이야기 친구 · 카페 앞',
-    policy: '정책·생활 정보 · 분수 옆',
-    job: '취업·진로 상담 · 분수 옆',
+    haru: '정책·취업 지원 안내 · 지원센터 앞',
     chief: '마을 소식·모임 · 광장',
     coco: '활동·모임 추천 · 동아리센터 앞'
   };
@@ -3772,7 +4568,10 @@ select:disabled {
     noticeUser: null,
     noticeTimer: null,
     hideTimer: null,
-    data: { clubs: null, myClubs: {}, missions: null, progress: {}, error: null }
+    data: { clubs: null, myClubs: {}, missions: null, progress: {}, error: null },
+    fbUnread: 0,          // 운영팀 새 답이 달린 내 의견 수
+    fbUser: null,
+    fbCompose: false      // 내 의견함 화면에서 '새 의견' 폼을 보여 주는 중
   };
 
   function persist() {
@@ -3910,7 +4709,7 @@ select:disabled {
   }
 
   // ---------------------------------------------------------------- 코코 알림
-  function unread() { return ui.notice && !ui.notice.read ? 1 : 0; }
+  function unread() { return (ui.notice && !ui.notice.read ? 1 : 0) + (ui.fbUnread || 0); }
   function updateBadge() {
     var b = $('#unread-badge'), n = unread();
     b.hidden = !n;
@@ -3956,6 +4755,27 @@ select:disabled {
     ui.hideTimer = setTimeout(hideNotice, COCO_NOTICE.showMs);
     updateBadge();
     play('cocoNotification');
+  }
+
+  // ---------------------------------------------------------------- 내 의견함 (운영팀 답 확인)
+  function hasFeedback() { return !!(window.Feedback && host && host.sb); }
+  function setFbUnread(n) {
+    var before = ui.fbUnread || 0;
+    ui.fbUnread = Math.max(0, n || 0);
+    updateBadge();
+    if (ui.panel === 'phone' && ui.page === 'home') {
+      var b = $('#fb-app-badge'); if (b) { b.hidden = !ui.fbUnread; b.textContent = ui.fbUnread; }
+    }
+    return ui.fbUnread > before;
+  }
+  function checkFeedback(announce) {
+    if (!hasFeedback() || !host.userId()) return;
+    var uid = host.userId();
+    if (ui.fbUser !== uid) { ui.fbUser = uid; ui.fbUnread = 0; }
+    window.Feedback.unread(host.sb).then(function (n) {
+      if (ui.fbUser !== uid) return;
+      if (setFbUnread(n) && announce) toast('보낸 의견에 운영팀 답이 왔어요 — 휴대폰 → 내 의견함');
+    });
   }
 
   // ---------------------------------------------------------------- DB (동아리·미션)
@@ -4032,10 +4852,12 @@ select:disabled {
     openPanel('phone');
     phoneNavigate(page || 'home');
     focusFirst();
+    checkFeedback(false);
   }
-  function phoneNavigate(page) {
+  function phoneNavigate(page, opt) {
     ui.bindingTarget = null;
     ui.page = page;
+    ui.fbCompose = page === 'feedback' && !!(opt && opt.compose);
     if (page === 'clubs' || page === 'missions') {
       if (page === 'clubs') ui.data.clubs = null; else ui.data.missions = null;
       refresh(page);
@@ -4045,7 +4867,7 @@ select:disabled {
     if (pc) pc.scrollTop = 0;
   }
 
-  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정' };
+  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정', feedback: '내 의견함' };
   var NAV = [['home', 'home', '홈'], ['clubs', 'club', '동아리'], ['missions', 'mission', '미션'], ['contacts', 'chat', '연락처'], ['settings', 'settings', '설정']];
 
   function homeHTML() {
@@ -4057,11 +4879,15 @@ select:disabled {
         '<div><strong>코코의 활동 편지</strong><small>' + (unread() ? '새 메시지 1개' : '함께 해볼 만한 활동을 찾아요') + '</small></div></div>' +
         '<p>' + esc(cocoLine) + '</p>' +
         '<button class="action primary" data-coco>코코와 이야기하기 ' + icon('arrow') + '</button></section>' +
-      '<div class="stack"><button class="action secondary" data-contact="chief">🎩 마을이장 · 이번 주 모임 보기</button></div>' +
-      '<div class="home-apps">' +
+      '<div class="stack"><button class="action secondary" data-contact="chief">🎩 마을이장 · 이번 주 모임 보기</button>' +
+        (hasFeedback() ? '<button class="action secondary" data-fb-compose>✉️ 마을에 건의하기</button>' : '') + '</div>' +
+      '<div class="home-apps' + (hasFeedback() ? ' four' : '') + '">' +
         '<button data-nav="clubs"><span class="app-icon">' + icon('club') + '</span>동아리</button>' +
         '<button data-nav="missions"><span class="app-icon">' + icon('mission') + '</span>미션</button>' +
-        '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button></div>' +
+        '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button>' +
+        (hasFeedback() ? '<button data-nav="feedback" aria-label="내 의견함' + (ui.fbUnread ? ', 새 답 ' + ui.fbUnread + '개' : '') + '"><span class="app-icon">' + icon('mail') +
+          '<span class="app-badge" id="fb-app-badge"' + (ui.fbUnread ? '' : ' hidden') + '>' + ui.fbUnread + '</span></span>내 의견함</button>' : '') +
+      '</div>' +
       '<button class="action secondary home-map" data-open-map>' + icon('map') + ' 전체 지도 열기 <span>' + codeLabel(settings.bindings.map) + '</span></button>' +
       '<p class="info-note">휴대폰에서 한 동아리 가입·미션 참여도 마을에서 한 것과 똑같이 저장돼요. 대화 내용은 저장하지 않아요.</p>';
   }
@@ -4204,7 +5030,8 @@ select:disabled {
   function renderPhone() {
     var keepScroll = ui.page === 'settings' ? (($('#phone-content') || {}).scrollTop || 0) : 0;
     var body = ui.page === 'clubs' ? clubsHTML() : ui.page === 'missions' ? missionsHTML()
-      : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML() : homeHTML();
+      : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML()
+      : ui.page === 'feedback' ? '<div id="fb-mount"></div>' : homeHTML();
     var now = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
     $('#overlay').innerHTML =
       '<section class="phone-dialog" role="dialog" aria-modal="true" aria-labelledby="phone-title">' +
@@ -4239,7 +5066,30 @@ select:disabled {
     each('[data-join-club]', function (b) { b.onclick = function () { joinClub(Number(b.dataset.joinClub), b); }; });
     each('[data-start]', function (b) { b.onclick = function () { startMission(Number(b.dataset.start), b); }; });
     each('[data-complete]', function (b) { b.onclick = function () { completeMission(Number(b.dataset.complete), b); }; });
+    each('[data-fb-compose]', function (b) { b.onclick = function () { phoneNavigate('feedback', { compose: true }); focusFirst(); }; });
     if (ui.page === 'settings') { bindSettings(); $('#phone-content').scrollTop = keepScroll; }
+    if (ui.page === 'feedback') mountFeedback();
+  }
+
+  // 내 의견함 화면 — 목록·대화·새 의견은 feedback.js가 그린다
+  function mountFeedback() {
+    var m = $('#fb-mount');
+    if (!m) return;
+    if (!hasFeedback()) { m.innerHTML = '<p class="record-empty">지금은 의견함을 열 수 없어요.</p>'; return; }
+    var title = $('#phone-title');
+    if (ui.fbCompose) {
+      if (title) title.textContent = '마을에 건의하기';
+      m.replaceChildren(window.Feedback.compose({
+        sb: host.sb, channel: 'chief', place: null,
+        onCancel: function () { phoneNavigate('feedback'); focusFirst(); }
+      }));
+    } else {
+      m.replaceChildren(window.Feedback.inbox({
+        sb: host.sb,
+        onChange: setFbUnread,
+        onCompose: function () { phoneNavigate('feedback', { compose: true }); focusFirst(); }
+      }));
+    }
   }
 
   // ---------------------------------------------------------------- 키보드
@@ -4302,12 +5152,14 @@ select:disabled {
     if (ui.panel && !allowed()) closePanel();
     if (ui.ctx.tour) hideNotice();
     scheduleNotice();
+    if (ui.ctx.inVillage && !ui.ctx.tour && ui.fbUser !== host.userId()) checkFeedback(true);   // 로그인마다 한 번
   }
   function reset() {
     closePanel();
     hideNotice();
     clearTimeout(ui.noticeTimer); ui.noticeTimer = null;
     ui.notice = null; ui.noticeUser = null;
+    ui.fbUnread = 0; ui.fbUser = null;
     updateBadge();
   }
 
@@ -4359,37 +5211,8 @@ select:disabled {
   // 대화 원문은 저장하지 않는다. 저장되는 것은 NPC 종류·태그 수·심각도뿐이다.
   // ---------------------------------------------------------------
   var NPCS = [
-    { id:"policy", name:"정책추천 NPC", emoji:"📋", color:"#5b8def",
-      tree:{
-        root:{text:"안녕하세요! 저는 정책추천 도우미예요. 무엇을 도와드릴까요?",
-          options:[{label:"청년 주거 지원 정책이 궁금해요", next:"housing"},
-                   {label:"생활비 지원 제도를 알고 싶어요", next:"living", signal:{tags:["생계부담"], severity:0.3}},
-                   {label:"그냥 둘러볼게요", next:"bye"}]},
-        housing:{text:"청년 월세 지원, 전세보증금 대출이자 지원 같은 제도가 있어요. 거주 지역 기준으로 더 정확히 안내해 드릴 수 있어요 (실제 서비스에서는 복지자원 DB와 연동됩니다).",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        living:{text:"청년 생활안정자금, 자립수당 등이 대표적이에요. 자격 요건은 소득·나이 기준에 따라 달라져요.",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        bye:{text:"언제든 다시 찾아주세요! 👋", options:[]}
-      }},
-    { id:"job", name:"취업상담 NPC", emoji:"💼", color:"#2fa86b",
-      tree:{
-        root:{text:"어떤 취업 준비 단계에 계신가요?",
-          options:[{label:"이제 막 구직을 시작했어요", next:"start"},
-                   {label:"면접까지 왔는데 막막해요", next:"interview"},
-                   {label:"오래 준비했는데 계속 떨어져서 지쳤어요", next:"longterm", signal:{tags:["장기구직","무기력"], severity:0.6}},
-                   {label:"그냥 둘러볼게요", next:"bye"}]},
-        start:{text:"좋아요, 시작이 반이에요. 관심 직무 분야를 정하고 청년 취업지원 프로그램부터 알아보는 걸 추천해요.",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        interview:{text:"면접 전 모의면접 프로그램이나 취업 상담 센터를 연계해 드릴 수 있어요 (실제 서비스에서는 복지자원 DB와 연동됩니다).",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        longterm:{text:"그동안 정말 애쓰셨어요. 결과가 안 나오면 나 자신을 탓하게 되기 쉬운데, 그건 노력이 부족해서가 아니에요. 구직을 오래 쉬었던 청년을 위한 도전지원사업도 있고, 마음이 많이 지쳤다면 루미와 먼저 이야기해 보는 것도 좋아요.",
-          options:[{label:"요즘은 아예 아무것도 하기 싫어요", next:"giveup", signal:{tags:["구직단념","사회적회피"], severity:0.7}},
-                   {label:"지원사업 알려주세요", next:"interview"},
-                   {label:"고마워요", next:"bye"}]},
-        giveup:{text:"그럴 수 있어요. 당분간 취업 이야기는 잠시 내려놓아도 괜찮아요. 카페 앞에 있는 루미가 이야기를 들어줄 거예요.",
-          options:[{label:"알겠어요", next:"bye"}]},
-        bye:{text:"응원할게요, 다음에 또 봐요! 💪", options:[]}
-      }},
+    // 정책추천·취업상담 창구는 2026-10-07 지원센터 하루(haru/haru.js)로 합쳤다. 취업 준비로 지친 마음을 말하는
+    // 선택지(장기구직·무기력·구직단념 태그)는 루미 대본(tired → jobtired)으로 옮겼다 — 위험 탐지는 루미(psych)만 읽는다
     // 루미 — 튜토리얼과 같은 친구 말투(반말)로 통일. 선택지는 유저가 루미에게 하는 말이라 역시 반말
     { id:"psych", name:"루미", emoji:"🌱", color:"#B56CC0",
       disclaimer:"AI 친구 · 사람 상담사는 아니야",
@@ -4401,7 +5224,14 @@ select:disabled {
         tired:{text:"그랬구나, 많이 힘들었겠다. 요즘 사람들이랑은 어떻게 지내?",
           options:[{label:"가끔 친구들 만나", next:"social", signal:{tags:[], severity:0.2}},
                    {label:"속얘기할 사람이 별로 없어", next:"duration", signal:{tags:["대화상대없음","소외감"], severity:0.6}},
-                   {label:"다 귀찮고 혼자 있는 게 편해", next:"duration", signal:{tags:["사회적회피"], severity:0.6}}]},
+                   {label:"다 귀찮고 혼자 있는 게 편해", next:"duration", signal:{tags:["사회적회피"], severity:0.6}},
+                   {label:"취업 준비가 길어져서 지쳤어", next:"jobtired", signal:{tags:["장기구직","무기력"], severity:0.6}}]},
+        jobtired:{text:"오래 버티느라 정말 애썼다. 결과가 안 나오면 나를 탓하기 쉬운데, 그건 노력이 부족해서가 아니야. 요즘은 어때?",
+          options:[{label:"요즘은 아예 아무것도 하기 싫어", next:"duration", signal:{tags:["구직단념","사회적회피"], severity:0.7}},
+                   {label:"받을 수 있는 지원이 있을까?", next:"jobhelp"},
+                   {label:"고마워", next:"bye"}]},
+        jobhelp:{text:"지원센터에 있는 하루가 일·취업 지원을 찾아 줄 거야. 신청은 네가 직접 하고, 하루는 어디서 어떻게 하는지 알려 줘. 힘들면 언제든 다시 카페로 와.",
+          options:[{label:"고마워", next:"bye"}]},
         social:{text:"다행이다! 가까운 사람들이랑 보내는 시간이 힘이 될 거야. 지친 마음은 가벼운 활동으로 풀어 보는 것도 좋아. 미션방에 작은 퀘스트들이 있어.",
           options:[{label:"고마워", next:"bye"}]},
         duration:{text:"그런 시간이 길어지면 마음이 더 무겁게 느껴질 수 있어. 이런 상태가 얼마나 됐어?",
@@ -4412,7 +5242,7 @@ select:disabled {
           options:[{label:"상담은 어디서 받을 수 있어?", next:"counsel"},
                    {label:"동아리센터 한번 가 볼게", next:"bye"},
                    {label:"고마워", next:"bye"}]},
-        counsel:{text:"청년 마음건강 바우처로 전문 심리상담을 받을 수 있고, 가까운 정신건강복지센터(정신건강 상담전화 1577-0199)에서도 상담받을 수 있어. 신청 방법은 지원센터 쪽 창구에서 알려 줄 거야.",
+        counsel:{text:"청년 마음건강 바우처로 전문 심리상담을 받을 수 있고, 가까운 정신건강복지센터(정신건강 상담전화 1577-0199)에서도 상담받을 수 있어. 신청 방법은 지원센터의 하루가 알려 줄 거야.",
           options:[{label:"고마워", next:"bye"}]},
         crisis:{crisis:true,
           text:"그런 마음까지 들었구나. 지금 많이 힘든 상태일 수 있어. 혼자 견디지 말고 지금 바로 전문 상담사랑 이야기해 줘. 24시간 언제든 연결돼. 나도 여기 있을게.",
@@ -4433,7 +5263,10 @@ select:disabled {
       }},
     // 코코 — 활동 추천. 대본 트리 대신 coco/coco.js 대화창을 연다(openNpc 참고).
     // 위험 신호가 아니라 수요 신호라 npc_sessions에 남기지 않고, coco.js가 npc_demand_logs에 기록한다
-    { id:"coco", name:"코코", emoji:"🎈", color:"#2E6B4F", noSignal:true, external:true }
+    { id:"coco", name:"코코", emoji:"🎈", color:"#2E6B4F", noSignal:true, external:true },
+    // 하루 — 지원센터 정책 안내. 대본 트리 대신 haru/haru.js 대화창을 연다(openNpc 참고).
+    // 위험 신호가 아니라 수요 신호라 npc_sessions에 남기지 않고, haru.js가 npc_demand_logs에 기록한다
+    { id:"haru", name:"하루", emoji:"🏛️", color:"#22706B", noSignal:true, external:true }
   ];
 
   var state = {
@@ -4878,14 +5711,14 @@ select:disabled {
   // 3D 마을 ↔ 앱 연결 — 광장·내 방·루미와 걷는 투어 (2026-09-29)
   // ================================================================
   var STUB_MSG = {
-    support: "🏛️ 지원센터는 준비 중이에요. 하루가 곧 이사 와요 — 지금은 분수 옆 정책추천·취업상담 창구를 이용해 주세요.",
+    support: "🏛️ 지원센터 안은 준비 중이에요. 문 앞의 하루에게 말을 걸면 받을 수 있는 지원을 찾아 줘요.",
     park: "🌳 공원 산책로·러닝 챌린지는 준비 중이에요. 연못가 벤치에서 쉬어 가도 돼요.",
     game: "🎮 게임방은 준비 중이에요. 곧 같이 하는 미니게임이 열려요.",
     cafe: "☕ 카페 안은 준비 중이에요. 루미는 카페 앞에 있어요!"
   };
   function npcName(id){ var n = NPCS.filter(function(x){ return x.id === id; })[0]; return n ? n.name : ""; }
   // 앱 대화창(NPC·튜토리얼·코코·이장)이 열려 있는가 — 휴대폰(ui.js)이 알림을 미룰 때도 쓴다
-  function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop"); }
+  function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop, .haru-backdrop"); }
   // 3D 입력을 멈춰야 하는가 — 대화창 또는 휴대폰·지도(ui.js)가 열려 있을 때
   function worldBlocked(){ return dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
   // 현재 키 이름 — 휴대폰 설정에서 바꿀 수 있다(ui.js). ui.js가 없으면 기본 키
@@ -4903,7 +5736,8 @@ select:disabled {
     E.hooks.view = function(changed){ var b = document.getElementById("hud-view"); if(b) b.hidden = !changed; };
     var mmc = document.getElementById("hud-minimap"); if(mmc && E.attachMinimap && !mmc.__on){ mmc.__on = true; mmc.hidden = false; E.attachMinimap(mmc); }
     if(window.WorldUI) window.WorldUI.attach(E);
-    E.bubbleNpc = (state.feedback && state.feedback.npc_emphasis) || "psych";
+    var emph = (state.feedback && state.feedback.npc_emphasis) || "psych";
+    E.bubbleNpc = (emph === "policy" || emph === "job") ? "haru" : emph;   // 정책·취업 강조는 하루가 받는다
     opt = opt || {};
     opt.avatar = currentAvatar() || presetAvatar("calm", "#4caf6e", nick());
     E.enter(mode, opt);
@@ -5020,7 +5854,7 @@ select:disabled {
     park:   { label:"공원", go:"연못 있는 공원으로 가자!",
               text:function(c){ return "🌳 공원! 연못가 벤치에서 쉬거나 산책·러닝 챌린지를 할 수 있어. 이장님이 가끔 같이 걷기 모임도 여셔." + (c.goal === "rest" ? " 쉬고 싶을 때 딱이야." : ""); } },
     support:{ label:"지원센터", go:"저 위 지원센터로 가자!",
-              text:function(){ return "🏛️ 지원센터야. 하루가 청년 정책·취업·주거 지원을 찾아 줘. 신청은 네가 직접 하고, 하루는 어디서 어떻게 하는지 알려 줘. 하루가 이사 오기 전까지는 분수 옆 정책추천·취업상담 창구를 쓰면 돼."; } },
+              text:function(){ return "🏛️ 지원센터야. 하루가 청년 정책·취업·주거 지원을 찾아 줘. 신청은 네가 직접 하고, 하루는 어디서 어떻게 하는지 알려 줘. 하루는 문 앞에 있어."; } },
     game:   { label:"게임방", go:"줄무늬 천막, 게임방으로 가자!",
               text:function(){ return "🎮 게임방! 다른 주민들이랑 가볍게 게임하는 곳이야. 말 안 하고 같이 있기만 해도 괜찮아."; } },
     cafe:   { label:"카페", go:"지원센터 왼쪽, 카페로 가자! 내 자리야.",
@@ -5187,7 +6021,7 @@ select:disabled {
   })();
 
   // 휴대폰·지도·설정·코코 알림 (ui.js) — 앱 기능을 여기서 넘겨준다
-  var CONTACT_ORDER = ["psych","coco","chief","policy","job"];
+  var CONTACT_ORDER = ["psych","coco","chief","haru"];
   if(window.WorldUI) window.WorldUI.init({
     sb: sb,
     userId: function(){ return state.session ? state.session.user.id : null; },
@@ -5323,12 +6157,26 @@ select:disabled {
   function openNpc(id){
     if(state.tour){ showToast("투어 중이에요 — 루미를 따라가 보세요"); return; }
     if(id === "coco"){ openCoco(); return; }
+    if(id === "haru"){ openHaru(); return; }
     if(id === "chief" && window.Chief){ openChief(); return; }
     state.near = null;
     state.activeNpc = NPCS.filter(function(n){ return n.id===id; })[0];
     state.npcNode = "root";
     state.npcSession = { npc_type: id, started_at: new Date().toISOString(), tags: {}, maxSev: 0, turns: 0, crisisReported: false };
     renderNpcModal();
+  }
+
+  // 하루 — 정책 고르기는 DB(recommend_programs·program_counts, 06), 화면은 haru/haru.js. LLM 없음
+  var haruDialog = null;
+  function openHaru(){
+    if(haruDialog) return;
+    if(!window.Haru){ showToast("하루가 잠깐 자리를 비웠어요 (haru/haru.js를 불러오지 못함)"); return; }
+    state.near = null;
+    haruDialog = window.Haru.open({
+      sb: sb,
+      profile: state.profile,
+      onClose: function(){ haruDialog = null; }
+    });
   }
 
   // 코코 — 추천 계산은 DB(recommend_activities), 화면은 coco/coco.js. 자유 입력·LLM 없음

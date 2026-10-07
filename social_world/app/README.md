@@ -17,10 +17,12 @@
 | `assets/notification.mp3` | 코코 알림·미션 완료 효과음 | PR #13 |
 | `ui.js` | 나의 휴대폰·전체 지도·설정·코코 알림 (`window.WorldUI`) | PR #13을 앱에 붙게 다시 정리 |
 | `app.js` | 로그인·설문·튜토리얼·투어·NPC 대화·미션방·동아리방, DB | 원래 데모 앱 로직 그대로 + 연결부 |
-| `bundle.py` | 위 파일 + `../coco/coco.js` + `../chief/chief.js`를 한 파일로 → `../socialworld-demo.html` | PR #13 bundle.py 기반 |
+| `bundle.py` | 위 파일 + `../coco/coco.js` + `../chief/chief.js` + `../haru/haru.js` + `../feedback/feedback.js`를 한 파일로 → `../socialworld-demo.html` | PR #13 bundle.py 기반 |
 | `tests/ui_test.py` | 휴대폰·지도·설정·알림 흐름 40항목 × 데스크톱·모바일 | 새로 |
 
-스크립트 순서: three(CDN) → `world-engine.js` → `../coco/coco.js` → `../chief/chief.js` → `sounds.js` → `ui.js` → `app.js`.
+스크립트 순서: three(CDN) → `world-engine.js` → `../coco/coco.js` → `../chief/chief.js` → `../haru/haru.js` → `../feedback/feedback.js` → `sounds.js` → `ui.js` → `app.js`.
+
+2026-10-07: 분수 옆 정책추천·취업상담 NPC를 빼고 지원센터 문 앞 **하루**(`../haru/README.md`)로 합쳤다. 휴대폰에 '내 의견함', 이장 대화창에 '마을에 건의하기'가 생겼다(07_feedback_chat.sql).
 
 ## 2. 만들기·확인
 
@@ -29,6 +31,7 @@ python social_world/app/bundle.py                 # → social_world/socialworld
 python social_world/app/tests/ui_test.py          # 휴대폰·지도·설정·알림
 python social_world/coco/tests/demo_test.py       # 코코 연결
 python social_world/chief/tests/demo_test.py      # 마을이장 연결
+python social_world/haru/tests/demo_test.py       # 하루·내 의견함·이장 건의 연결
 ```
 
 테스트는 Playwright(크로미움)로 돌고 팀 DB 대신 가짜 supabase를 쓴다. three.js CDN이 막힌 곳이면 `SW_THREE_PATH=경로/three.min.js`.
@@ -106,6 +109,7 @@ python social_world/app/bundle.py
 python social_world/app/tests/ui_test.py      # 휴대폰·지도·설정 80항목
 python social_world/coco/tests/demo_test.py
 python social_world/chief/tests/demo_test.py
+python social_world/haru/tests/demo_test.py
 ```
 
 bundle 없이 바로 보려면 `social_world` 폴더에서 `python -m http.server` → `http://localhost:8000/app/`.
