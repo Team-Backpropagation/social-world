@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내 의견함 미리보기</title>
+<style>
+  body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:#C9D9DE}
+  .bar{padding:12px;display:flex;gap:8px;flex-wrap:wrap;background:#fff}
+  .bar button{font:inherit;padding:8px 12px}
+  .bar p{flex-basis:100%;margin:0;font-size:13px;color:#555}
+  .phone{max-width:400px;margin:16px auto;background:#FBFCFC;border-radius:24px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.15)}
+  .phone h2{font-size:17px;margin:0 0 12px;display:flex;gap:8px;align-items:center}
+  #badge{font-size:12px;background:#C0392B;color:#fff;border-radius:999px;padding:0 8px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button id="show-inbox" type="button">내 의견함</button>
+  <button id="show-compose" type="button">이장에게 새 의견</button>
+  <button id="show-missing" type="button">07 적용 전</button>
+  <button id="show-fail" type="button">네트워크 실패</button>
+  <p>가짜 DB(fake-db.js)로 동작합니다. "사라지고 싶" → 위기 안내, 하루 5건까지. 주소 끝에 ?shared=1을 붙이고 ../admin/admin-preview.html?shared=1을 함께 열면 운영팀 답장을 주고받아 볼 수 있어요.</p>
+</div>
+<section class="phone" aria-label="휴대폰 미리보기">
+  <h2><span id="title">내 의견함</span> <span id="badge" hidden></span></h2>
+  <div id="screen"></div>
+</section>
+<script src="fake-db.js"></script>
+<script src="feedback.js"></script>
+<script>
+let sb = FakeFeedbackDB.client('citizen', 'ok');
+const screen = document.getElementById('screen');
+function badge(n) { const b = document.getElementById('badge'); b.hidden = !n; b.textContent = '새 답 ' + n; }
+function inbox() {
+  document.getElementById('title').textContent = '내 의견함';
+  screen.replaceChildren(Feedback.inbox({ sb, onChange: badge, onCompose: compose }));
+}
+function compose() {
+  document.getElementById('title').textContent = '이장에게 의견 보내기';
+  screen.replaceChildren(Feedback.compose({ sb, channel: 'chief', place: null, onCancel: inbox, onDone: () => Feedback.unread(sb).then(badge) }));
+}
+document.getElementById('show-inbox').onclick = () => { sb = FakeFeedbackDB.client('citizen', 'ok'); inbox(); };
+document.getElementById('show-compose').onclick = () => { sb = FakeFeedbackDB.client('citizen', 'ok'); compose(); };
+document.getElementById('show-missing').onclick = () => { sb = FakeFeedbackDB.client('citizen', 'missing'); inbox(); };
+document.getElementById('show-fail').onclick = () => { sb = FakeFeedbackDB.client('citizen', 'fail'); compose(); };
+Feedback.unread(sb).then(badge);
+inbox();
+</script>
+</body>
+</html>

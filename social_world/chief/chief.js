@@ -14,6 +14,8 @@
  * - 참여는 join_world_event(id) 함수로만 한다(초안·종료 이벤트 참여 차단은 DB가 한다).
  * - LLM·자유 입력 없음. 대사는 템플릿(v2에서 LLM 대사로 바꿀 자리: LINES).
  * - 03·05 적용 전이거나 이벤트가 없으면 인사와 안내만 하고 멈추지 않는다.
+ * - [마을에 건의하기] — feedback/feedback.js가 있으면 마을 의견함 폼을 연다(07_feedback_chat.sql, 창구 'chief').
+ *   이장은 전달만 한다. 답은 운영팀(사람)이 쓰고 시민 휴대폰 '내 의견함'에 온다.
  */
 (function (global) {
   'use strict';
@@ -33,7 +35,8 @@
     joined: function (place) { return '좋아요! 그날 ' + place + '에서 봐요.'; },
     already: '벌써 신청해 뒀네요. 그날 봐요!',
     closed: '아, 그 모임은 지금 신청을 받지 않아요.',
-    bye: '언제든 광장에 들러요. 🎩'
+    bye: '언제든 광장에 들러요. 🎩',
+    suggest: '마을에 바라는 점이나 불편한 점이 있으면 말해 줘요. 운영팀 사람들이 직접 읽고 답해 줄 거예요. 답은 휴대폰 "내 의견함"으로 갈 거예요.'
   };
 
   var STYLE_ID = 'chief-style';
@@ -57,7 +60,7 @@
     '.chief-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}',
     '.chief-act{font:inherit;font-size:14px;padding:8px 12px;border-radius:10px;border:0;background:var(--ch-gold);color:#fff;cursor:pointer}',
     '.chief-act[disabled]{background:var(--ch-gold-soft);color:var(--ch-gold);cursor:default}',
-    '.chief-foot{display:flex;margin-top:16px}',
+    '.chief-foot{display:flex;gap:8px;margin-top:16px}',
     '.chief-btn{flex:1;font:inherit;font-size:14px;padding:10px;border-radius:12px;border:1.5px solid var(--ch-line);background:#fff;color:var(--ch-ink);cursor:pointer}',
     '.chief-btn:hover{border-color:var(--ch-gold)}',
     '.chief-btn:focus-visible,.chief-close:focus-visible,.chief-act:focus-visible{outline:3px solid #F4B942;outline-offset:2px}'
@@ -146,10 +149,18 @@
     }
 
     function say(text) { bubbleText.textContent = text; }
-    function footer() {
+    function footer(back) {
       return el('div', { class: 'chief-foot' }, [
+        back ? el('button', { class: 'chief-btn', type: 'button', text: '이번 주 모임 보기', onclick: load })
+             : (global.Feedback ? el('button', { class: 'chief-btn', type: 'button', text: '마을에 건의하기', onclick: suggest }) : null),
         el('button', { class: 'chief-btn', type: 'button', text: '대화 마치기', onclick: close })
       ]);
+    }
+    function suggest() {
+      say(LINES.suggest);
+      setBody([global.Feedback.compose({ sb: sb, channel: 'chief', place: opts.place || '광장', onCancel: load }), footer(true)]);
+      var first = body.querySelector('.fb-kind');
+      if (first) first.focus();
     }
     function setBody(nodes) {
       body.innerHTML = '';

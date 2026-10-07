@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>이음 운영팀 의견함</title>
+<style>body{margin:0;background:#F5F7F8}</style>
+</head>
+<body>
+<main id="root"></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="feedback-admin.js"></script>
+<script>
+// 공개 키(publishable)만 쓴다 — 시민 앱(app/app.js)과 같은 값. 비밀키(secret)는 절대 넣지 않는다.
+// 로그인 저장 위치를 따로 둬서, 같은 브라우저에서 시민 데모를 열어 둬도 서로 로그아웃시키지 않는다.
+var SUPABASE_URL = "https://czfsoopkxucizommvcnp.supabase.co";
+var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_D6jRdP6qgMc_lGoDiVLlsQ_pnoHND02";
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { storageKey: "eum-staff-auth" } });
+FeedbackAdmin.mount({ sb: sb, root: document.getElementById("root") });
+</script>
+</body>
+</html>
