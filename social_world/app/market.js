@@ -3,10 +3,12 @@
   'use strict';
   let host = null, travelling = false, destination = null, service = null, focusBefore = null;
   let chat = null, speech = null, speechUntil = 0, composing = false;
+  let chatFrame = null, manipulation = null;
   const chatHistory = [];
+  const marketModes = ['market', 'bank', 'clothing'];
   function chatAvailable() {
     const e = host?.engine();
-    return !!e?.isRunning() && e.mode() === 'market' && !travelling && !service && !host.blocked() && !host.tutorial() && !root.WorldUI?.isOpen();
+    return !!e?.isRunning() && marketModes.includes(e.mode()) && !travelling && !service && !host.blocked() && !host.tutorial() && !root.WorldUI?.isOpen();
   }
   function isTyping() { return !!chat && !chat.hidden && document.activeElement === chat.querySelector('input'); }
   function clearSpeech() { speech?.remove(); speech = null; speechUntil = 0; }
@@ -17,18 +19,37 @@
     button.querySelector('.market-chat-chevron').textContent = expanded ? '−' : '+';
     if (!expanded && isTyping()) chat.querySelector('input').blur();
     host?.engine()?.pauseInput();
+    placeChatAboveKeyboard();
     if (focus) chat.querySelector('input').focus();
   }
   function createChat() {
     chat = document.createElement('section'); chat.id = 'market-chat'; chat.setAttribute('aria-label', '시장 채팅');
-    chat.innerHTML = '<button type="button" id="market-chat-toggle" aria-expanded="true" aria-controls="market-chat-content"><span class="market-chat-symbol" aria-hidden="true">' +
+    chat.innerHTML = '<div id="market-chat-header" tabindex="0" aria-label="시장 채팅창 이동"><span class="market-chat-symbol" aria-hidden="true">' +
       '<svg viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-6 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h6"/></svg></span>' +
-      '<strong>시장 채팅</strong><span class="market-chat-chevron" aria-hidden="true">−</span></button>' +
+      '<strong>시장 채팅</strong><button type="button" id="market-chat-toggle" aria-expanded="true" aria-controls="market-chat-content" aria-label="채팅창 접기 또는 펼치기"><span class="market-chat-chevron" aria-hidden="true">−</span></button></div>' +
       '<div id="market-chat-content"><div id="market-chat-log" role="log" aria-live="polite" aria-relevant="additions"><p class="market-chat-empty">시장에서 나누고 싶은 말을 남겨 보세요.</p></div>' +
       '<form id="market-chat-form"><label class="market-sr-only" for="market-chat-input">시장 채팅 메시지</label><input id="market-chat-input" name="message" type="text" maxlength="80" autocomplete="off" placeholder="메시지 입력…" enterkeyhint="send"><button type="submit" aria-label="메시지 보내기">보내기</button></form>' +
-      '<p class="market-chat-hint">Enter로 입력 · Esc로 이동 · 최대 80자</p></div>';
+      '<p class="market-chat-hint">Enter로 입력 · Esc로 입력 종료 · 최대 80자</p></div>' +
+      ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'].map(edge => '<span class="market-chat-resize resize-' + edge + '" data-edge="' + edge + '" aria-hidden="true"></span>').join('');
     document.body.append(chat);
     chat.querySelector('#market-chat-toggle').onclick = () => expandChat(chat.classList.contains('is-collapsed'));
+    chat.querySelector('#market-chat-header').addEventListener('pointerdown', e => {
+      if (!e.target.closest('button')) startManipulation(e, 'move');
+    });
+    for (const handle of chat.querySelectorAll('[data-edge]')) handle.addEventListener('pointerdown', e => startManipulation(e, handle.dataset.edge));
+    chat.addEventListener('pointermove', moveChat);
+    chat.addEventListener('pointerup', endManipulation);
+    chat.addEventListener('pointercancel', endManipulation);
+    chat.addEventListener('lostpointercapture', endManipulation);
+    chat.querySelector('#market-chat-header').addEventListener('keydown', e => {
+      const steps = { ArrowLeft: [-12, 0], ArrowRight: [12, 0], ArrowUp: [0, -12], ArrowDown: [0, 12] };
+      if (e.target.id !== 'market-chat-header' || !steps[e.key]) return;
+      e.preventDefault(); e.stopPropagation();
+      const b = chat.getBoundingClientRect();
+      if (!chatFrame) chatFrame = { x: b.x, y: b.y, w: b.width, h: chat.classList.contains('is-collapsed') ? defaultChatHeight() : b.height };
+      chatFrame.x += steps[e.key][0]; chatFrame.y += steps[e.key][1];
+      placeChatAboveKeyboard(); host?.engine()?.pauseInput();
+    });
     const input = chat.querySelector('input');
     input.onfocus = () => host?.engine()?.pauseInput();
     input.onblur = () => { composing = false; };
@@ -42,7 +63,7 @@
       const text = Array.from(input.value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim()).slice(0, 80).join('');
       if (!text) return;
       const now = new Date(), nickname = String(host.nickname?.() || '나');
-      const message = { nickname, text, time: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') };
+      const message = { nickname, text, portrait: host.portrait?.() || '', time: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') };
       chatHistory.push(message); if (chatHistory.length > 30) chatHistory.shift();
       appendChatMessage(message); input.value = ''; input.focus();
       clearSpeech(); speech = document.createElement('div'); speech.id = 'market-chat-bubble'; speech.setAttribute('aria-hidden', 'true');
@@ -62,18 +83,21 @@
     const log = chat?.querySelector('#market-chat-log'); if (!log) return;
     log.querySelector('.market-chat-empty')?.remove();
     const row = document.createElement('div'); row.className = 'market-chat-message';
+    const photo = document.createElement('img'); photo.className = 'market-chat-avatar'; photo.src = message.portrait; photo.alt = message.nickname + ' 캐릭터 프로필'; photo.width = photo.height = 30;
+    const content = document.createElement('div'); content.className = 'market-chat-message-content';
     const name = document.createElement('strong'); name.textContent = message.nickname;
     const time = document.createElement('time'); time.textContent = message.time;
     const body = document.createElement('p'); body.textContent = message.text;
-    row.append(name, time, body); log.append(row);
+    content.append(name, time, body); row.append(photo, content); log.append(row);
     while (log.children.length > 30) log.firstElementChild.remove();
     log.scrollTop = log.scrollHeight;
   }
   function syncChat() {
-    const e = host?.engine(), inMarket = !!e?.isRunning() && e.mode() === 'market' && !travelling;
+    const e = host?.engine(), inMarket = !!e?.isRunning() && marketModes.includes(e.mode()) && !travelling;
     if (inMarket && !chat) createChat();
     if (chat) {
       const available = chatAvailable();
+      if (!available && manipulation) endManipulation();
       if (!available && isTyping()) chat.querySelector('input').blur();
       chat.hidden = !available;
       document.body.classList.toggle('has-market-chat', available);
@@ -84,11 +108,66 @@
   }
   function placeChatAboveKeyboard() {
     if (!chat) return;
+    if (chatFrame) { applyChatFrame(); return; }
     const viewport = root.visualViewport;
     const covered = viewport && root.innerWidth <= 600 ? Math.max(0, root.innerHeight - viewport.height - viewport.offsetTop) : 0;
     const bottom = covered > 0 ? 'calc(' + Math.max(122, covered + 14) + 'px + env(safe-area-inset-bottom))' : '';
     if (chat.style.bottom !== bottom) chat.style.bottom = bottom;
   }
+  function defaultChatHeight() { return root.innerWidth <= 600 ? 198 : 228; }
+  function chatSpace() {
+    const v = root.visualViewport;
+    return { x: 12, y: 12, w: Math.max(120, (v?.width || root.innerWidth) - 24), h: Math.max(44, (v?.height || root.innerHeight) - 24) };
+  }
+  function applyChatFrame() {
+    if (!chat || !chatFrame) return;
+    const s = chatSpace(), collapsed = chat.classList.contains('is-collapsed');
+    const w = Math.min(s.w, collapsed ? 154 : Math.max(244, chatFrame.w));
+    const h = Math.min(s.h, collapsed ? 44 : Math.max(178, chatFrame.h));
+    const x = Math.max(s.x, Math.min(chatFrame.x, s.x + s.w - w));
+    const y = Math.max(s.y, Math.min(chatFrame.y, s.y + s.h - h));
+    for (const [key, value] of Object.entries({ left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', bottom: 'auto' })) {
+      if (chat.style[key] !== value) chat.style[key] = value;
+    }
+  }
+  function startManipulation(e, kind) {
+    if (e.button !== 0 || !chatAvailable() || (kind !== 'move' && chat.classList.contains('is-collapsed'))) return;
+    e.preventDefault(); e.stopPropagation();
+    chat.querySelector('input').blur(); host?.engine()?.pauseInput();
+    const b = chat.getBoundingClientRect(), collapsed = chat.classList.contains('is-collapsed');
+    const expanded = chatFrame || { w: Math.min(310, root.innerWidth - 96), h: defaultChatHeight() };
+    chatFrame = { x: b.x, y: b.y, w: collapsed ? expanded.w : b.width, h: collapsed ? expanded.h : b.height };
+    manipulation = { kind, pointer: e.pointerId, x: e.clientX, y: e.clientY, rect: { x: b.x, y: b.y, w: b.width, h: b.height }, frame: { ...chatFrame } };
+    chat.classList.add('is-manipulating'); applyChatFrame();
+    chat.setPointerCapture(e.pointerId);
+  }
+  function moveChat(e) {
+    if (!manipulation || manipulation.pointer !== e.pointerId) return;
+    e.preventDefault();
+    const a = manipulation, r = a.rect, dx = e.clientX - a.x, dy = e.clientY - a.y, s = chatSpace();
+    if (a.kind === 'move') {
+      const x = Math.max(s.x, Math.min(r.x + dx, s.x + s.w - r.w)), y = Math.max(s.y, Math.min(r.y + dy, s.y + s.h - r.h));
+      chatFrame = { ...a.frame, x, y };
+    } else {
+      let left = r.x, right = r.x + r.w, top = r.y, bottom = r.y + r.h;
+      const minW = Math.min(244, s.w), minH = Math.min(178, s.h);
+      if (a.kind.includes('w')) left = Math.max(s.x, Math.min(r.x + dx, right - minW));
+      if (a.kind.includes('e')) right = Math.min(s.x + s.w, Math.max(left + minW, right + dx));
+      if (a.kind.includes('n')) top = Math.max(s.y, Math.min(r.y + dy, bottom - minH));
+      if (a.kind.includes('s')) bottom = Math.min(s.y + s.h, Math.max(top + minH, bottom + dy));
+      chatFrame = { x: left, y: top, w: right - left, h: bottom - top };
+    }
+    applyChatFrame();
+  }
+  function endManipulation() {
+    if (!manipulation) return;
+    const pointer = manipulation.pointer; manipulation = null;
+    chat?.classList.remove('is-manipulating');
+    if (chat?.hasPointerCapture(pointer)) chat.releasePointerCapture(pointer);
+    host?.engine()?.pauseInput();
+  }
+  root.addEventListener('blur', endManipulation);
+  root.addEventListener('resize', placeChatAboveKeyboard);
   root.visualViewport?.addEventListener('resize', placeChatAboveKeyboard);
   root.visualViewport?.addEventListener('scroll', placeChatAboveKeyboard);
   function drawSpeech() {
@@ -185,9 +264,9 @@
   root.MarketUI = {
     init(value) { host = value; }, ride, openService, closeService,
     isTravelling: () => travelling,
-    isTyping, sync: syncChat, drawSpeech,
+    isTyping, isManipulating: () => !!manipulation, sync: syncChat, drawSpeech,
     tick() { syncChat(); if (speech && performance.now() >= speechUntil) clearSpeech(); },
-    reset() { closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatHistory.length = 0; composing = false; document.body.classList.remove('has-market-chat'); },
-    state: () => ({ travelling, destination, service, typing: isTyping(), chatVisible: !!chat && !chat.hidden, messages: chatHistory.length, speech: speech?.textContent || null })
+    reset() { endManipulation(); closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatFrame = null; chatHistory.length = 0; composing = false; document.body.classList.remove('has-market-chat'); },
+    state: () => ({ travelling, destination, service, typing: isTyping(), manipulating: !!manipulation, chatVisible: !!chat && !chat.hidden, messages: chatHistory.length, speech: speech?.textContent || null })
   };
 })(window);

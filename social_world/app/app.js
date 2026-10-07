@@ -558,7 +558,7 @@
   // 앱 대화창(NPC·튜토리얼·코코·이장)이 열려 있는가 — 휴대폰(ui.js)이 알림을 미룰 때도 쓴다
   function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop"); }
   // 3D 입력을 멈춰야 하는가 — 대화창 또는 휴대폰·지도(ui.js)가 열려 있을 때
-  function worldBlocked(){ return !!(window.MarketUI && (window.MarketUI.isTravelling() || window.MarketUI.isTyping())) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
+  function worldBlocked(){ return !!(window.MarketUI && (window.MarketUI.isTravelling() || window.MarketUI.isTyping() || window.MarketUI.isManipulating())) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
   // 현재 키 이름 — 휴대폰 설정에서 바꿀 수 있다(ui.js). ui.js가 없으면 기본 키
   function key(action){ return window.WorldUI ? window.WorldUI.keyLabel(action) : ({interact:"E",forward:"W",left:"A",back:"S",right:"D",map:"M"})[action]; }
   function hud(id){ return document.getElementById(id); }
@@ -922,6 +922,12 @@
   if(window.MarketUI) window.MarketUI.init({
     engine: function(){ return ENGINE; },
     nickname: nick,
+    portrait: function(){
+      var image = ENGINE && ENGINE.avatarPortrait(); if(image) return image;
+      var av = Object.assign({}, currentAvatar() || presetAvatar("calm", "#4caf6e", nick()));
+      ["skin", "hairColor", "outfit"].forEach(function(k){ if(!/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(av[k] || "")) av[k] = k === "skin" ? "#F6D7BD" : k === "hairColor" ? "#2b2b2b" : "#4caf6e"; });
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(avatarSvg(av, 96).replace('viewBox="0 0 64 64"', 'viewBox="6 0 52 49"'));
+    },
     blocked: dialogOpen,
     tutorial: function(){ return !!state.tour || (state.view === "room" && state.room && state.room.phase !== "free"); },
     arrive: function(mode, spawn){ state.near = null; state.spawn = spawn; state.view = mode === "market" ? "market" : "plaza"; render(); },

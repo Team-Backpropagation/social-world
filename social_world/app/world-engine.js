@@ -1404,6 +1404,34 @@
 
     // ---------------- 캐릭터 미리보기 (꾸미기 화면)
     let pv = null;
+    let portraitView = null, portraitKey = '', portraitImage = '';
+    function avatarPortrait() {
+      if (!player?.userData.head) return '';
+      if (portraitImage && portraitKey === playerAvatarKey) return portraitImage;
+      const saved = { k: U.k.value, center: U.center.value.clone(), yaw: U.yaw.value };
+      let head = null;
+      try {
+        if (!portraitView) {
+          const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+          r.outputEncoding = THREE.sRGBEncoding; r.setPixelRatio(1); r.setSize(96, 96, false); r.setClearColor('#E9EFDF', 1);
+          const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight('#FFF5E3', '#8A9B80', .95));
+          const light = new THREE.DirectionalLight('#FFF0D6', 1.15); light.position.set(-2, 3, 4); sc.add(light);
+          const cam = new THREE.OrthographicCamera(-.8, .8, .8, -.8, .1, 10); cam.position.set(0, .08, 3); cam.lookAt(0, .08, 0);
+          portraitView = { r, sc, cam };
+        }
+        // Clone only the live avatar's head. Geometry/materials remain shared;
+        // creating a portrait never consumes the village's seeded randomness.
+        head = player.userData.head.clone(true); head.position.set(0, 0, 0); head.rotation.set(0, 0, 0);
+        portraitView.sc.add(head); U.k.value = 0; U.center.value.set(0, 0, 0); U.yaw.value = 0;
+        portraitView.r.render(portraitView.sc, portraitView.cam);
+        portraitImage = portraitView.r.domElement.toDataURL('image/png'); portraitKey = playerAvatarKey;
+        return portraitImage;
+      } catch (_) { return ''; }
+      finally {
+        if (head) portraitView?.sc.remove(head);
+        U.k.value = saved.k; U.center.value.copy(saved.center); U.yaw.value = saved.yaw;
+      }
+    }
     function preview(container, av) {
       if (!pv) {
         const r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); r.outputEncoding = THREE.sRGBEncoding; r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -1481,7 +1509,7 @@
       busRideInfo: () => marketWorld?.info() || null,
       marketInfo: () => ({ ...marketWorld?.debug(), villageVisible: villageScenery?.visible }),
       playerHeadScreen() {
-        if (!running || mode !== 'market' || !player?.visible) return null;
+        if (!running || !['market', 'bank', 'clothing'].includes(mode) || !player?.visible) return null;
         const p = new THREE.Vector3(player.position.x, 2.6 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
         const b = renderer.domElement.getBoundingClientRect();
         return { x: b.left + (p.x / 2 + .5) * b.width, y: b.top + (.5 - p.y / 2) * b.height, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2 };
@@ -1526,6 +1554,7 @@
       mode: () => mode,
       wake() { player.userData.sleeping = false; setSeated(player, false); player.position.x += 0.6; player.rotation.y = Math.PI / 4; },
       playerPos: () => ({ x: player.position.x, z: player.position.z }),
+      avatarPortrait,
       setAvatar,
       setNpcVisible(id, on) { const n = npcObjs.find(x => x.id === id); if (!n) return; n.visible = on; n.obj.visible = on; n.obj.userData.blob.visible = on; n.col.off = !on; },
       guideShow(x, z, facing) { ensureGuide(); guide.visible = true; guide.userData.blob.visible = true; guide.position.set(x, 0, z); if (facing != null) guide.rotation.y = facing; guideState = { path: null }; },

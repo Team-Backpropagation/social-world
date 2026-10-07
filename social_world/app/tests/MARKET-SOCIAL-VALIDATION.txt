@@ -27,8 +27,10 @@ PASS 1280px /app/ Asia/Seoul local chat history bounded to 30 messages
 PASS 1280px /app/ Asia/Seoul chat makes no production or fake database writes
 PASS 1280px /app/ Asia/Seoul speech expires without retaining stale balloon
 PASS 1280px /app/ Asia/Seoul Enter opens collapsed chat and focuses input
-PASS 1280px /app/ Asia/Seoul bank interior hides chat and clears speech
-PASS 1280px /app/ Asia/Seoul clothing interior hides chat
+PASS 1280px /app/ Asia/Seoul bank interior allows market chat
+PASS 1280px /app/ Asia/Seoul bank chat anchors speech to indoor avatar
+PASS 1280px /app/ Asia/Seoul clothing interior allows market chat
+PASS 1280px /app/ Asia/Seoul clothing chat anchors speech to indoor avatar
 PASS 1280px /app/ Asia/Seoul market return keeps current-session chat history
 PASS 1280px /app/ Asia/Seoul return travel hides chat
 PASS 1280px /app/ Asia/Seoul village keeps market chat hidden
@@ -64,8 +66,10 @@ PASS 390px /app/ America/Los_Angeles local chat history bounded to 30 messages
 PASS 390px /app/ America/Los_Angeles chat makes no production or fake database writes
 PASS 390px /app/ America/Los_Angeles speech expires without retaining stale balloon
 PASS 390px /app/ America/Los_Angeles Enter opens collapsed chat and focuses input
-PASS 390px /app/ America/Los_Angeles bank interior hides chat and clears speech
-PASS 390px /app/ America/Los_Angeles clothing interior hides chat
+PASS 390px /app/ America/Los_Angeles bank interior allows market chat
+PASS 390px /app/ America/Los_Angeles bank chat anchors speech to indoor avatar
+PASS 390px /app/ America/Los_Angeles clothing interior allows market chat
+PASS 390px /app/ America/Los_Angeles clothing chat anchors speech to indoor avatar
 PASS 390px /app/ America/Los_Angeles market return keeps current-session chat history
 PASS 390px /app/ America/Los_Angeles return travel hides chat
 PASS 390px /app/ America/Los_Angeles village keeps market chat hidden
@@ -100,8 +104,10 @@ PASS 1280px /socialworld-demo.html Asia/Seoul local chat history bounded to 30 m
 PASS 1280px /socialworld-demo.html Asia/Seoul chat makes no production or fake database writes
 PASS 1280px /socialworld-demo.html Asia/Seoul speech expires without retaining stale balloon
 PASS 1280px /socialworld-demo.html Asia/Seoul Enter opens collapsed chat and focuses input
-PASS 1280px /socialworld-demo.html Asia/Seoul bank interior hides chat and clears speech
-PASS 1280px /socialworld-demo.html Asia/Seoul clothing interior hides chat
+PASS 1280px /socialworld-demo.html Asia/Seoul bank interior allows market chat
+PASS 1280px /socialworld-demo.html Asia/Seoul bank chat anchors speech to indoor avatar
+PASS 1280px /socialworld-demo.html Asia/Seoul clothing interior allows market chat
+PASS 1280px /socialworld-demo.html Asia/Seoul clothing chat anchors speech to indoor avatar
 PASS 1280px /socialworld-demo.html Asia/Seoul market return keeps current-session chat history
 PASS 1280px /socialworld-demo.html Asia/Seoul return travel hides chat
 PASS 1280px /socialworld-demo.html Asia/Seoul village keeps market chat hidden
@@ -137,8 +143,10 @@ PASS 390px /socialworld-demo.html America/Los_Angeles local chat history bounded
 PASS 390px /socialworld-demo.html America/Los_Angeles chat makes no production or fake database writes
 PASS 390px /socialworld-demo.html America/Los_Angeles speech expires without retaining stale balloon
 PASS 390px /socialworld-demo.html America/Los_Angeles Enter opens collapsed chat and focuses input
-PASS 390px /socialworld-demo.html America/Los_Angeles bank interior hides chat and clears speech
-PASS 390px /socialworld-demo.html America/Los_Angeles clothing interior hides chat
+PASS 390px /socialworld-demo.html America/Los_Angeles bank interior allows market chat
+PASS 390px /socialworld-demo.html America/Los_Angeles bank chat anchors speech to indoor avatar
+PASS 390px /socialworld-demo.html America/Los_Angeles clothing interior allows market chat
+PASS 390px /socialworld-demo.html America/Los_Angeles clothing chat anchors speech to indoor avatar
 PASS 390px /socialworld-demo.html America/Los_Angeles market return keeps current-session chat history
 PASS 390px /socialworld-demo.html America/Los_Angeles return travel hides chat
 PASS 390px /socialworld-demo.html America/Los_Angeles village keeps market chat hidden

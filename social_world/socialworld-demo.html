@@ -2054,34 +2054,50 @@ body.in-transit #fishing-status, body.in-transit #hud-view, body.in-transit #hud
 /* Local market chat preview. Messages remain only in this page's memory. */
 #market-chat {
   position: fixed; left: max(16px, env(safe-area-inset-left)); bottom: calc(112px + env(safe-area-inset-bottom));
-  z-index: 4; width: min(310px, calc(100vw - 96px)); box-sizing: border-box;
+  z-index: 4; width: min(310px, calc(100vw - 96px)); height: 228px; box-sizing: border-box; display: flex; flex-direction: column;
   color: #36584B; background: #FFF9EDEE; border: 1px solid #DDD9C2; border-radius: 17px;
   box-shadow: 0 6px 24px #24443924; overflow: hidden; font-family: 'Gowun Dodum', sans-serif;
 }
-#market-chat-toggle {
+#market-chat-header {
   display: flex; align-items: center; gap: 9px; width: 100%; border: 0; padding: 11px 13px;
-  background: #E9EFDF; color: #36584B; font: inherit; font-size: 12px; cursor: pointer;
+  box-sizing: border-box; flex-shrink: 0; height: 44px;
+  background: #E9EFDF; color: #36584B; font: inherit; font-size: 12px; cursor: grab; touch-action: none; user-select: none;
 }
+#market-chat-toggle { margin-left: auto; border: 0; border-radius: 6px; padding: 2px 5px; background: transparent; color: inherit; cursor: pointer; }
+.is-manipulating #market-chat-header { cursor: grabbing; }
 .market-chat-symbol { display: flex; }
 .market-chat-symbol svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .market-chat-chevron { margin-left: auto; font: 20px sans-serif; line-height: 1; }
-#market-chat-content { padding: 0 12px 9px; }
-#market-chat-log { height: 96px; overflow: auto; padding: 9px 0 5px; scrollbar-width: thin; overflow-wrap: anywhere; }
+#market-chat-content { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 12px 9px; }
+#market-chat-log { flex: 1; min-height: 28px; overflow: auto; padding: 9px 0 5px; scrollbar-width: thin; overflow-wrap: anywhere; }
 .market-chat-empty { margin: 16px 0 0; color: #8A8F7D; font-size: 11px; line-height: 1.7; }
-.market-chat-message { margin-bottom: 8px; font-size: 11px; }
+.market-chat-message { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 11px; }
+.market-chat-avatar { flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid #CFDAC2; background: #E9EFDF; }
+.market-chat-message-content { flex: 1; min-width: 0; }
 .market-chat-message strong { color: #46755D; }
 .market-chat-message time { margin-left: 7px; color: #9C9D8C; font-size: 9px; }
 .market-chat-message p { margin: 3px 0 0; line-height: 1.6; color: #46574D; white-space: pre-wrap; }
-#market-chat-form { display: flex; gap: 6px; }
+#market-chat-form { display: flex; gap: 6px; flex-shrink: 0; }
 #market-chat-input {
   flex: 1; min-width: 0; width: 0; box-sizing: border-box; border: 1px solid #D9DECB; border-radius: 8px;
   padding: 8px; background: #FFFDF6; color: #36584B; font: inherit; font-size: 12px;
 }
 #market-chat-form button { border: 0; border-radius: 8px; padding: 8px 10px; background: #4E7C61; color: #FFF9EA; font: inherit; font-size: 11px; cursor: pointer; }
 #market-chat input:focus-visible, #market-chat button:focus-visible { outline: 2px solid #C8A859; outline-offset: -2px; }
-.market-chat-hint { margin: 6px 0 0; font-size: 9px; color: #939781; }
-#market-chat.is-collapsed { width: 154px; }
+.market-chat-hint { flex-shrink: 0; margin: 6px 0 0; font-size: 9px; color: #939781; }
+#market-chat.is-collapsed { width: 154px; height: 44px; }
 #market-chat.is-collapsed #market-chat-content { display: none; }
+.market-chat-resize { position: absolute; z-index: 2; touch-action: none; }
+.resize-n, .resize-s { left: 12px; right: 12px; height: 8px; cursor: ns-resize; }
+.resize-n { top: 0; } .resize-s { bottom: 0; }
+.resize-e, .resize-w { top: 12px; bottom: 12px; width: 8px; cursor: ew-resize; }
+.resize-e { right: 0; } .resize-w { left: 0; }
+.resize-ne, .resize-se, .resize-sw, .resize-nw { width: 12px; height: 12px; }
+.resize-ne { top: 0; right: 0; cursor: nesw-resize; }
+.resize-se { bottom: 0; right: 0; cursor: nwse-resize; }
+.resize-sw { bottom: 0; left: 0; cursor: nesw-resize; }
+.resize-nw { top: 0; left: 0; cursor: nwse-resize; }
+#market-chat.is-collapsed .market-chat-resize { display: none; }
 .market-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 #market-chat-bubble {
   position: fixed; z-index: 3; transform: translate(-50%, -100%); pointer-events: none;
@@ -2097,10 +2113,9 @@ body.in-transit #fishing-status, body.in-transit #hud-view, body.in-transit #hud
 }
 body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: none; }
 @media (max-width: 600px) {
-  #market-chat { left: max(12px, env(safe-area-inset-left)); bottom: calc(122px + env(safe-area-inset-bottom)); border-radius: 14px; }
+  #market-chat { left: max(12px, env(safe-area-inset-left)); bottom: calc(122px + env(safe-area-inset-bottom)); height: 198px; border-radius: 14px; }
   body.has-market-chat .sw-toast { top: calc(218px + env(safe-area-inset-top)); bottom: auto; }
-  #market-chat-log { height: 68px; }
-  #market-chat-toggle { padding: 10px 12px; }
+  #market-chat-header { padding: 10px 12px; }
   #market-chat-input { font-size: 16px; padding: 7px; }
   .market-chat-hint { font-size: 8px; }
 }
@@ -3539,6 +3554,34 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
 
     // ---------------- 캐릭터 미리보기 (꾸미기 화면)
     let pv = null;
+    let portraitView = null, portraitKey = '', portraitImage = '';
+    function avatarPortrait() {
+      if (!player?.userData.head) return '';
+      if (portraitImage && portraitKey === playerAvatarKey) return portraitImage;
+      const saved = { k: U.k.value, center: U.center.value.clone(), yaw: U.yaw.value };
+      let head = null;
+      try {
+        if (!portraitView) {
+          const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+          r.outputEncoding = THREE.sRGBEncoding; r.setPixelRatio(1); r.setSize(96, 96, false); r.setClearColor('#E9EFDF', 1);
+          const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight('#FFF5E3', '#8A9B80', .95));
+          const light = new THREE.DirectionalLight('#FFF0D6', 1.15); light.position.set(-2, 3, 4); sc.add(light);
+          const cam = new THREE.OrthographicCamera(-.8, .8, .8, -.8, .1, 10); cam.position.set(0, .08, 3); cam.lookAt(0, .08, 0);
+          portraitView = { r, sc, cam };
+        }
+        // Clone only the live avatar's head. Geometry/materials remain shared;
+        // creating a portrait never consumes the village's seeded randomness.
+        head = player.userData.head.clone(true); head.position.set(0, 0, 0); head.rotation.set(0, 0, 0);
+        portraitView.sc.add(head); U.k.value = 0; U.center.value.set(0, 0, 0); U.yaw.value = 0;
+        portraitView.r.render(portraitView.sc, portraitView.cam);
+        portraitImage = portraitView.r.domElement.toDataURL('image/png'); portraitKey = playerAvatarKey;
+        return portraitImage;
+      } catch (_) { return ''; }
+      finally {
+        if (head) portraitView?.sc.remove(head);
+        U.k.value = saved.k; U.center.value.copy(saved.center); U.yaw.value = saved.yaw;
+      }
+    }
     function preview(container, av) {
       if (!pv) {
         const r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); r.outputEncoding = THREE.sRGBEncoding; r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -3616,7 +3659,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       busRideInfo: () => marketWorld?.info() || null,
       marketInfo: () => ({ ...marketWorld?.debug(), villageVisible: villageScenery?.visible }),
       playerHeadScreen() {
-        if (!running || mode !== 'market' || !player?.visible) return null;
+        if (!running || !['market', 'bank', 'clothing'].includes(mode) || !player?.visible) return null;
         const p = new THREE.Vector3(player.position.x, 2.6 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
         const b = renderer.domElement.getBoundingClientRect();
         return { x: b.left + (p.x / 2 + .5) * b.width, y: b.top + (.5 - p.y / 2) * b.height, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2 };
@@ -3661,6 +3704,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       mode: () => mode,
       wake() { player.userData.sleeping = false; setSeated(player, false); player.position.x += 0.6; player.rotation.y = Math.PI / 4; },
       playerPos: () => ({ x: player.position.x, z: player.position.z }),
+      avatarPortrait,
       setAvatar,
       setNpcVisible(id, on) { const n = npcObjs.find(x => x.id === id); if (!n) return; n.visible = on; n.obj.visible = on; n.obj.userData.blob.visible = on; n.col.off = !on; },
       guideShow(x, z, facing) { ensureGuide(); guide.visible = true; guide.userData.blob.visible = true; guide.position.set(x, 0, z); if (facing != null) guide.rotation.y = facing; guideState = { path: null }; },
@@ -3969,7 +4013,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       box(g, 10, 4, .2, kind === 'bank' ? '#D7E4D5' : '#F1D9CD', 0, 2, -4.7);
       [-4.8, 4.8].forEach(x => box(g, .2, 4, 9.5, '#F7ECDC', x, 2, 0));
       for (let z = -4; z <= 4; z++) box(g, 9.4, .012, .025, '#D3BE9C', 0, .02, z);
-      label(g, title, 0, 3.2, -4.5);
+      if (kind === 'bank') label(g, title, 0, 3.2, -4.5);
       if (kind === 'bank') {
         box(g, 6, 1.1, 1, '#91AB8D', 0, .55, -1.8);
         box(g, 6.3, .13, 1.15, '#F8EFDA', 0, 1.16, -1.8);
@@ -3994,7 +4038,6 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
         box(g, 2.4, .9, 1.2, '#C59D85', 0, .45, -3.6);
         colliders.push({ seg: [p.x - 1.2, p.z - 3.6, p.x + 1.2, p.z - 3.6], r: .6, area: kind });
         for (let i = 0; i < 3; i++) box(g, .65, .12, .55, colors[i], -.75 + i * .75, 1.05, -3.6);
-        box(g, 1.5, 2.8, .08, '#94B6AE', -4.55, 1.5, .6);
         box(g, 1.6, .25, .9, '#CBA68A', 2.6, .3, 1.6);
         colliders.push({ seg: [p.x + 1.8, p.z + 1.6, p.x + 3.4, p.z + 1.6], r: .45, area: kind });
       }
@@ -4024,7 +4067,6 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     box(bus, 1.4, 2.15, .06, '#304C44', -1.8, 1.65, 1.51);
     const busDoor = box(bus, 1.35, 2.08, .07, '#ACC6BB', -1.8, 1.65, 1.56);
     box(busDoor, 1.1, 1.35, .03, '#637F80', 0, .16, .06);
-    label(bus, '이음 순환버스', .6, 3.55, 0, 58);
     shade(bus); bus.visible = false;
 
     function park(mode) { return mode === 'village' ? { x: data.villageRoad.x, z: 16 } : { x: MX, z: 18 }; }
@@ -5832,10 +5874,12 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   'use strict';
   let host = null, travelling = false, destination = null, service = null, focusBefore = null;
   let chat = null, speech = null, speechUntil = 0, composing = false;
+  let chatFrame = null, manipulation = null;
   const chatHistory = [];
+  const marketModes = ['market', 'bank', 'clothing'];
   function chatAvailable() {
     const e = host?.engine();
-    return !!e?.isRunning() && e.mode() === 'market' && !travelling && !service && !host.blocked() && !host.tutorial() && !root.WorldUI?.isOpen();
+    return !!e?.isRunning() && marketModes.includes(e.mode()) && !travelling && !service && !host.blocked() && !host.tutorial() && !root.WorldUI?.isOpen();
   }
   function isTyping() { return !!chat && !chat.hidden && document.activeElement === chat.querySelector('input'); }
   function clearSpeech() { speech?.remove(); speech = null; speechUntil = 0; }
@@ -5846,18 +5890,37 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     button.querySelector('.market-chat-chevron').textContent = expanded ? '−' : '+';
     if (!expanded && isTyping()) chat.querySelector('input').blur();
     host?.engine()?.pauseInput();
+    placeChatAboveKeyboard();
     if (focus) chat.querySelector('input').focus();
   }
   function createChat() {
     chat = document.createElement('section'); chat.id = 'market-chat'; chat.setAttribute('aria-label', '시장 채팅');
-    chat.innerHTML = '<button type="button" id="market-chat-toggle" aria-expanded="true" aria-controls="market-chat-content"><span class="market-chat-symbol" aria-hidden="true">' +
+    chat.innerHTML = '<div id="market-chat-header" tabindex="0" aria-label="시장 채팅창 이동"><span class="market-chat-symbol" aria-hidden="true">' +
       '<svg viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-6 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h6"/></svg></span>' +
-      '<strong>시장 채팅</strong><span class="market-chat-chevron" aria-hidden="true">−</span></button>' +
+      '<strong>시장 채팅</strong><button type="button" id="market-chat-toggle" aria-expanded="true" aria-controls="market-chat-content" aria-label="채팅창 접기 또는 펼치기"><span class="market-chat-chevron" aria-hidden="true">−</span></button></div>' +
       '<div id="market-chat-content"><div id="market-chat-log" role="log" aria-live="polite" aria-relevant="additions"><p class="market-chat-empty">시장에서 나누고 싶은 말을 남겨 보세요.</p></div>' +
       '<form id="market-chat-form"><label class="market-sr-only" for="market-chat-input">시장 채팅 메시지</label><input id="market-chat-input" name="message" type="text" maxlength="80" autocomplete="off" placeholder="메시지 입력…" enterkeyhint="send"><button type="submit" aria-label="메시지 보내기">보내기</button></form>' +
-      '<p class="market-chat-hint">Enter로 입력 · Esc로 이동 · 최대 80자</p></div>';
+      '<p class="market-chat-hint">Enter로 입력 · Esc로 입력 종료 · 최대 80자</p></div>' +
+      ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'].map(edge => '<span class="market-chat-resize resize-' + edge + '" data-edge="' + edge + '" aria-hidden="true"></span>').join('');
     document.body.append(chat);
     chat.querySelector('#market-chat-toggle').onclick = () => expandChat(chat.classList.contains('is-collapsed'));
+    chat.querySelector('#market-chat-header').addEventListener('pointerdown', e => {
+      if (!e.target.closest('button')) startManipulation(e, 'move');
+    });
+    for (const handle of chat.querySelectorAll('[data-edge]')) handle.addEventListener('pointerdown', e => startManipulation(e, handle.dataset.edge));
+    chat.addEventListener('pointermove', moveChat);
+    chat.addEventListener('pointerup', endManipulation);
+    chat.addEventListener('pointercancel', endManipulation);
+    chat.addEventListener('lostpointercapture', endManipulation);
+    chat.querySelector('#market-chat-header').addEventListener('keydown', e => {
+      const steps = { ArrowLeft: [-12, 0], ArrowRight: [12, 0], ArrowUp: [0, -12], ArrowDown: [0, 12] };
+      if (e.target.id !== 'market-chat-header' || !steps[e.key]) return;
+      e.preventDefault(); e.stopPropagation();
+      const b = chat.getBoundingClientRect();
+      if (!chatFrame) chatFrame = { x: b.x, y: b.y, w: b.width, h: chat.classList.contains('is-collapsed') ? defaultChatHeight() : b.height };
+      chatFrame.x += steps[e.key][0]; chatFrame.y += steps[e.key][1];
+      placeChatAboveKeyboard(); host?.engine()?.pauseInput();
+    });
     const input = chat.querySelector('input');
     input.onfocus = () => host?.engine()?.pauseInput();
     input.onblur = () => { composing = false; };
@@ -5871,7 +5934,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       const text = Array.from(input.value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim()).slice(0, 80).join('');
       if (!text) return;
       const now = new Date(), nickname = String(host.nickname?.() || '나');
-      const message = { nickname, text, time: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') };
+      const message = { nickname, text, portrait: host.portrait?.() || '', time: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') };
       chatHistory.push(message); if (chatHistory.length > 30) chatHistory.shift();
       appendChatMessage(message); input.value = ''; input.focus();
       clearSpeech(); speech = document.createElement('div'); speech.id = 'market-chat-bubble'; speech.setAttribute('aria-hidden', 'true');
@@ -5891,18 +5954,21 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     const log = chat?.querySelector('#market-chat-log'); if (!log) return;
     log.querySelector('.market-chat-empty')?.remove();
     const row = document.createElement('div'); row.className = 'market-chat-message';
+    const photo = document.createElement('img'); photo.className = 'market-chat-avatar'; photo.src = message.portrait; photo.alt = message.nickname + ' 캐릭터 프로필'; photo.width = photo.height = 30;
+    const content = document.createElement('div'); content.className = 'market-chat-message-content';
     const name = document.createElement('strong'); name.textContent = message.nickname;
     const time = document.createElement('time'); time.textContent = message.time;
     const body = document.createElement('p'); body.textContent = message.text;
-    row.append(name, time, body); log.append(row);
+    content.append(name, time, body); row.append(photo, content); log.append(row);
     while (log.children.length > 30) log.firstElementChild.remove();
     log.scrollTop = log.scrollHeight;
   }
   function syncChat() {
-    const e = host?.engine(), inMarket = !!e?.isRunning() && e.mode() === 'market' && !travelling;
+    const e = host?.engine(), inMarket = !!e?.isRunning() && marketModes.includes(e.mode()) && !travelling;
     if (inMarket && !chat) createChat();
     if (chat) {
       const available = chatAvailable();
+      if (!available && manipulation) endManipulation();
       if (!available && isTyping()) chat.querySelector('input').blur();
       chat.hidden = !available;
       document.body.classList.toggle('has-market-chat', available);
@@ -5913,11 +5979,66 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   }
   function placeChatAboveKeyboard() {
     if (!chat) return;
+    if (chatFrame) { applyChatFrame(); return; }
     const viewport = root.visualViewport;
     const covered = viewport && root.innerWidth <= 600 ? Math.max(0, root.innerHeight - viewport.height - viewport.offsetTop) : 0;
     const bottom = covered > 0 ? 'calc(' + Math.max(122, covered + 14) + 'px + env(safe-area-inset-bottom))' : '';
     if (chat.style.bottom !== bottom) chat.style.bottom = bottom;
   }
+  function defaultChatHeight() { return root.innerWidth <= 600 ? 198 : 228; }
+  function chatSpace() {
+    const v = root.visualViewport;
+    return { x: 12, y: 12, w: Math.max(120, (v?.width || root.innerWidth) - 24), h: Math.max(44, (v?.height || root.innerHeight) - 24) };
+  }
+  function applyChatFrame() {
+    if (!chat || !chatFrame) return;
+    const s = chatSpace(), collapsed = chat.classList.contains('is-collapsed');
+    const w = Math.min(s.w, collapsed ? 154 : Math.max(244, chatFrame.w));
+    const h = Math.min(s.h, collapsed ? 44 : Math.max(178, chatFrame.h));
+    const x = Math.max(s.x, Math.min(chatFrame.x, s.x + s.w - w));
+    const y = Math.max(s.y, Math.min(chatFrame.y, s.y + s.h - h));
+    for (const [key, value] of Object.entries({ left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', bottom: 'auto' })) {
+      if (chat.style[key] !== value) chat.style[key] = value;
+    }
+  }
+  function startManipulation(e, kind) {
+    if (e.button !== 0 || !chatAvailable() || (kind !== 'move' && chat.classList.contains('is-collapsed'))) return;
+    e.preventDefault(); e.stopPropagation();
+    chat.querySelector('input').blur(); host?.engine()?.pauseInput();
+    const b = chat.getBoundingClientRect(), collapsed = chat.classList.contains('is-collapsed');
+    const expanded = chatFrame || { w: Math.min(310, root.innerWidth - 96), h: defaultChatHeight() };
+    chatFrame = { x: b.x, y: b.y, w: collapsed ? expanded.w : b.width, h: collapsed ? expanded.h : b.height };
+    manipulation = { kind, pointer: e.pointerId, x: e.clientX, y: e.clientY, rect: { x: b.x, y: b.y, w: b.width, h: b.height }, frame: { ...chatFrame } };
+    chat.classList.add('is-manipulating'); applyChatFrame();
+    chat.setPointerCapture(e.pointerId);
+  }
+  function moveChat(e) {
+    if (!manipulation || manipulation.pointer !== e.pointerId) return;
+    e.preventDefault();
+    const a = manipulation, r = a.rect, dx = e.clientX - a.x, dy = e.clientY - a.y, s = chatSpace();
+    if (a.kind === 'move') {
+      const x = Math.max(s.x, Math.min(r.x + dx, s.x + s.w - r.w)), y = Math.max(s.y, Math.min(r.y + dy, s.y + s.h - r.h));
+      chatFrame = { ...a.frame, x, y };
+    } else {
+      let left = r.x, right = r.x + r.w, top = r.y, bottom = r.y + r.h;
+      const minW = Math.min(244, s.w), minH = Math.min(178, s.h);
+      if (a.kind.includes('w')) left = Math.max(s.x, Math.min(r.x + dx, right - minW));
+      if (a.kind.includes('e')) right = Math.min(s.x + s.w, Math.max(left + minW, right + dx));
+      if (a.kind.includes('n')) top = Math.max(s.y, Math.min(r.y + dy, bottom - minH));
+      if (a.kind.includes('s')) bottom = Math.min(s.y + s.h, Math.max(top + minH, bottom + dy));
+      chatFrame = { x: left, y: top, w: right - left, h: bottom - top };
+    }
+    applyChatFrame();
+  }
+  function endManipulation() {
+    if (!manipulation) return;
+    const pointer = manipulation.pointer; manipulation = null;
+    chat?.classList.remove('is-manipulating');
+    if (chat?.hasPointerCapture(pointer)) chat.releasePointerCapture(pointer);
+    host?.engine()?.pauseInput();
+  }
+  root.addEventListener('blur', endManipulation);
+  root.addEventListener('resize', placeChatAboveKeyboard);
   root.visualViewport?.addEventListener('resize', placeChatAboveKeyboard);
   root.visualViewport?.addEventListener('scroll', placeChatAboveKeyboard);
   function drawSpeech() {
@@ -6014,10 +6135,10 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   root.MarketUI = {
     init(value) { host = value; }, ride, openService, closeService,
     isTravelling: () => travelling,
-    isTyping, sync: syncChat, drawSpeech,
+    isTyping, isManipulating: () => !!manipulation, sync: syncChat, drawSpeech,
     tick() { syncChat(); if (speech && performance.now() >= speechUntil) clearSpeech(); },
-    reset() { closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatHistory.length = 0; composing = false; document.body.classList.remove('has-market-chat'); },
-    state: () => ({ travelling, destination, service, typing: isTyping(), chatVisible: !!chat && !chat.hidden, messages: chatHistory.length, speech: speech?.textContent || null })
+    reset() { endManipulation(); closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatFrame = null; chatHistory.length = 0; composing = false; document.body.classList.remove('has-market-chat'); },
+    state: () => ({ travelling, destination, service, typing: isTyping(), manipulating: !!manipulation, chatVisible: !!chat && !chat.hidden, messages: chatHistory.length, speech: speech?.textContent || null })
   };
 })(window);
 
@@ -6584,7 +6705,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   // 앱 대화창(NPC·튜토리얼·코코·이장)이 열려 있는가 — 휴대폰(ui.js)이 알림을 미룰 때도 쓴다
   function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop"); }
   // 3D 입력을 멈춰야 하는가 — 대화창 또는 휴대폰·지도(ui.js)가 열려 있을 때
-  function worldBlocked(){ return !!(window.MarketUI && (window.MarketUI.isTravelling() || window.MarketUI.isTyping())) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
+  function worldBlocked(){ return !!(window.MarketUI && (window.MarketUI.isTravelling() || window.MarketUI.isTyping() || window.MarketUI.isManipulating())) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
   // 현재 키 이름 — 휴대폰 설정에서 바꿀 수 있다(ui.js). ui.js가 없으면 기본 키
   function key(action){ return window.WorldUI ? window.WorldUI.keyLabel(action) : ({interact:"E",forward:"W",left:"A",back:"S",right:"D",map:"M"})[action]; }
   function hud(id){ return document.getElementById(id); }
@@ -6948,6 +7069,12 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   if(window.MarketUI) window.MarketUI.init({
     engine: function(){ return ENGINE; },
     nickname: nick,
+    portrait: function(){
+      var image = ENGINE && ENGINE.avatarPortrait(); if(image) return image;
+      var av = Object.assign({}, currentAvatar() || presetAvatar("calm", "#4caf6e", nick()));
+      ["skin", "hairColor", "outfit"].forEach(function(k){ if(!/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(av[k] || "")) av[k] = k === "skin" ? "#F6D7BD" : k === "hairColor" ? "#2b2b2b" : "#4caf6e"; });
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(avatarSvg(av, 96).replace('viewBox="0 0 64 64"', 'viewBox="6 0 52 49"'));
+    },
     blocked: dialogOpen,
     tutorial: function(){ return !!state.tour || (state.view === "room" && state.room && state.room.phase !== "free"); },
     arrive: function(mode, spawn){ state.near = null; state.spawn = spawn; state.view = mode === "market" ? "market" : "plaza"; render(); },

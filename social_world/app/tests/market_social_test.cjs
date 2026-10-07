@@ -93,7 +93,9 @@ async function fits(page, selector, w, h) {
       check(true, tag + ' speech bubble anchors above actual player head');
       await page.keyboard.press('Escape');
       check(await page.evaluate(() => !MarketUI.isTyping()), tag + ' Escape releases chat input');
-      await page.keyboard.down('a'); await page.waitForTimeout(320); await page.keyboard.up('a');
+      await page.keyboard.down('a');
+      try { await page.waitForFunction(p => Math.hypot(__sw().engine.playerPos().x - p.x, __sw().engine.playerPos().z - p.z) > .1, p, { timeout: 4000 }); }
+      finally { await page.keyboard.up('a'); }
       check(await page.evaluate(p => Math.hypot(__sw().engine.playerPos().x - p.x, __sw().engine.playerPos().z - p.z) > .1, p), tag + ' movement resumes after leaving input');
       await page.waitForFunction(() => {
         const b = document.getElementById('market-chat-bubble')?.getBoundingClientRect(), p = __sw().engine.playerHeadScreen();
@@ -114,7 +116,7 @@ async function fits(page, selector, w, h) {
       check(await page.locator('.market-chat-message').count() === 1, tag + ' whitespace does not send empty message');
       const hostile = '<img src=x onerror="window.__chatInjected=1">';
       await input.fill(hostile); await page.keyboard.press('Enter');
-      check(await page.locator('#market-chat-log img, #market-chat-bubble img').count() === 0 && await page.evaluate(() => !window.__chatInjected) && await page.locator('#market-chat-bubble').innerText() === hostile, tag + ' user text is rendered safely as literal text');
+      check(await page.locator('.market-chat-message-content img, #market-chat-bubble img').count() === 0 && await page.evaluate(() => !window.__chatInjected) && await page.locator('#market-chat-bubble').innerText() === hostile, tag + ' user text is rendered safely as literal text');
       await input.evaluate(el => { el.value = '가'.repeat(100); el.form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
       check(Array.from(await page.locator('#market-chat-bubble').innerText()).length === 80, tag + ' message length capped at 80 characters');
       await input.evaluate(el => { for (let i = 0; i < 35; i++) { el.value = '메시지 ' + i; el.form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); } });
@@ -129,10 +131,16 @@ async function fits(page, selector, w, h) {
       check(await page.evaluate(() => MarketUI.isTyping() && !document.getElementById('market-chat').classList.contains('is-collapsed')), tag + ' Enter opens collapsed chat and focuses input');
       await input.fill('시장 둘러보기'); await page.keyboard.press('Enter'); await page.keyboard.press('Escape');
       await goMap(page, 'market-bank'); await page.keyboard.press('e'); await page.waitForFunction(() => __sw().engine.mode() === 'bank');
-      check(await page.locator('#market-chat').isHidden() && await page.locator('#market-chat-bubble').count() === 0, tag + ' bank interior hides chat and clears speech');
+      check(await page.locator('#market-chat').isVisible(), tag + ' bank interior allows market chat');
+      await input.focus(); await input.fill('은행에서도 채팅'); await page.keyboard.press('Enter');
+      check(await page.locator('#market-chat-bubble').innerText() === '은행에서도 채팅' && await page.evaluate(() => !!__sw().engine.playerHeadScreen()), tag + ' bank chat anchors speech to indoor avatar');
+      await page.keyboard.press('Escape');
       await page.screenshot({ path: path.join(shotDir, 'bank-bench-' + suffix + '.png') });
       await goMap(page, 'market-clothing'); await page.keyboard.press('e'); await page.waitForFunction(() => __sw().engine.mode() === 'clothing');
-      check(await page.locator('#market-chat').isHidden(), tag + ' clothing interior hides chat');
+      check(await page.locator('#market-chat').isVisible(), tag + ' clothing interior allows market chat');
+      await input.focus(); await input.fill('옷가게에서도 채팅'); await page.keyboard.press('Enter');
+      check(await page.locator('#market-chat-bubble').innerText() === '옷가게에서도 채팅' && await page.evaluate(() => !!__sw().engine.playerHeadScreen()), tag + ' clothing chat anchors speech to indoor avatar');
+      await page.keyboard.press('Escape');
       await goMap(page, 'market-bank');
       await page.waitForFunction(() => __sw().engine.mode() === 'market' && MarketUI.state().chatVisible);
       check(await page.locator('.market-chat-message').count() === 30, tag + ' market return keeps current-session chat history');

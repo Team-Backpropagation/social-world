@@ -270,7 +270,7 @@
       box(g, 10, 4, .2, kind === 'bank' ? '#D7E4D5' : '#F1D9CD', 0, 2, -4.7);
       [-4.8, 4.8].forEach(x => box(g, .2, 4, 9.5, '#F7ECDC', x, 2, 0));
       for (let z = -4; z <= 4; z++) box(g, 9.4, .012, .025, '#D3BE9C', 0, .02, z);
-      label(g, title, 0, 3.2, -4.5);
+      if (kind === 'bank') label(g, title, 0, 3.2, -4.5);
       if (kind === 'bank') {
         box(g, 6, 1.1, 1, '#91AB8D', 0, .55, -1.8);
         box(g, 6.3, .13, 1.15, '#F8EFDA', 0, 1.16, -1.8);
@@ -295,7 +295,6 @@
         box(g, 2.4, .9, 1.2, '#C59D85', 0, .45, -3.6);
         colliders.push({ seg: [p.x - 1.2, p.z - 3.6, p.x + 1.2, p.z - 3.6], r: .6, area: kind });
         for (let i = 0; i < 3; i++) box(g, .65, .12, .55, colors[i], -.75 + i * .75, 1.05, -3.6);
-        box(g, 1.5, 2.8, .08, '#94B6AE', -4.55, 1.5, .6);
         box(g, 1.6, .25, .9, '#CBA68A', 2.6, .3, 1.6);
         colliders.push({ seg: [p.x + 1.8, p.z + 1.6, p.x + 3.4, p.z + 1.6], r: .45, area: kind });
       }
@@ -325,7 +324,6 @@
     box(bus, 1.4, 2.15, .06, '#304C44', -1.8, 1.65, 1.51);
     const busDoor = box(bus, 1.35, 2.08, .07, '#ACC6BB', -1.8, 1.65, 1.56);
     box(busDoor, 1.1, 1.35, .03, '#637F80', 0, .16, .06);
-    label(bus, '이음 순환버스', .6, 3.55, 0, 58);
     shade(bus); bus.visible = false;
 
     function park(mode) { return mode === 'village' ? { x: data.villageRoad.x, z: 16 } : { x: MX, z: 18 }; }
