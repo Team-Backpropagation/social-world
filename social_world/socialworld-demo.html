@@ -2052,6 +2052,18 @@ body.in-transit #fishing-status, body.in-transit #hud-view, body.in-transit #hud
 @media (prefers-reduced-motion: reduce) { #transit-fade { transition: none; } }
 
 /* Local market chat preview. Messages remain only in this page's memory. */
+.market-wallet { display:flex; flex-wrap:wrap; gap:12px 24px; margin:22px 30px 8px; padding:16px; border-radius:14px; background:#E9EFDF; font-size:13px; }
+.market-wallet strong { display:block; font-size:22px; margin-top:5px; }
+.market-saving { display:flex; align-items:center; gap:10px; margin:0 30px 18px; font-size:12px; color:#748271; }
+.market-saving button,.market-wear { border:1px solid #B8C6AF; border-radius:8px; background:#FFF9EE; color:#456B54; font:inherit; padding:7px 10px; cursor:pointer; }
+.market-bank-services form { display:flex; flex-direction:column; gap:9px; }
+.market-bank-services label { font-size:12px; }
+.market-bank-services input { width:100%; min-width:0; box-sizing:border-box; border:1px solid #C9D3BC; border-radius:9px; padding:10px; font:inherit; background:#FFFDF7; color:#36574A; }
+.market-service button:disabled { opacity:.5; cursor:default; }
+.market-look .market-primary { padding:8px 12px; font-size:12px; }
+.market-wear[hidden],#market-economy-retry[hidden] { display:none; }
+.inventory-save-state { font-size:11px !important; }
+@media(max-width:600px){ .market-wallet{margin:18px 18px 8px;} .market-saving{margin:0 18px 16px;} .market-wallet strong{font-size:20px;} }
 #market-chat {
   position: fixed; left: max(16px, env(safe-area-inset-left)); bottom: calc(112px + env(safe-area-inset-bottom));
   z-index: 4; width: min(310px, calc(100vw - 96px)); height: 228px; box-sizing: border-box; display: flex; flex-direction: column;
@@ -4968,6 +4980,106 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
 })(typeof window!=='undefined'?window:globalThis);
 
 </script>
+<!-- economy.js -->
+<script>
+/* Server-authoritative game money/inventory. Local data is a legacy fallback only. */
+(function(root){
+ 'use strict';
+ const wardrobe=[['sage-shirt','세이지 셔츠','#8FAA9B',1000],['apricot-shirt','살구 셔츠','#D9917F',1000],['cream-knit','크림 니트','#E2CF9C',1200],['sky-shirt','하늘 셔츠','#96B4CC',1000],['lavender-knit','라벤더 니트','#B5A4C1',1200],['brown-shirt','소프트 브라운','#B9987C',1000]].map(([id,name,color,price])=>({id,name,color,price,kind:'clothing'}));
+ function register(catalog){for(const c of catalog||[])if(c.kind==='clothing'&&/^#[0-9a-f]{6}$/i.test(c.color)&&root.FishingData)root.FishingData.items[c.id]={name:c.name,kind:'clothing',color:c.color,description:'오늘의 옷장에서 고른 옷이에요.'};}
+ register(wardrobe);
+ const messages={SETUP_REQUIRED:'온라인 보관함을 준비 중이에요. 기존 아이템은 이 브라우저에서 사용할 수 있어요.',OFFLINE:'서버에 연결하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.',invalid_import:'이전 보관함을 옮기지 못했어요. 기존 기록은 이 브라우저에 남아 있어요.',PENDING:'처리 결과를 확인 중이에요. 다시 확인을 눌러 주세요.',BUSY:'처리 중이에요. 잠시 기다려 주세요.',insufficient_cash:'소지금이 부족해요.',insufficient_bank:'예금 잔액이 부족해요.',invalid_amount:'1원 이상의 정수를 입력해 주세요.',already_owned:'이미 가지고 있는 옷이에요.',wrong_recycle_bin:'다른 수거함을 골라 주세요.',item_not_owned:'현재 보유한 아이템이 아니에요.',item_in_trade:'거래 중인 아이템이에요.',bite_missed:'입질 시간이 지났어요. 다시 낚시해 보세요.',too_early:'찌가 잠길 때 낚아채세요.',rod_not_equipped:'낚싯대를 먼저 장착해 주세요.',fishing_cooldown:'잠시 뒤에 다시 던져 주세요.',legacy_item_not_tradable:'이전 브라우저에서 가져온 아이템은 거래할 수 없어요.',STORAGE:'저장 기능을 사용할 수 없어요. 브라우저 설정을 확인해 주세요.',ONLINE_CATCH_REQUIRED:'온라인 낚시로 아이템을 획득해 주세요.'};
+ function fail(code){const e=new Error(messages[code]||'요청을 완료하지 못했어요. 다시 확인해 주세요.');e.code=code;return e;}
+ function errorCode(error){const text=String(error?.message||'');return Object.keys(messages).find(k=>text.includes(k))||error?.code||'OFFLINE';}
+ const clone=v=>JSON.parse(JSON.stringify(v));
+ function create({sb,userId,storage}){
+  if(!storage)try{storage=root.localStorage;}catch(e){}
+  if(!storage)storage={getItem:()=>null,removeItem:()=>{},setItem:()=>{throw fail('STORAGE');}};
+  const uid=userId,key='sw-economy-pending-v1:'+encodeURIComponent(uid),listeners=new Set();
+  let snapshot=null,mode='loading',busy=false,pending=null,active=true,initialized=false,refreshing=null;
+  try{const saved=JSON.parse(storage.getItem(key)||'null');if(saved&&typeof saved.id==='string'&&typeof saved.action==='string'&&saved.args&&typeof saved.args==='object')pending=saved;}catch(e){}
+  function notify(){if(active)for(const fn of [...listeners])fn();}
+  function receive(data){
+   const s=data?.state;
+   if(!s||!Number.isSafeInteger(s.cash)||s.cash<0||!Number.isSafeInteger(s.bank)||s.bank<0||!Number.isSafeInteger(s.revision)||!Array.isArray(s.inventory?.instances)||!Array.isArray(s.catalog))throw fail('SETUP_REQUIRED');
+   if(s.userId!==uid)throw fail('CANCELLED');
+   if(active&&(!snapshot||s.revision>=snapshot.revision)){snapshot=clone(s);register(s.catalog);}
+   mode='online';return data;
+  }
+  async function rpc(action,args={},id=null){
+   let response;
+   try{response=await sb.rpc('sw_economy',{p_action:action,p_args:args,p_request_id:id});}catch(e){throw fail('OFFLINE');}
+   if(!active)throw fail('CANCELLED');
+   if(response?.error){
+    if(['PGRST202','42883'].includes(response.error.code))throw fail('SETUP_REQUIRED');
+    const e=fail(errorCode(response.error));e.definite=/^[0-9A-Z]{5}$/.test(response.error.code||'')&&!['PGRST000','PGRST001','PGRST002'].includes(response.error.code);throw e;
+   }
+   return receive(response?.data);
+  }
+  function clearPending(){pending=null;try{storage.removeItem(key);}catch(e){}}
+  async function replay(){
+   if(!pending)return;
+   const p=pending;
+   try{const data=await rpc(p.action,p.args,p.id);clearPending();return data.result;}catch(e){if(e.definite)clearPending();throw e;}
+  }
+  function legacyArgs(){
+   let v;try{v=JSON.parse(storage.getItem('social-world-inventory-v1:'+encodeURIComponent(uid))||'null');}catch(e){}
+   const entries=(Array.isArray(v?.instances)?v.instances:[]).filter(e=>e?.itemId!=='rod'&&root.FishingData?.items[e?.itemId]&&root.FishingData.items[e.itemId].kind!=='clothing').map(e=>({id:e.id,itemId:e.itemId,...(Number.isFinite(e.sizeCm)?{sizeCm:e.sizeCm}:{}),...(e.waterId?{waterId:e.waterId}:{}),...(e.caughtAt?{caughtAt:e.caughtAt}:{})}));
+   if(entries.length>2000||(v?.recycled?.length||0)>2000)throw fail('invalid_import');
+   return {entries,equipped:v?.equipped==='rod',recycledCount:v?.recycled?.length||0};
+  }
+  async function initialize(){
+   if(initialized)return refresh();initialized=true;busy=true;notify();
+   try{
+    await rpc('state');await replay();
+    if(!snapshot.legacyImported){pending={id:root.crypto.randomUUID(),action:'import_legacy',args:legacyArgs()};storage.setItem(key,JSON.stringify(pending));await replay();}
+   }catch(e){mode=snapshot?'offline':e.code==='SETUP_REQUIRED'?'legacy':'offline';}
+   finally{busy=false;notify();}
+   return snapshot&&clone(snapshot);
+  }
+  async function refresh(){
+   if(!active||busy)return snapshot&&clone(snapshot);
+   if(refreshing)return refreshing;
+   refreshing=(async()=>{try{await rpc('state');}catch(e){mode=snapshot?'offline':e.code==='SETUP_REQUIRED'?'legacy':'offline';}finally{refreshing=null;notify();}return snapshot&&clone(snapshot);})();
+   return refreshing;
+  }
+  async function run(action,args={}){
+   if(!active)throw fail('CANCELLED');
+   if(busy)throw fail('BUSY');
+   if(pending)throw fail('PENDING');
+   if(mode!=='online')throw fail(mode==='legacy'?'SETUP_REQUIRED':'OFFLINE');
+   busy=true;notify();
+   try{
+    pending={id:root.crypto.randomUUID(),action,args:clone(args)};
+    try{storage.setItem(key,JSON.stringify(pending));}catch(e){pending=null;throw fail('STORAGE');}
+    const result=await replay();return result;
+   }catch(e){if(!e.definite&&e.code!=='STORAGE')mode='offline';throw e;}
+   finally{busy=false;notify();}
+  }
+  async function retry(){
+   if(busy)return;busy=true;notify();
+   try{await rpc('state');await replay();if(!snapshot.legacyImported){pending={id:root.crypto.randomUUID(),action:'import_legacy',args:legacyArgs()};storage.setItem(key,JSON.stringify(pending));await replay();}}
+   catch(e){mode=snapshot?'offline':e.code==='SETUP_REQUIRED'?'legacy':'offline';throw e;}
+   finally{busy=false;notify();}
+  }
+  const focus=()=>{if(active&&!busy)refresh();};
+  root.addEventListener?.('focus',focus);
+  const timer=root.setInterval?.(()=>{if(active&&snapshot&&!root.document?.hidden&&!busy)refresh();},30000);
+  return {userId:uid,initialize,refresh,run,retry,
+   getState:()=>snapshot&&clone(snapshot),isRodEquipped:()=>snapshot?.inventory.equipped==='rod',status:()=>({mode,busy,pending:!!pending,hasOnlineState:!!snapshot}),
+   subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn);},
+   deposit:amount=>run('deposit',{amount}),withdraw:amount=>run('withdraw',{amount}),buy:itemId=>run('buy',{itemId}),
+   equipClothing:instanceId=>run('equip_clothing',{instanceId}),
+   beginFishing:waterId=>run('begin_fishing',{waterId}),finishFishing:castId=>run('finish_fishing',{castId}),cancelFishing:castId=>run('cancel_fishing',{castId}),
+   offer:(instanceId,buyerId,price)=>run('offer',{instanceId,buyerId,price}),acceptOffer:offerId=>run('accept_offer',{offerId}),cancelOffer:offerId=>run('cancel_offer',{offerId}),declineOffer:offerId=>run('decline_offer',{offerId}),
+   destroy(){active=false;root.clearInterval?.(timer);root.removeEventListener?.('focus',focus);listeners.clear();}
+  };
+ }
+ root.OnlineEconomy={create,wardrobe,fail,message:e=>messages[e?.code]||e?.message||messages.OFFLINE};
+ if(typeof module!=='undefined')module.exports=root.OnlineEconomy;
+})(typeof window!=='undefined'?window:globalThis);
+
+</script>
 <!-- inventory.js -->
 <script>
 /* Instances remain separate in storage; grouping is only a view. */
@@ -5011,7 +5123,21 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   }
   return {getState,groups,add,equip,recycle,isEquipped:()=>state.equipped==='rod'};
  }
- root.InventoryStore={create};if(typeof module!=='undefined')module.exports={create};
+ function createOnline({economy,storage,key,data,onChange=()=>{}}){
+  const local=create({storage,key,data,onChange});
+  const online=()=>economy.status().hasOnlineState;
+  const getState=()=>online()?economy.getState().inventory:local.getState();
+  const canLocal=()=>economy.status().mode==='legacy';
+  const unsubscribe=economy.subscribe(onChange);
+  function groups(){const grouped=new Map();for(const e of getState().instances){const definition=data.items[e.itemId];if(!definition)continue;if(!grouped.has(e.itemId))grouped.set(e.itemId,{itemId:e.itemId,definition,instances:[]});grouped.get(e.itemId).instances.push({...e});}return [...grouped.values()];}
+  function requireReady(){if(!canLocal())throw root.OnlineEconomy.fail(economy.status().mode==='loading'?'BUSY':'OFFLINE');}
+  return {getState,groups,status:economy.status,isEquipped:()=>online()?economy.isRodEquipped():local.isEquipped(),destroy:unsubscribe,
+   add(entry){if(online())throw root.OnlineEconomy.fail('ONLINE_CATCH_REQUIRED');requireReady();return local.add(entry);},
+   equip(){if(online())return economy.run('equip_rod',{equipped:!getState().equipped});requireReady();return local.equip();},
+   recycle(id,category){if(online())return economy.run('recycle',{instanceId:id,category}).then(()=>true);requireReady();return local.recycle(id,category);}
+  };
+ }
+ root.InventoryStore={create,createOnline};if(typeof module!=='undefined')module.exports={create,createOnline};
 })(typeof window!=='undefined'?window:globalThis);
 
 </script>
@@ -5020,9 +5146,9 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
 /* Browser UI and fishing state machine. Data/storage/3D stay independently replaceable. */
 (function(root){
  'use strict';
- root.createFishingFeature=function({engine,ui,openPanel,closePanel,setupFocus,toast,icon,keyLabel,storageKey,allowed=()=>true,isBusy=()=>false}){
+ root.createFishingFeature=function({engine,ui,openPanel,closePanel,setupFocus,toast,icon,keyLabel,storageKey,economy=null,allowed=()=>true,isBusy=()=>false}){
   const D=root.FishingData,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let fishing=null,selected='rod',filter='all',lastHud='';
+  let fishing=null,saving=false,destroyed=false,selected='rod',filter='all',lastHud='';
   let storage;try{storage=root.localStorage;}catch(e){storage={getItem:()=>null,setItem:()=>{throw Error('Storage unavailable');}};}
   const guideKey=storageKey+':guide';
   let guide={completed:0,dismissed:false};
@@ -5032,47 +5158,52 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   }catch(e){}
   function saveGuide(){try{storage.setItem(guideKey,JSON.stringify(guide));}catch(e){}}
   function dismissGuide(){guide.dismissed=true;saveGuide();updateHud();engine?.pauseInput();}
-  const store=root.InventoryStore.create({storage,key:storageKey,data:D,onChange:()=>{
+  const store=(economy?root.InventoryStore.createOnline:root.InventoryStore.create)({economy,storage,key:storageKey,data:D,onChange:()=>{
+   if(destroyed)return;
    engine?.setRodEquipped(store.isEquipped());updateHud();if(ui.panel==='inventory')renderInventory();
   }});
   const launch=document.createElement('button');launch.id='inventory-launch';launch.type='button';launch.hidden=true;launch.title='인벤토리';launch.setAttribute('aria-label','인벤토리 열기');
   launch.innerHTML=icon('inventory')+'<span class="hud-label">인벤토리 <b>I</b></span>';document.querySelector('.hud-right').prepend(launch);launch.onclick=toggleInventory;
   const status=document.createElement('aside');status.id='fishing-status';status.className='world-ui';status.hidden=true;status.setAttribute('aria-live','polite');document.body.append(status);
   function itemIcon(def){
-   const shape=def.kind==='fish'?'<path d="M4 18c5-10 14-10 21-3l7-5v16l-7-5C18 28 9 28 4 18Z"/><circle cx="11" cy="17" r="1.7" fill="#293b34"/><path d="m18 14 3-5m-3 13 3 4"/>':def.kind==='tool'?'<path d="m8 31 21-26M25 10c8 0 7 8 4 13M29 23v5q0 5-4 2" fill="none" stroke-width="3"/><path d="m6 30 4 3 6-8-4-3Z"/>':def.kind==='collectible'?'<circle cx="18" cy="18" r="12"/><circle cx="18" cy="18" r="8" fill="none"/><path d="M18 13v10m-3-7h6" fill="none"/>':'<path d="M11 12h14l-1 18H12l-1-18Zm-2-4h18M15 5h6M16 16v10m5-10v10"/>';
+   const shape=def.kind==='clothing'?'<path d="M12 5 4 11l4 7 5-3v16h10V15l5 3 4-7-8-6q-6 5-12 0Z"/>':def.kind==='fish'?'<path d="M4 18c5-10 14-10 21-3l7-5v16l-7-5C18 28 9 28 4 18Z"/><circle cx="11" cy="17" r="1.7" fill="#293b34"/><path d="m18 14 3-5m-3 13 3 4"/>':def.kind==='tool'?'<path d="m8 31 21-26M25 10c8 0 7 8 4 13M29 23v5q0 5-4 2" fill="none" stroke-width="3"/><path d="m6 30 4 3 6-8-4-3Z"/>':def.kind==='collectible'?'<circle cx="18" cy="18" r="12"/><circle cx="18" cy="18" r="8" fill="none"/><path d="M18 13v10m-3-7h6" fill="none"/>':'<path d="M11 12h14l-1 18H12l-1-18Zm-2-4h18M15 5h6M16 16v10m5-10v10"/>';
    return `<svg viewBox="0 0 36 36" aria-hidden="true" style="color:${def.color}"><g fill="currentColor" stroke="#476254" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${shape}</g></svg>`;
   }
-  function kindLabel(def){return {tool:'도구',fish:'물고기',trash:'쓰레기',collectible:'수집품'}[def.kind];}
+  function kindLabel(def){return {tool:'도구',fish:'물고기',trash:'쓰레기',collectible:'수집품',clothing:'옷'}[def.kind];}
   function renderInventory(){
    const groups=store.groups(),state=store.getState(),shown=groups.filter(g=>filter==='all'||g.definition.kind===filter);
    if(!shown.some(g=>g.itemId===selected))selected=shown[0]?.itemId||null;
    const g=shown.find(g=>g.itemId===selected),def=g?.definition;
    const fish=state.instances.filter(e=>D.items[e.itemId].kind==='fish'),totalFish=fish.length;
    document.querySelector('#overlay').innerHTML=`<section class="ui-dialog inventory-dialog" role="dialog" aria-modal="true" aria-labelledby="inventory-title">
-    <header class="dialog-top"><div class="avatar">${icon('inventory')}</div><div><div class="eyebrow">MY INVENTORY</div><h2 id="inventory-title">인벤토리</h2><p>장착 도구 · ${store.isEquipped()?'기본 낚싯대':'없음'} / 물고기 ${totalFish}마리</p></div><button class="icon-btn" data-inventory-close aria-label="인벤토리 닫기">${icon('close')}</button></header>
-    <div class="inventory-tabs" role="group" aria-label="아이템 분류">${[['all','전체'],['tool','도구'],['fish','물고기'],['trash','쓰레기'],['collectible','수집품']].map(([id,name])=>`<button class="${filter===id?'active':''}" data-inventory-filter="${id}" aria-pressed="${filter===id}">${name}</button>`).join('')}</div>
+    <header class="dialog-top"><div class="avatar">${icon('inventory')}</div><div><div class="eyebrow">MY INVENTORY</div><h2 id="inventory-title">인벤토리</h2><p>장착 도구 · ${store.isEquipped()?'기본 낚싯대':'없음'} / 물고기 ${totalFish}마리</p><p class="inventory-save-state">${economy?(economy.status().pending?'저장 결과 확인 필요':economy.status().mode==='online'?'온라인 보관함':economy.status().mode==='legacy'?'이 브라우저에 보관 중':'연결 확인 중'):'이 브라우저에 보관 중'}${economy?.getState()?' · 소지금 '+economy.getState().cash.toLocaleString('ko-KR')+'원':''}</p>${economy&&(economy.status().mode!=='online'||economy.status().pending)?'<button class="action secondary" id="inventory-retry">다시 확인</button>':''}</div><button class="icon-btn" data-inventory-close aria-label="인벤토리 닫기">${icon('close')}</button></header>
+    <div class="inventory-tabs" role="group" aria-label="아이템 분류">${[['all','전체'],['tool','도구'],['fish','물고기'],['trash','쓰레기'],['collectible','수집품'],['clothing','옷']].map(([id,name])=>`<button class="${filter===id?'active':''}" data-inventory-filter="${id}" aria-pressed="${filter===id}">${name}</button>`).join('')}</div>
     <div class="inventory-body"><div class="inventory-grid" aria-label="아이템 목록">${shown.length?shown.map(g=>{
      const d=g.definition,sizes=g.instances.map(e=>e.sizeCm).filter(Number.isFinite),range=sizes.length?`${Math.min(...sizes).toFixed(1)}–${Math.max(...sizes).toFixed(1)} cm`:d.kind==='trash'?D.categories[d.recycle]:kindLabel(d);
-     return `<button class="inventory-item ${selected===g.itemId?'selected':''}" data-item="${g.itemId}" aria-pressed="${selected===g.itemId}"><span class="item-art">${itemIcon(d)}</span><strong>${esc(d.name)}</strong><small>${range}</small><span class="item-count">${g.instances.length}${d.kind==='fish'?'마리':'개'}</span>${g.itemId==='rod'&&state.equipped?'<span class="equipped-label">장착 중</span>':''}</button>`;
+     return `<button class="inventory-item ${selected===g.itemId?'selected':''}" data-item="${g.itemId}" aria-pressed="${selected===g.itemId}"><span class="item-art">${itemIcon(d)}</span><strong>${esc(d.name)}</strong><small>${range}</small><span class="item-count">${g.instances.length}${d.kind==='fish'?'마리':'개'}</span>${g.instances.some(e=>e.id===economy?.getState()?.equippedClothing)?'<span class="equipped-label">착용 중</span>':''}${g.itemId==='rod'&&state.equipped?'<span class="equipped-label">장착 중</span>':''}</button>`;
     }).join(''):'<p class="inventory-empty">아직 모은 아이템이 없어요.</p>'}</div>
     <aside class="inventory-detail">${g?`<span class="type-tag">${kindLabel(def)}</span><div class="detail-art">${itemIcon(def)}</div><h3>${esc(def.name)}</h3>
-     ${def.kind==='tool'?`<p>물가에서 ${keyLabel(ui.bindings.interact)}로 던지고, 찌가 잠기면 다시 ${keyLabel(ui.bindings.interact)}로 낚아채세요.</p><button class="action ${state.equipped?'secondary':'primary'}" id="equip-rod">${state.equipped?'장착 해제':'낚싯대 장착'}</button>`:
-      def.kind==='fish'?`<p>같은 종류는 한 칸에 모아요. 각 물고기의 크기는 그대로 보관돼요.</p><div class="fish-instances" aria-label="물고기별 크기">${[...g.instances].reverse().map(e=>`<div class="fish-instance" data-instance="${esc(e.id)}"><span><small>${esc(D.waters.find(w=>w.id===e.waterId)?.name||'알 수 없는 장소')} · ${esc(new Date(e.caughtAt).toLocaleDateString('ko-KR'))}</small></span><b>${e.sizeCm.toFixed(1)} <small>cm</small></b></div>`).join('')}</div>`:
+     ${def.kind==='clothing'?`<p>구매한 옷을 입어 보세요.</p><button class="action primary" id="equip-clothing" data-instance="${esc(g.instances[0].id)}">${g.instances.some(e=>e.id===economy?.getState()?.equippedClothing)?'착용 해제':'입기'}</button>`:def.kind==='tool'?`<p>물가에서 ${keyLabel(ui.bindings.interact)}로 던지고, 찌가 잠기면 다시 ${keyLabel(ui.bindings.interact)}로 낚아채세요.</p><button class="action ${state.equipped?'secondary':'primary'}" id="equip-rod">${state.equipped?'장착 해제':'낚싯대 장착'}</button>`:
+      def.kind==='fish'?`<p>같은 종류는 한 칸에 모아요. 각 물고기의 크기는 그대로 보관돼요.</p>${g.instances.some(e=>e.source==='legacy')?'<p class="small muted">이전 브라우저에서 가져온 물고기는 거래할 수 없어요.</p>':''}<div class="fish-instances" aria-label="물고기별 크기">${[...g.instances].reverse().map(e=>`<div class="fish-instance" data-instance="${esc(e.id)}"><span><small>${esc(D.waters.find(w=>w.id===e.waterId)?.name||'알 수 없는 장소')} · ${esc(new Date(e.caughtAt).toLocaleDateString('ko-KR'))}</small></span><b>${e.sizeCm.toFixed(1)} <small>cm</small></b></div>`).join('')}</div>`:
       def.kind==='trash'?`<p>분리수거 분류 · <b>${D.categories[def.recycle]}</b></p>${def.description?`<p>${esc(def.description)}</p>`:''}<label class="recycle-picker">넣을 수거함<select id="recycle-category">${Object.entries(D.categories).map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label><button class="action secondary" id="recycle-item" data-instance="${esc(g.instances[0].id)}">이 쓰레기 1개 분리수거</button><p class="small muted">게임 내 분류 기준으로 판정해요.</p>`:`<p>${esc(def.description||'소중한 수집품이에요.')}</p>`}
      `:'<p class="inventory-empty">아이템을 모으면 여기에 자세히 보여드려요.</p>'}</aside></div>
-    <footer class="inventory-footer"><span>분리수거 ${state.recycled.length}개 완료</span><span>${keyLabel(ui.bindings.inventory)} / Esc 닫기</span></footer></section>`;
+    <footer class="inventory-footer"><span>분리수거 ${state.recycled.length+(state.legacyRecycledCount||0)}개 완료</span><span>${keyLabel(ui.bindings.inventory)} / Esc 닫기</span></footer></section>`;
    document.querySelector('[data-inventory-close]').onclick=()=>closePanel();
    document.querySelectorAll('[data-inventory-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.inventoryFilter;renderInventory();document.querySelector(`[data-inventory-filter="${filter}"]`)?.focus();});
    document.querySelectorAll('[data-item]').forEach(b=>b.onclick=()=>{selected=b.dataset.item;renderInventory();document.querySelector(`[data-item="${selected}"]`)?.focus();});
-   document.querySelector('#equip-rod')?.addEventListener('click',()=>{try{store.equip();toast(store.isEquipped()?'낚싯대를 장착했어요. 물가로 가 보세요.':'낚싯대를 내려놓았어요.');document.querySelector('#equip-rod')?.focus();}catch(e){toast('아이템을 저장할 수 없어요. 브라우저 저장 공간을 확인해 주세요.');}});
-   document.querySelector('#recycle-item')?.addEventListener('click',e=>{
-    try{const ok=store.recycle(e.currentTarget.dataset.instance,document.querySelector('#recycle-category').value);toast(ok?'알맞은 수거함에 넣었어요.':'다른 수거함을 골라 주세요. 아이템 설명에서 분류를 확인할 수 있어요.');}catch(e){toast('분리수거 결과를 저장할 수 없어요.');}
+   document.querySelector('#equip-rod')?.addEventListener('click',async()=>{try{await store.equip();if(destroyed)return;toast(store.isEquipped()?'낚싯대를 장착했어요. 물가로 가 보세요.':'낚싯대를 내려놓았어요.');document.querySelector('#equip-rod')?.focus();}catch(e){if(!destroyed)toast(root.OnlineEconomy.message(e));}});
+   document.querySelector('#inventory-retry')?.addEventListener('click',()=>economy.retry().catch(e=>toast(root.OnlineEconomy.message(e))));
+   document.querySelector('#equip-clothing')?.addEventListener('click',async e=>{const id=e.currentTarget.dataset.instance;try{await economy.equipClothing(economy.getState().equippedClothing===id?null:id);if(!destroyed)toast('옷차림을 바꿨어요.');}catch(error){if(!destroyed)toast(root.OnlineEconomy.message(error));}});
+   if(economy?.status().busy||economy?.status().mode==='loading')document.querySelectorAll('#equip-rod,#equip-clothing,#recycle-item,#inventory-retry').forEach(b=>b.disabled=true);
+   document.querySelector('#recycle-item')?.addEventListener('click',async e=>{
+    try{const ok=await store.recycle(e.currentTarget.dataset.instance,document.querySelector('#recycle-category').value);if(destroyed)return;toast(ok?'알맞은 수거함에 넣었어요.':'다른 수거함을 골라 주세요. 아이템 설명에서 분류를 확인할 수 있어요.');}catch(e){if(!destroyed)toast(root.OnlineEconomy.message(e));}
    });
   }
-  function toggleInventory(){if(!allowed()||isBusy())return;if(ui.panel==='inventory'){closePanel();return;}openPanel('inventory');renderInventory();setupFocus();}
-  function currentSpot(){return allowed()&&!isBusy()&&engine?.mode()==='village'&&store.isEquipped()?D.locate(engine.playerPos()):null;}
+  function toggleInventory(){if(!allowed()||isBusy())return;if(ui.panel==='inventory'){closePanel();return;}openPanel('inventory');renderInventory();setupFocus();economy?.refresh();}
+  function currentSpot(){return !saving&&(!economy||(!economy.status().busy&&!economy.status().pending&&['online','legacy'].includes(economy.status().mode)))&&allowed()&&!isBusy()&&engine?.mode()==='village'&&store.isEquipped()?D.locate(engine.playerPos()):null;}
   function target(fallback){
    if(!allowed()||isBusy())return fallback;
+   if(saving)return {type:'fishing',id:'saving',label:'아이템 저장 중'};
    if(fishing)return {type:'fishing',id:fishing.water.id,label:fishing.phase==='bite'?'지금 낚아채기':'낚싯대 거두기'};
    const spot=currentSpot();return spot&&!spot.water.hidden?{type:'fishing',id:spot.water.id,label:spot.water.name+' · 낚시하기'}:fallback;
   }
@@ -5084,33 +5215,34 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
    status.hidden=!allowed()||!store.isEquipped()||!!ui.panel||isBusy()||!!(spot?.water.hidden||fishing?.water.hidden)||guide.dismissed||guide.completed>=3;
    status.dataset.phase=phase;
    if(status.hidden)return;
-   const title=phase==='cast'?'낚싯대를 드리우고 있어요':phase==='waiting'?'찌를 지켜보세요':phase==='bite'?'물었어요! 지금 낚아채세요':spot?spot.water.name+' · 낚시 가능':'낚싯대 장착 중';
+   const title=phase==='connecting'?'낚시를 준비하고 있어요':phase==='cast'?'낚싯대를 드리우고 있어요':phase==='waiting'?'찌를 지켜보세요':phase==='bite'?'물었어요! 지금 낚아채세요':spot?spot.water.name+' · 낚시 가능':'낚싯대 장착 중';
    const line=phase==='bite'?`찌가 물 아래로 잠겼어요 · ${seconds}초`:fishing?'찌가 잠기면 상호작용하세요.':spot?`${keyLabel(ui.bindings.interact)}를 눌러 낚싯대를 드리워요.`:'강 · 공원 연못 · 호수의 물가로 가 보세요.';
    status.innerHTML=`<button class="fishing-guide-dismiss" type="button" aria-label="낚시 안내 끄기">안내 끄기</button><span class="fishing-indicator" aria-hidden="true"></span><div><strong>${title}</strong><p>${line}</p></div>${fishing?'<button id="fishing-cancel" aria-label="낚시 취소">취소</button>':`<kbd>${keyLabel(ui.bindings.interact)}</kbd>`}`;
    status.querySelector('.fishing-guide-dismiss').addEventListener('click',dismissGuide);
    document.querySelector('#fishing-cancel')?.addEventListener('click',()=>cancel(true));
   }
-  function cancel(show=false){
-   if(!fishing)return;fishing=null;engine?.setFishingVisual(null);engine?.pauseInput();lastHud='';updateHud();if(show)toast('낚싯대를 거두었어요.');
+  function cancel(show=false,remote=true){
+   if(!fishing)return;const castId=fishing.castId;fishing=null;if(remote&&castId&&!economy?.status().busy)economy?.cancelFishing(castId).catch(()=>{});engine?.setFishingVisual(null);engine?.pauseInput();lastHud='';updateHud();if(show)toast('낚싯대를 거두었어요.');
   }
   function interact({hiddenOnly=false}={}){
    if(!allowed()||ui.panel||isBusy())return false;
+   if(saving)return true;
    if(hiddenOnly&&!(fishing?.water.hidden||currentSpot()?.water.hidden))return false;
    if(fishing){
     if(fishing.phase!=='bite'){cancel();toast('찌가 잠기기 전에 거두었어요. 다시 던져 보세요.');return true;}
     if(performance.now()>fishing.deadline){cancel();toast('놓쳤어요. 다시 도전해 보세요.');return true;}
-    const waterId=fishing.water.id,entry=D.roll(waterId);cancel();
-    try{
-     const caught=store.add(entry),def=D.items[caught.itemId];toast(`${def.name}${def.kind==='fish'?' '+caught.sizeCm.toFixed(1)+' cm':''}을 낚았어요! · 인벤토리 ${keyLabel(ui.bindings.inventory)}`);
-     guide.completed=Math.min(3,guide.completed+1);saveGuide();updateHud();
-     root.dispatchEvent(new CustomEvent('socialworld:catch',{detail:{...caught,kind:def.kind}}));
-    }catch(e){toast('획득한 아이템을 저장할 수 없어요. 브라우저 저장 공간을 확인해 주세요.');}
+    const waterId=fishing.water.id,castId=fishing.castId;cancel(false,false);
+    const caughtMessage=caught=>{if(destroyed)return;const def=D.items[caught.itemId];toast(`${def.name}${def.kind==='fish'?' '+caught.sizeCm.toFixed(1)+' cm':''}을 낚았어요! · 인벤토리 ${keyLabel(ui.bindings.inventory)}`);guide.completed=Math.min(3,guide.completed+1);saveGuide();updateHud();root.dispatchEvent(new CustomEvent('socialworld:catch',{detail:{...caught,kind:def.kind}}));};
+    if(castId){saving=true;economy.finishFishing(castId).then(result=>{const caught=store.getState().instances.find(e=>e.id===result.itemId);if(caught)caughtMessage(caught);}).catch(e=>{if(!destroyed)toast(root.OnlineEconomy.message(e));}).finally(()=>{saving=false;if(!destroyed){lastHud='';updateHud();}});}
+    else try{caughtMessage(store.add(D.roll(waterId)));}catch(e){toast(root.OnlineEconomy.message(e));}
     return true;
    }
    const spot=currentSpot();if(!spot)return false;
    engine.pauseInput();const now=performance.now();
    fishing={...spot,origin:engine.playerPos(),phase:'cast',castAt:now,biteAt:now+D.timing.castMs+D.timing.waitMinMs+Math.random()*(D.timing.waitMaxMs-D.timing.waitMinMs)};
-   engine.setFishingVisual({point:spot.point,phase:'cast',progress:0});lastHud='';updateHud();return true;
+   engine.setFishingVisual({point:spot.point,phase:'cast',progress:0});lastHud='';updateHud();
+   if(economy?.status().hasOnlineState){const attempt=fishing;attempt.phase='connecting';attempt.biteAt=Infinity;economy.beginFishing(spot.water.id).then(result=>{if(destroyed||fishing!==attempt){if(!economy.status().busy) economy.cancelFishing(result.castId).catch(()=>{});return;}const now=performance.now(),server=Date.parse(result.serverNow);attempt.castId=result.castId;attempt.phase='cast';attempt.castAt=now;attempt.biteAt=now+Math.max(0,Date.parse(result.biteAt)-server);attempt.onlineDeadline=now+Math.max(0,Date.parse(result.expiresAt)-server);lastHud='';updateHud();}).catch(e=>{if(fishing===attempt)cancel(false,false);if(!destroyed)toast(root.OnlineEconomy.message(e));});}
+   return true;
   }
   function tick(){
    if(fishing){
@@ -5118,7 +5250,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     if(!allowed()||isBusy()||engine.mode()!=='village'||!store.isEquipped()||ui.panel||Math.hypot(p.x-fishing.origin.x,p.z-fishing.origin.z)>.8){cancel();return;}
     const now=performance.now();
     if(fishing.phase==='cast'&&now-fishing.castAt>=D.timing.castMs)fishing.phase='waiting';
-    if(fishing.phase==='waiting'&&now>=fishing.biteAt){fishing.phase='bite';fishing.deadline=fishing.biteAt+D.timing.biteMs;if(now<=fishing.deadline)root.Sound?.play('fishingBite');}
+    if(fishing.phase==='waiting'&&now>=fishing.biteAt){fishing.phase='bite';fishing.deadline=fishing.onlineDeadline||fishing.biteAt+D.timing.biteMs;if(now<=fishing.deadline)root.Sound?.play('fishingBite');}
     if(fishing.phase==='bite'&&now>fishing.deadline){cancel();toast('놓쳤어요. 찌가 잠기면 바로 낚아채세요.');return;}
     const progress=fishing.phase==='cast'?Math.min(1,(now-fishing.castAt)/D.timing.castMs):fishing.phase==='bite'?Math.min(1,(now-fishing.biteAt)/230):1;
     engine.setFishingVisual({point:fishing.point,phase:fishing.phase,progress});
@@ -5131,10 +5263,10 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   document.addEventListener('visibilitychange',onVisibility);
   root.addEventListener('blur',onBlur);
   document.addEventListener('keydown',onEscape,true);
-  function destroy(){cancel();engine?.setRodEquipped(false);launch.remove();status.remove();document.removeEventListener('visibilitychange',onVisibility);root.removeEventListener('blur',onBlur);document.removeEventListener('keydown',onEscape,true);}
+  function destroy(){destroyed=true;store.destroy?.();cancel();engine?.setRodEquipped(false);launch.remove();status.remove();document.removeEventListener('visibilitychange',onVisibility);root.removeEventListener('blur',onBlur);document.removeEventListener('keydown',onEscape,true);}
   engine?.setRodEquipped(store.isEquipped());
   updateHud();
-  return {toggleInventory,renderInventory,cancel,interact,target,tick,updateHud,destroy,store,get state(){return fishing?{phase:fishing.phase,waterId:fishing.water.id,biteAt:fishing.biteAt,deadline:fishing.deadline,point:{...fishing.point}}:null;}};
+  return {toggleInventory,renderInventory,cancel,interact,target,tick,updateHud,destroy,store,get state(){return saving?{phase:'saving'}:fishing?{phase:fishing.phase,waterId:fishing.water.id,biteAt:fishing.biteAt,deadline:fishing.deadline,point:{...fishing.point}}:null;}};
  };
 })(window);
 
@@ -5823,7 +5955,8 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       fishingFeature = window.createFishingFeature({
         engine: engine, ui: ui, openPanel: openPanel, closePanel: closePanel, setupFocus: focusFirst,
         toast: toast, icon: icon, keyLabel: codeLabel, allowed: allowed, isBusy: host.busy,
-        storageKey: 'social-world-inventory-v1:' + encodeURIComponent(uid)
+        storageKey: 'social-world-inventory-v1:' + encodeURIComponent(uid),
+        economy: host.economy ? host.economy() : null
       });
     }
   }
@@ -5869,7 +6002,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
 </script>
 <!-- market.js -->
 <script>
-/* Market service screens and bus presentation; no wallet, purchases or DB writes. */
+/* Market services, online economy and local chat; bus presentation. */
 (function (root) {
   'use strict';
   let host = null, travelling = false, destination = null, service = null, focusBefore = null;
@@ -6095,11 +6228,42 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     if (!started) cleanup(); else host.refresh();
     return started;
   }
+  let serviceSubscription = null;
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const colors = [['세이지 셔츠', '#8FAA9B'], ['살구 셔츠', '#D9917F'], ['크림 니트', '#E2CF9C'], ['하늘 셔츠', '#96B4CC'], ['라벤더 니트', '#B5A4C1'], ['소프트 브라운', '#B9987C']];
   function clothes() {
-    return colors.map(([name, color]) => '<article class="market-look"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="M32 18 17 28 5 51l18 9 10-15v52h34V45l10 15 18-9-12-23-15-10c-4 12-32 12-36 0Z" fill="' + color + '" stroke="#7E8272" stroke-width="2"/><path d="M32 18q18 15 36 0" fill="none" stroke="#F9F2E1" stroke-width="4"/></svg><strong>' + name + '</strong><span>오늘의 진열</span></article>').join('');
+    const catalog = root.OnlineEconomy?.wardrobe || colors.map(([name,color]) => ({name,color}));
+    return catalog.map(c => '<article class="market-look" data-look="' + c.id + '"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="M32 18 17 28 5 51l18 9 10-15v52h34V45l10 15 18-9-12-23-15-10c-4 12-32 12-36 0Z" fill="' + c.color + '" stroke="#7E8272" stroke-width="2"/><path d="M32 18q18 15 36 0" fill="none" stroke="#F9F2E1" stroke-width="4"/></svg><strong>' + escapeHtml(c.name) + '</strong><span class="market-price">' + c.price.toLocaleString('ko-KR') + '원</span><button type="button" class="market-primary" data-buy="' + c.id + '">구매</button><button type="button" class="market-wear" data-wear="' + c.id + '" hidden>입기</button></article>').join('');
+  }
+  function updateEconomyService() {
+    const modal = document.getElementById('market-service'), economy = host?.economy?.();
+    if (!modal || !economy) return;
+    const status = economy.status(), state = economy.getState(), ready = status.mode === 'online' && !status.busy && !status.pending;
+    modal.querySelector('[data-cash]').textContent = state ? state.cash.toLocaleString('ko-KR') + '원' : '—';
+    modal.querySelector('[data-bank]').textContent = state ? state.bank.toLocaleString('ko-KR') + '원' : '—';
+    modal.querySelector('#market-save-status').textContent = status.busy ? '처리 중이에요…' : status.pending ? '처리 결과를 다시 확인해 주세요.' : status.mode === 'online' ? '온라인으로 저장되어 있어요.' : status.mode === 'legacy' ? '온라인 보관함 준비 중이에요.' : '연결을 확인해 주세요.';
+    modal.querySelector('#market-economy-retry').hidden = status.mode === 'online' && !status.pending;
+    modal.querySelector('#market-economy-retry').disabled = status.busy;
+    modal.querySelectorAll('[data-bank-action]').forEach(b => b.disabled = !ready);
+    modal.querySelectorAll('[data-buy]').forEach(b => {
+      const c = state?.catalog.find(c => c.id === b.dataset.buy), owned = state?.inventory.instances.some(i => i.itemId === b.dataset.buy);
+      b.disabled = !ready || !!owned; b.textContent = owned ? '보유 중' : '구매';
+      if(c) b.closest('article').querySelector('.market-price').textContent = c.price.toLocaleString('ko-KR') + '원';
+    });
+    modal.querySelectorAll('[data-wear]').forEach(b => {
+      const item = state?.inventory.instances.find(i => i.itemId === b.dataset.wear);
+      b.hidden = !item; b.disabled = !ready || !!item?.listed;
+      b.textContent = item?.id === state?.equippedClothing ? '착용 해제' : '입기';
+    });
+  }
+  async function economyAction(action) {
+    const origin = document.getElementById('market-service');
+    try { await action(); if(origin && origin === document.getElementById('market-service')) host.toast('저장했어요.'); }
+    catch(e) { if(origin && origin === document.getElementById('market-service')) host.toast(root.OnlineEconomy.message(e)); }
+    if(origin === document.getElementById('market-service')) updateEconomyService();
   }
   function closeService() {
+    serviceSubscription?.(); serviceSubscription = null;
     service = null; document.getElementById('market-service')?.remove();
     host?.engine()?.pauseInput();
     if (focusBefore && document.contains(focusBefore)) focusBefore.focus(); focusBefore = null;
@@ -6110,10 +6274,25 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     const bank = kind === 'bank', modal = document.createElement('div'); modal.id = 'market-service'; modal.className = 'modal-backdrop market-service-backdrop';
     modal.innerHTML = '<section class="market-service" role="dialog" aria-modal="true" aria-labelledby="market-service-title">' +
       '<header><div><span class="market-eyebrow">' + (bank ? 'IEUM BANK' : 'TODAY’S WARDROBE') + '</span><h2 id="market-service-title">' + (bank ? '이음 은행' : '오늘의 옷장') + '</h2><p>' + (bank ? '잠시 쉬면서 앞으로의 계획을 그려 보세요.' : '지금 마음에 드는 색을 천천히 둘러보세요.') + '</p></div><button type="button" id="market-service-close" aria-label="안내 닫기">×</button></header>' +
-      (bank ? '<div class="market-bank-welcome"><span aria-hidden="true">🏦</span><strong>은행에 오신 것을 환영해요</strong><p>소중한 물건을 맡기고, 나만의 목표를 차근차근 준비하는 공간이에요.</p></div><div class="market-bank-services"><article><span aria-hidden="true">🗃️</span><h3>보관 창구</h3><p>가져온 물건을 보관하는 창구예요.</p><span class="market-soon">준비 중</span></article><article><span aria-hidden="true">🌱</span><h3>저축 창구</h3><p>작은 목표부터 함께 준비해요.</p><span class="market-soon">준비 중</span></article></div>' : '<div class="market-collection">' + clothes() + '</div><p class="market-collection-note">마음에 드는 옷을 골라 보는 공간이에요. 구매 창구는 준비 중이에요.</p>') +
+      '<div class="market-wallet"><span>소지금 <strong data-cash>—</strong></span><span>은행 예금 <strong data-bank>—</strong></span></div><div class="market-saving"><p id="market-save-status" role="status">불러오는 중이에요…</p><button type="button" id="market-economy-retry">다시 확인</button></div>' +
+      (bank ? '<div class="market-bank-services"><article><h3>입금</h3><p>소지금을 은행에 맡겨요.</p><form data-bank-form="deposit"><label for="bank-deposit">입금할 금액</label><input id="bank-deposit" type="number" inputmode="numeric" min="1" max="9000000000000" step="1" required placeholder="금액 입력"><button type="submit" class="market-primary" data-bank-action="deposit">입금하기</button></form></article><article><h3>출금</h3><p>예금을 소지금으로 꺼내요.</p><form data-bank-form="withdraw"><label for="bank-withdraw">출금할 금액</label><input id="bank-withdraw" type="number" inputmode="numeric" min="1" max="9000000000000" step="1" required placeholder="금액 입력"><button type="submit" class="market-primary" data-bank-action="withdraw">출금하기</button></form></article></div>' : '<div class="market-collection">' + clothes() + '</div><p class="market-collection-note">구매한 옷은 인벤토리에 보관돼요. 여기에서 바로 입어 볼 수도 있어요.</p>') +
       '<footer><button type="button" class="market-primary" id="market-service-done">계속 둘러보기</button><span>Esc로 닫기</span></footer></section>';
     document.body.append(modal);
     modal.querySelector('#market-service-close').onclick = closeService; modal.querySelector('#market-service-done').onclick = closeService;
+    const economy = host.economy?.();
+    modal.querySelector('#market-economy-retry').onclick = () => economyAction(() => economy.retry());
+    modal.querySelectorAll('[data-bank-form]').forEach(form => form.onsubmit = event => {
+      event.preventDefault(); const amount = Number(form.querySelector('input').value);
+      if(!Number.isSafeInteger(amount) || amount < 1) { host.toast('1원 이상의 정수를 입력해 주세요.'); return; }
+      economyAction(() => economy[form.dataset.bankForm](amount));
+    });
+    modal.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => economyAction(() => economy.buy(b.dataset.buy)));
+    modal.querySelectorAll('[data-wear]').forEach(b => b.onclick = () => economyAction(() => {
+      const state = economy.getState(), item = state.inventory.instances.find(i => i.itemId === b.dataset.wear);
+      return economy.equipClothing(item.id === state.equippedClothing ? null : item.id);
+    }));
+    serviceSubscription = economy?.subscribe(updateEconomyService);
+    updateEconomyService(); economy?.refresh();
     host.engine()?.pauseInput(); modal.querySelector('#market-service-close').focus();
   }
   document.addEventListener('keydown', e => {
@@ -6127,7 +6306,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     if (!service) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeService(); return; }
     if (e.key === 'Tab') {
-      const buttons = [...document.querySelectorAll('#market-service button')], first = buttons[0], last = buttons.at(-1);
+      const buttons = [...document.querySelectorAll('#market-service button:not([disabled]):not([hidden]),#market-service input:not([disabled])')], first = buttons[0], last = buttons.at(-1);
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
@@ -6483,9 +6662,13 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
 
   function avatarKey(){ return "sw_avatar_" + (state.session ? state.session.user.id : "guest"); }
   function currentAvatar(){
-    if(state.profile && state.profile.avatar) return state.profile.avatar;
-    try { var raw = localStorage.getItem(avatarKey()); if(raw) return JSON.parse(raw); } catch(e){}
-    return null;
+    var av = state.profile && state.profile.avatar;
+    if(!av) try { var raw = localStorage.getItem(avatarKey()); if(raw) av = JSON.parse(raw); } catch(e){}
+    var data = economy && economy.getState();
+    var worn = data && data.inventory.instances.find(function(i){ return i.id === data.equippedClothing; });
+    var definition = worn && window.FishingData.items[worn.itemId];
+    if(definition && definition.kind === 'clothing') av = Object.assign({}, av || presetAvatar('calm','#4caf6e',nick()), {outfit:definition.color});
+    return av || null;
   }
 
   // ---------------- ① 사전 설문 ----------------
@@ -7042,10 +7225,24 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   })();
 
   // 휴대폰·지도·설정·코코 알림 (ui.js) — 앱 기능을 여기서 넘겨준다
+  var economy = null;
+  function getEconomy(){
+    var uid = state.session && state.session.user.id;
+    if(!uid || !window.OnlineEconomy) return null;
+    if(!economy || economy.userId !== uid){
+      if(economy) economy.destroy();
+      economy = window.OnlineEconomy.create({sb:sb,userId:uid});
+      var lastAppearance = null;
+      economy.subscribe(function(){ var av = currentAvatar() || presetAvatar('calm','#4caf6e',nick()); var signature = JSON.stringify(av); if(ENGINE && ENGINE.isRunning() && signature !== lastAppearance){ lastAppearance = signature; ENGINE.setAvatar(av); } });
+      economy.initialize();
+    }
+    return economy;
+  }
   var CONTACT_ORDER = ["psych","coco","chief","policy","job"];
   if(window.WorldUI) window.WorldUI.init({
     sb: sb,
     userId: function(){ return state.session ? state.session.user.id : null; },
+    economy: getEconomy,
     nickname: nick,
     feedback: function(){ return state.feedback; },
     npcs: function(){
@@ -7067,6 +7264,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   });
 
   if(window.MarketUI) window.MarketUI.init({
+    economy: getEconomy,
     engine: function(){ return ENGINE; },
     nickname: nick,
     portrait: function(){
@@ -7083,7 +7281,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   });
 
   // 테스트·디버그용 (콘솔에서 __sw().engine 등으로 확인)
-  window.__sw = function(){ return { state: state, engine: ENGINE, openRoom: openRoom, openNpc: openNpc }; };
+  window.__sw = function(){ return { state: state, engine: ENGINE, economy: economy, openRoom: openRoom, openNpc: openNpc }; };
 
   // ---------------- ④ 루미의 월드 소개 (대본형, LLM 없음) ----------------
   function tctx(){ return state.tutorialCtx || { mood:null, goal: state.profile && state.profile.join_goal, interests: (state.profile && state.profile.interests) || [] }; }
@@ -7184,6 +7382,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     });
   }
   function logout(){
+    if(economy) economy.destroy(); economy = null;
     if(window.MarketUI) window.MarketUI.reset();
     state.worldReturn = null; state.spawn = null; state.spawnFacing = null;
     if(state.tour && state.tour.walking) clearInterval(state.tour.walking); state.tour = null;

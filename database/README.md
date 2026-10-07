@@ -9,6 +9,7 @@
 | `03_world_update.sql` | 새 맵·NPC 캐릭터·월드 리포트(2026-09-29): NPC 코드에 coco·chief 추가, cohort_feedback.event_theme, missions.stage(퀘스트 1~4단계)+시드 11개, profiles.avatar·interests·join_goal(튜토리얼), 새 테이블 8개(club_cheers·world_events·event_participation·npc_demand_logs·world_activity_metrics·npc_demand_metrics·world_reports) + 뷰 2개 + 집계 함수 2개 | ❌ 아직 적용 안 함 — 팀 확인 후 실행 |
 | `04_coco.sql` | 코코(활동 추천) v1: `activity_catalog` + 시연용 활동 10개, 동아리 관심사 태그(`clubs.interest_tags`), `my_quest_stage()`, `recommend_activities()`. **03이 먼저 있어야 한다**(`profiles.interests`·`missions.stage`). 검증 `tests/run_coco.sh`(20항목) | ❌ 03 적용 후 실행 |
 | `05_chief.sql` | 마을이장 v1: `world_events.status`(draft→published 승인제)·`template_key`·`theme`, 시민 뷰 `world_events_public`은 공개 이벤트만 + `joined`, 참여는 `join_world_event()`로만(03의 직접 insert 정책 제거), 관심사 분포 `chief_interest_counts()`(k=5, service_role). 검증 `tests/run_chief.sh`(27항목) | ❌ 03 적용 후 실행 |
+| `06_economy.sql` | 게임 화폐 지갑·예금·아이템 소유권·옷 구매·온라인 낚시·유저 거래 기반 + RLS·거래 함수 | ❌ 이번 작업에서는 실제 팀 DB에 적용하지 않음 |
 | `tests/` | `00_supabase_stub.sql`(코코용 축약 스텁), `01_auth_stub.sql`(auth만 흉내 → 실제 01~05를 그대로 올림)과 에이전트별 테스트 | — |
 | `full_schema_reference.sql` | 목표 설계 전체(테이블 31·뷰 3·RLS 44). 관제 대시보드의 케이스·보고서·권한까지 포함 | ❌ 참고용 — 아직 적용 안 함 |
 | `DB_테이블_정의서.md` | 전체 설계의 원칙·ERD·테이블 정의 + **11장 순환 연결로 실제 구현된 것** | |
@@ -40,3 +41,14 @@
 - `02_loop_schema.sql`이 뺀 외래키(`regions`·`cohorts` 참조)를 다시 붙인다
 - `npc_sessions`의 신호 컬럼 3개(`risk_keyword_count`·`severity_score`·`keyword_tags`), `npc_chat_metrics`의 `source`·`user_count`·`keyword_tags`, `cohort_feedback` 테이블이 전체 스키마에는 없으므로 추가한다 (정의서 11장)
 - 위험 탐지 결과(`risk_agent/outputs*/*.csv`)를 `risk_scores`·`risk_factors`·`resource_recommendations`·`action_suggestions`에 적재하고, 대시보드가 이 테이블을 관리자 로그인으로 직접 읽게 바꾼다
+
+
+## 돈 시스템·온라인 인벤토리 추가 (2026-10-07)
+
+`06_economy.sql`은 기존 Supabase Auth를 사용하고, 01~05의 테이블을 변경하지 않는다. 관리자가 SQL Editor에서 전체 파일을 실행하면 현재 데모의 온라인 지갑·인벤토리가 활성화된다. 같은 파일을 재실행해도 기존 잔액·아이템과 관리자가 수정한 가격·지원금을 초기화하지 않는다.
+
+새 지갑의 기본 지원금 10,000원은 게임 시스템 시험용이다. 지원금은 `sw_economy_settings`, 옷 가격은 `sw_item_catalog`에서 관리한다. 브라우저는 잔액·아이템을 직접 쓰지 않고 `sw_economy` 함수를 호출한다.
+
+코드·독립된 PostgreSQL 검증은 준비되었고, 실제 팀 DB의 관리 접속·SQL 적용·실제 사용자 계정 확인은 아직 수행하지 않았다. 파일의 이전 적용 표만으로 현재 서버의 상태를 확정하지 않는다.
+
+팀 공유용 안내: [돈 시스템·온라인 인벤토리 변경 정리](../docs/ONLINE-ECONOMY-CHANGES.md).

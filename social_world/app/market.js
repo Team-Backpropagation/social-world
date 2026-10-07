@@ -1,4 +1,4 @@
-/* Market service screens and bus presentation; no wallet, purchases or DB writes. */
+/* Market services, online economy and local chat; bus presentation. */
 (function (root) {
   'use strict';
   let host = null, travelling = false, destination = null, service = null, focusBefore = null;
@@ -224,11 +224,42 @@
     if (!started) cleanup(); else host.refresh();
     return started;
   }
+  let serviceSubscription = null;
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const colors = [['세이지 셔츠', '#8FAA9B'], ['살구 셔츠', '#D9917F'], ['크림 니트', '#E2CF9C'], ['하늘 셔츠', '#96B4CC'], ['라벤더 니트', '#B5A4C1'], ['소프트 브라운', '#B9987C']];
   function clothes() {
-    return colors.map(([name, color]) => '<article class="market-look"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="M32 18 17 28 5 51l18 9 10-15v52h34V45l10 15 18-9-12-23-15-10c-4 12-32 12-36 0Z" fill="' + color + '" stroke="#7E8272" stroke-width="2"/><path d="M32 18q18 15 36 0" fill="none" stroke="#F9F2E1" stroke-width="4"/></svg><strong>' + name + '</strong><span>오늘의 진열</span></article>').join('');
+    const catalog = root.OnlineEconomy?.wardrobe || colors.map(([name,color]) => ({name,color}));
+    return catalog.map(c => '<article class="market-look" data-look="' + c.id + '"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="M32 18 17 28 5 51l18 9 10-15v52h34V45l10 15 18-9-12-23-15-10c-4 12-32 12-36 0Z" fill="' + c.color + '" stroke="#7E8272" stroke-width="2"/><path d="M32 18q18 15 36 0" fill="none" stroke="#F9F2E1" stroke-width="4"/></svg><strong>' + escapeHtml(c.name) + '</strong><span class="market-price">' + c.price.toLocaleString('ko-KR') + '원</span><button type="button" class="market-primary" data-buy="' + c.id + '">구매</button><button type="button" class="market-wear" data-wear="' + c.id + '" hidden>입기</button></article>').join('');
+  }
+  function updateEconomyService() {
+    const modal = document.getElementById('market-service'), economy = host?.economy?.();
+    if (!modal || !economy) return;
+    const status = economy.status(), state = economy.getState(), ready = status.mode === 'online' && !status.busy && !status.pending;
+    modal.querySelector('[data-cash]').textContent = state ? state.cash.toLocaleString('ko-KR') + '원' : '—';
+    modal.querySelector('[data-bank]').textContent = state ? state.bank.toLocaleString('ko-KR') + '원' : '—';
+    modal.querySelector('#market-save-status').textContent = status.busy ? '처리 중이에요…' : status.pending ? '처리 결과를 다시 확인해 주세요.' : status.mode === 'online' ? '온라인으로 저장되어 있어요.' : status.mode === 'legacy' ? '온라인 보관함 준비 중이에요.' : '연결을 확인해 주세요.';
+    modal.querySelector('#market-economy-retry').hidden = status.mode === 'online' && !status.pending;
+    modal.querySelector('#market-economy-retry').disabled = status.busy;
+    modal.querySelectorAll('[data-bank-action]').forEach(b => b.disabled = !ready);
+    modal.querySelectorAll('[data-buy]').forEach(b => {
+      const c = state?.catalog.find(c => c.id === b.dataset.buy), owned = state?.inventory.instances.some(i => i.itemId === b.dataset.buy);
+      b.disabled = !ready || !!owned; b.textContent = owned ? '보유 중' : '구매';
+      if(c) b.closest('article').querySelector('.market-price').textContent = c.price.toLocaleString('ko-KR') + '원';
+    });
+    modal.querySelectorAll('[data-wear]').forEach(b => {
+      const item = state?.inventory.instances.find(i => i.itemId === b.dataset.wear);
+      b.hidden = !item; b.disabled = !ready || !!item?.listed;
+      b.textContent = item?.id === state?.equippedClothing ? '착용 해제' : '입기';
+    });
+  }
+  async function economyAction(action) {
+    const origin = document.getElementById('market-service');
+    try { await action(); if(origin && origin === document.getElementById('market-service')) host.toast('저장했어요.'); }
+    catch(e) { if(origin && origin === document.getElementById('market-service')) host.toast(root.OnlineEconomy.message(e)); }
+    if(origin === document.getElementById('market-service')) updateEconomyService();
   }
   function closeService() {
+    serviceSubscription?.(); serviceSubscription = null;
     service = null; document.getElementById('market-service')?.remove();
     host?.engine()?.pauseInput();
     if (focusBefore && document.contains(focusBefore)) focusBefore.focus(); focusBefore = null;
@@ -239,10 +270,25 @@
     const bank = kind === 'bank', modal = document.createElement('div'); modal.id = 'market-service'; modal.className = 'modal-backdrop market-service-backdrop';
     modal.innerHTML = '<section class="market-service" role="dialog" aria-modal="true" aria-labelledby="market-service-title">' +
       '<header><div><span class="market-eyebrow">' + (bank ? 'IEUM BANK' : 'TODAY’S WARDROBE') + '</span><h2 id="market-service-title">' + (bank ? '이음 은행' : '오늘의 옷장') + '</h2><p>' + (bank ? '잠시 쉬면서 앞으로의 계획을 그려 보세요.' : '지금 마음에 드는 색을 천천히 둘러보세요.') + '</p></div><button type="button" id="market-service-close" aria-label="안내 닫기">×</button></header>' +
-      (bank ? '<div class="market-bank-welcome"><span aria-hidden="true">🏦</span><strong>은행에 오신 것을 환영해요</strong><p>소중한 물건을 맡기고, 나만의 목표를 차근차근 준비하는 공간이에요.</p></div><div class="market-bank-services"><article><span aria-hidden="true">🗃️</span><h3>보관 창구</h3><p>가져온 물건을 보관하는 창구예요.</p><span class="market-soon">준비 중</span></article><article><span aria-hidden="true">🌱</span><h3>저축 창구</h3><p>작은 목표부터 함께 준비해요.</p><span class="market-soon">준비 중</span></article></div>' : '<div class="market-collection">' + clothes() + '</div><p class="market-collection-note">마음에 드는 옷을 골라 보는 공간이에요. 구매 창구는 준비 중이에요.</p>') +
+      '<div class="market-wallet"><span>소지금 <strong data-cash>—</strong></span><span>은행 예금 <strong data-bank>—</strong></span></div><div class="market-saving"><p id="market-save-status" role="status">불러오는 중이에요…</p><button type="button" id="market-economy-retry">다시 확인</button></div>' +
+      (bank ? '<div class="market-bank-services"><article><h3>입금</h3><p>소지금을 은행에 맡겨요.</p><form data-bank-form="deposit"><label for="bank-deposit">입금할 금액</label><input id="bank-deposit" type="number" inputmode="numeric" min="1" max="9000000000000" step="1" required placeholder="금액 입력"><button type="submit" class="market-primary" data-bank-action="deposit">입금하기</button></form></article><article><h3>출금</h3><p>예금을 소지금으로 꺼내요.</p><form data-bank-form="withdraw"><label for="bank-withdraw">출금할 금액</label><input id="bank-withdraw" type="number" inputmode="numeric" min="1" max="9000000000000" step="1" required placeholder="금액 입력"><button type="submit" class="market-primary" data-bank-action="withdraw">출금하기</button></form></article></div>' : '<div class="market-collection">' + clothes() + '</div><p class="market-collection-note">구매한 옷은 인벤토리에 보관돼요. 여기에서 바로 입어 볼 수도 있어요.</p>') +
       '<footer><button type="button" class="market-primary" id="market-service-done">계속 둘러보기</button><span>Esc로 닫기</span></footer></section>';
     document.body.append(modal);
     modal.querySelector('#market-service-close').onclick = closeService; modal.querySelector('#market-service-done').onclick = closeService;
+    const economy = host.economy?.();
+    modal.querySelector('#market-economy-retry').onclick = () => economyAction(() => economy.retry());
+    modal.querySelectorAll('[data-bank-form]').forEach(form => form.onsubmit = event => {
+      event.preventDefault(); const amount = Number(form.querySelector('input').value);
+      if(!Number.isSafeInteger(amount) || amount < 1) { host.toast('1원 이상의 정수를 입력해 주세요.'); return; }
+      economyAction(() => economy[form.dataset.bankForm](amount));
+    });
+    modal.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => economyAction(() => economy.buy(b.dataset.buy)));
+    modal.querySelectorAll('[data-wear]').forEach(b => b.onclick = () => economyAction(() => {
+      const state = economy.getState(), item = state.inventory.instances.find(i => i.itemId === b.dataset.wear);
+      return economy.equipClothing(item.id === state.equippedClothing ? null : item.id);
+    }));
+    serviceSubscription = economy?.subscribe(updateEconomyService);
+    updateEconomyService(); economy?.refresh();
     host.engine()?.pauseInput(); modal.querySelector('#market-service-close').focus();
   }
   document.addEventListener('keydown', e => {
@@ -256,7 +302,7 @@
     if (!service) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeService(); return; }
     if (e.key === 'Tab') {
-      const buttons = [...document.querySelectorAll('#market-service button')], first = buttons[0], last = buttons.at(-1);
+      const buttons = [...document.querySelectorAll('#market-service button:not([disabled]):not([hidden]),#market-service input:not([disabled])')], first = buttons[0], last = buttons.at(-1);
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }

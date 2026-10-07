@@ -680,7 +680,8 @@
       fishingFeature = window.createFishingFeature({
         engine: engine, ui: ui, openPanel: openPanel, closePanel: closePanel, setupFocus: focusFirst,
         toast: toast, icon: icon, keyLabel: codeLabel, allowed: allowed, isBusy: host.busy,
-        storageKey: 'social-world-inventory-v1:' + encodeURIComponent(uid)
+        storageKey: 'social-world-inventory-v1:' + encodeURIComponent(uid),
+        economy: host.economy ? host.economy() : null
       });
     }
   }

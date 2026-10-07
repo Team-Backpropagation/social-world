@@ -1,0 +1,909 @@
+ONLINE ECONOMY VALIDATION — 2026-10-07
+Independent PostgreSQL/PGlite 0.5.8 and fake authentication. No live Supabase writes.
+
+database: PASS 56 checks
+client: PASS 21 checks
+economy: PASS 60 checks
+fishing: PASS 135 checks
+market: PASS 164 checks
+chat: PASS 108 checks
+social: PASS 154 checks
+ui: PASS 80 checks
+coco: PASS 34 checks
+chief: PASS 42 checks
+
+TOTAL: 854 checks passed.
+Live Supabase application and true multi-connection concurrency load testing remain pending.
+
+--- database ---
+PASS welcome funds credited once
+PASS refresh does not mint funds
+PASS default rod included
+PASS welcome has one ledger entry
+PASS deposit conserves total
+PASS deposit retry does not double-charge
+PASS changed payload cannot reuse request ID
+PASS withdraw conserves total
+PASS invalid amount rejected: 0
+PASS invalid amount rejected: -1
+PASS invalid amount rejected: 1.5
+PASS invalid amount rejected: 1e3
+PASS insufficient cash rejected
+PASS insufficient bank rejected
+PASS purchase charges catalog price and grants item
+PASS purchase retry returns same item
+PASS duplicate clothing purchase rejected
+PASS arbitrary item purchase rejected
+PASS owned clothing equips online
+PASS cannot equip someone else clothing
+PASS equipped clothing cannot be offered
+PASS clothing unequips
+PASS legacy fish keeps size and is not tradable
+PASS legacy import is one time per account
+PASS legacy items cannot enter player economy
+PASS catch before server bite rejected
+PASS server selects catch from correct lake table
+PASS server item size matches kind
+PASS catch retry does not duplicate item
+PASS cast can only be used once
+PASS expired bite rejected
+PASS unknown water rejected
+PASS wrong recycling preserves item
+PASS correct recycling removes item
+PASS offer creation updates both account versions
+PASS one active offer per item
+PASS listed item cannot equip
+PASS third user cannot accept offer
+PASS trade transfers exact price to seller
+PASS trade moves unique item ownership
+PASS accepted trade retry does not repeat transfer
+PASS new request cannot accept closed offer
+PASS expired offer cannot transfer money/item
+PASS seller cancels offer
+PASS buyer declines offer
+PASS decline updates seller version for stale response protection
+PASS RLS returns only own wallet
+PASS direct balance edits forbidden
+PASS direct item minting forbidden
+PASS internal helper inaccessible to users
+PASS anonymous API role cannot call economy
+PASS all balances match ledger totals
+PASS failed item grant rejects purchase
+PASS failed purchase rolls back money debit
+PASS users have no direct mutation policies
+PASS existing chief function preserved
+TOTAL 56 checks
+
+
+--- client ---
+PASS client loads wallet
+PASS client imports legacy metadata
+PASS client imports equipped rod
+PASS UI cannot mutate stored snapshot
+PASS definite error clears pending request
+PASS lost acknowledgement preserves pending operation
+PASS pending operation persisted with request ID
+PASS uncertain operation blocks new mutations
+PASS retry recovers without duplicate debit
+PASS new client recovers pending operation after reload
+PASS reload imports no duplicate legacy items
+PASS online store retains grouping and sizes
+PASS online store cannot mint client-selected catches
+PASS late stale refresh cannot rewind a successful transaction
+PASS simultaneous UI requests serialize
+PASS missing migration enables only legacy inventory
+PASS missing migration never simulates money
+PASS initial network outage does not enable legacy minting
+PASS logout discards late response and notifications
+PASS blocked browser storage does not crash game initialization
+PASS blocked storage retains server state without unsafe mutation
+TOTAL 21 checks
+
+
+--- economy ---
+PASS 1280px /app/ online wallet initialized
+PASS 1280px /app/ legacy fish imported with size
+PASS 1280px /app/ old browser inventory preserved
+PASS 1280px /app/ bank deposits update balances
+PASS 1280px /app/ bank withdraw updates balances
+PASS 1280px /app/ rejected deposit retains balance and unlocks UI
+PASS 1280px /app/ bank fits viewport
+PASS 1280px /app/ purchased clothing owned once
+PASS 1280px /app/ clothing can be worn
+PASS 1280px /app/ clothing appears in online inventory
+PASS 1280px /app/ online fishing awards server-selected item
+PASS 1280px /app/ uncertain request retained
+PASS 1280px /app/ reload retries same request without duplicate money movement
+PASS 1280px /app/ reload does not reimport legacy items
+PASS 1280px /app/ second device gets same inventory and wallet
+PASS 1280px /app/ refresh syncs changes from other device
+PASS 1280px /app/ offline retains online inventory without local minting
+PASS 1280px /app/ offline purchase cannot modify balance
+PASS 1280px /app/ reconnect restores online actions
+PASS 1280px /app/ no browser errors
+PASS 390px /app/ online wallet initialized
+PASS 390px /app/ legacy fish imported with size
+PASS 390px /app/ old browser inventory preserved
+PASS 390px /app/ bank deposits update balances
+PASS 390px /app/ bank withdraw updates balances
+PASS 390px /app/ rejected deposit retains balance and unlocks UI
+PASS 390px /app/ bank fits viewport
+PASS 390px /app/ purchased clothing owned once
+PASS 390px /app/ clothing can be worn
+PASS 390px /app/ clothing appears in online inventory
+PASS 390px /app/ online fishing awards server-selected item
+PASS 390px /app/ uncertain request retained
+PASS 390px /app/ reload retries same request without duplicate money movement
+PASS 390px /app/ reload does not reimport legacy items
+PASS 390px /app/ second device gets same inventory and wallet
+PASS 390px /app/ refresh syncs changes from other device
+PASS 390px /app/ offline retains online inventory without local minting
+PASS 390px /app/ offline purchase cannot modify balance
+PASS 390px /app/ reconnect restores online actions
+PASS 390px /app/ no browser errors
+PASS 1280px /socialworld-demo.html online wallet initialized
+PASS 1280px /socialworld-demo.html legacy fish imported with size
+PASS 1280px /socialworld-demo.html old browser inventory preserved
+PASS 1280px /socialworld-demo.html bank deposits update balances
+PASS 1280px /socialworld-demo.html bank withdraw updates balances
+PASS 1280px /socialworld-demo.html rejected deposit retains balance and unlocks UI
+PASS 1280px /socialworld-demo.html bank fits viewport
+PASS 1280px /socialworld-demo.html purchased clothing owned once
+PASS 1280px /socialworld-demo.html clothing can be worn
+PASS 1280px /socialworld-demo.html clothing appears in online inventory
+PASS 1280px /socialworld-demo.html online fishing awards server-selected item
+PASS 1280px /socialworld-demo.html uncertain request retained
+PASS 1280px /socialworld-demo.html reload retries same request without duplicate money movement
+PASS 1280px /socialworld-demo.html reload does not reimport legacy items
+PASS 1280px /socialworld-demo.html second device gets same inventory and wallet
+PASS 1280px /socialworld-demo.html refresh syncs changes from other device
+PASS 1280px /socialworld-demo.html offline retains online inventory without local minting
+PASS 1280px /socialworld-demo.html offline purchase cannot modify balance
+PASS 1280px /socialworld-demo.html reconnect restores online actions
+PASS 1280px /socialworld-demo.html no browser errors
+TOTAL 60 checks
+
+
+--- fishing ---
+PASS 1280px /app/ legacy saved key settings migrate
+PASS 1280px /app/ I opens inventory with default rod
+PASS 1280px /app/ inventory blocks movement
+PASS 1280px /app/ guide and top-right dismiss button fit viewport
+PASS 1280px /app/ equipped rod and 3D float visible
+PASS 1280px /app/ fishing blocks movement but keeps action key
+PASS 1280px /app/ uploaded bite MP3 plays once across animation frames
+PASS 1280px /app/ float sinks beneath water
+PASS 1280px /app/ catch stores once and clears visuals
+PASS 1280px /app/ early reel does not catch or play bite sound
+PASS 1280px /app/ early cancellation does not advance guide completion
+PASS 1280px /app/ river uses its own water table
+PASS 1280px /app/ park uses its own water table
+PASS 1280px /app/ approaching fountain reveals no guide or fishing action hint
+PASS 1280px /app/ fountain uses its own water table
+PASS 1280px /app/ fountain bite keeps guide hidden and preserves bobber
+PASS 1280px /app/ map cancels fishing
+PASS 1280px /app/ phone cancels fishing
+PASS 1280px /app/ teleport cancels fishing
+PASS 1280px /app/ grouped fish retain individual sizes
+PASS 1280px /app/ fish omit sequence labels and retain catch location
+PASS 1280px /app/ inventory fits viewport
+PASS 1280px /app/ wrong bin retains trash
+PASS 1280px /app/ correct bin records recycling
+PASS 1280px /app/ missed bite retains guide and does not count
+PASS 1280px /app/ guide remains after second catch
+PASS 1280px /app/ guide ends immediately after third catch
+PASS 1280px /app/ fourth cast preserves action and bite without guide
+PASS 1280px /app/ automatic guide completion persists on reload
+PASS 1280px /app/ different user gets a separate inventory
+PASS 1280px /app/ different user retains their own guide
+PASS 1280px /app/ manual guide dismissal before three catches keeps fishing active
+PASS 1280px /app/ catch still works after manual guide dismissal
+PASS 1280px /app/ manual guide dismissal persists after feature recreation
+PASS 1280px /app/ switching back restores original inventory
+PASS 1280px /app/ user switching leaves no duplicate controls
+PASS 1280px /app/ changing avatar keeps equipped rod attached
+PASS 1280px /app/ tutorial blocks inventory
+PASS 1280px /app/ main mission start uses DB insert
+PASS 1280px /app/ mission completion retains its original sound
+PASS 1280px /app/ main club join uses DB insert
+PASS 1280px /app/ sound setting also mutes fishing
+PASS 1280px /app/ NPC conversation blocks inventory
+PASS 1280px /app/ logout removes fishing controls and listeners
+PASS 1280px /app/ no browser errors: 
+PASS 390px /app/ legacy saved key settings migrate
+PASS 390px /app/ I opens inventory with default rod
+PASS 390px /app/ inventory blocks movement
+PASS 390px /app/ guide and top-right dismiss button fit viewport
+PASS 390px /app/ equipped rod and 3D float visible
+PASS 390px /app/ fishing blocks movement but keeps action key
+PASS 390px /app/ uploaded bite MP3 plays once across animation frames
+PASS 390px /app/ float sinks beneath water
+PASS 390px /app/ catch stores once and clears visuals
+PASS 390px /app/ early reel does not catch or play bite sound
+PASS 390px /app/ early cancellation does not advance guide completion
+PASS 390px /app/ river uses its own water table
+PASS 390px /app/ park uses its own water table
+PASS 390px /app/ approaching fountain reveals no guide or fishing action hint
+PASS 390px /app/ fountain uses its own water table
+PASS 390px /app/ fountain bite keeps guide hidden and preserves bobber
+PASS 390px /app/ map cancels fishing
+PASS 390px /app/ phone cancels fishing
+PASS 390px /app/ teleport cancels fishing
+PASS 390px /app/ grouped fish retain individual sizes
+PASS 390px /app/ fish omit sequence labels and retain catch location
+PASS 390px /app/ inventory fits viewport
+PASS 390px /app/ wrong bin retains trash
+PASS 390px /app/ correct bin records recycling
+PASS 390px /app/ missed bite retains guide and does not count
+PASS 390px /app/ guide remains after second catch
+PASS 390px /app/ guide ends immediately after third catch
+PASS 390px /app/ fourth cast preserves action and bite without guide
+PASS 390px /app/ automatic guide completion persists on reload
+PASS 390px /app/ different user gets a separate inventory
+PASS 390px /app/ different user retains their own guide
+PASS 390px /app/ manual guide dismissal before three catches keeps fishing active
+PASS 390px /app/ catch still works after manual guide dismissal
+PASS 390px /app/ manual guide dismissal persists after feature recreation
+PASS 390px /app/ switching back restores original inventory
+PASS 390px /app/ user switching leaves no duplicate controls
+PASS 390px /app/ changing avatar keeps equipped rod attached
+PASS 390px /app/ tutorial blocks inventory
+PASS 390px /app/ main mission start uses DB insert
+PASS 390px /app/ mission completion retains its original sound
+PASS 390px /app/ main club join uses DB insert
+PASS 390px /app/ sound setting also mutes fishing
+PASS 390px /app/ NPC conversation blocks inventory
+PASS 390px /app/ logout removes fishing controls and listeners
+PASS 390px /app/ no browser errors: 
+PASS 1280px /socialworld-demo.html legacy saved key settings migrate
+PASS 1280px /socialworld-demo.html I opens inventory with default rod
+PASS 1280px /socialworld-demo.html inventory blocks movement
+PASS 1280px /socialworld-demo.html guide and top-right dismiss button fit viewport
+PASS 1280px /socialworld-demo.html equipped rod and 3D float visible
+PASS 1280px /socialworld-demo.html fishing blocks movement but keeps action key
+PASS 1280px /socialworld-demo.html uploaded bite MP3 plays once across animation frames
+PASS 1280px /socialworld-demo.html float sinks beneath water
+PASS 1280px /socialworld-demo.html catch stores once and clears visuals
+PASS 1280px /socialworld-demo.html early reel does not catch or play bite sound
+PASS 1280px /socialworld-demo.html early cancellation does not advance guide completion
+PASS 1280px /socialworld-demo.html river uses its own water table
+PASS 1280px /socialworld-demo.html park uses its own water table
+PASS 1280px /socialworld-demo.html approaching fountain reveals no guide or fishing action hint
+PASS 1280px /socialworld-demo.html fountain uses its own water table
+PASS 1280px /socialworld-demo.html fountain bite keeps guide hidden and preserves bobber
+PASS 1280px /socialworld-demo.html map cancels fishing
+PASS 1280px /socialworld-demo.html phone cancels fishing
+PASS 1280px /socialworld-demo.html teleport cancels fishing
+PASS 1280px /socialworld-demo.html grouped fish retain individual sizes
+PASS 1280px /socialworld-demo.html fish omit sequence labels and retain catch location
+PASS 1280px /socialworld-demo.html inventory fits viewport
+PASS 1280px /socialworld-demo.html wrong bin retains trash
+PASS 1280px /socialworld-demo.html correct bin records recycling
+PASS 1280px /socialworld-demo.html missed bite retains guide and does not count
+PASS 1280px /socialworld-demo.html guide remains after second catch
+PASS 1280px /socialworld-demo.html guide ends immediately after third catch
+PASS 1280px /socialworld-demo.html fourth cast preserves action and bite without guide
+PASS 1280px /socialworld-demo.html automatic guide completion persists on reload
+PASS 1280px /socialworld-demo.html different user gets a separate inventory
+PASS 1280px /socialworld-demo.html different user retains their own guide
+PASS 1280px /socialworld-demo.html manual guide dismissal before three catches keeps fishing active
+PASS 1280px /socialworld-demo.html catch still works after manual guide dismissal
+PASS 1280px /socialworld-demo.html manual guide dismissal persists after feature recreation
+PASS 1280px /socialworld-demo.html switching back restores original inventory
+PASS 1280px /socialworld-demo.html user switching leaves no duplicate controls
+PASS 1280px /socialworld-demo.html changing avatar keeps equipped rod attached
+PASS 1280px /socialworld-demo.html tutorial blocks inventory
+PASS 1280px /socialworld-demo.html main mission start uses DB insert
+PASS 1280px /socialworld-demo.html mission completion retains its original sound
+PASS 1280px /socialworld-demo.html main club join uses DB insert
+PASS 1280px /socialworld-demo.html sound setting also mutes fishing
+PASS 1280px /socialworld-demo.html NPC conversation blocks inventory
+PASS 1280px /socialworld-demo.html logout removes fishing controls and listeners
+PASS 1280px /socialworld-demo.html no browser errors: 
+ALL 135 BROWSER CHECKS PASSED
+
+
+--- market ---
+PASS 1280px /app/ bus stop and market destinations built
+PASS 1280px /app/ stop moved to western curb of full north-south eastern road
+PASS 1280px /app/ full road is drawn in village map at north, centre and south
+PASS 1280px /app/ both stops use narrow yellow bus pictogram signs
+PASS 1280px /app/ clothing facade loads every glyph of full title together
+PASS 1280px /app/ village map includes bus stop
+PASS 1280px /app/ stop interaction uses bus wording
+PASS 1280px /app/ bus status fits viewport
+PASS 1280px /app/ travelling blocks movement, map, inventory and repeated interaction
+PASS 1280px /app/ one bus presentation and no phone during travel
+PASS 1280px /app/ boarding hides avatar and transition fades to black
+PASS 1280px /app/ all seven bus phases execute in order
+PASS 1280px /app/ every visible outbound transit frame stays outside rotated bus body
+PASS 1280px /app/ market alighting follows waypoints around front of bus
+PASS 1280px /app/ vehicle collider activates during travel and clears on completion
+PASS 1280px /app/ market is separate and avatar alights
+PASS 1280px /app/ arrival lands beside market stop
+PASS 1280px /app/ inventory survives travel unchanged
+PASS 1280px /app/ market map shows its four destinations
+PASS 1280px /app/ bank entrance opens a walkable interior
+PASS 1280px /app/ bank service screen fits viewport
+PASS 1280px /app/ bank displays preparation screens without fake balances
+PASS 1280px /app/ bank service blocks other panels
+PASS 1280px /app/ service keyboard focus stays inside dialog
+PASS 1280px /app/ bank service closes with Escape
+PASS 1280px /app/ bank exit returns to market square
+PASS 1280px /app/ clothing interior opens six-look collection screen
+PASS 1280px /app/ market and store visits produce no DB writes
+PASS 1280px /app/ mission screen keeps market return destination
+PASS 1280px /app/ mission screen returns to the market
+PASS 1280px /app/ club screen keeps market return destination
+PASS 1280px /app/ club screen returns to the market
+PASS 1280px /app/ return boarding routes around bus instead of crossing body
+PASS 1280px /app/ every visible return transit frame stays outside bus body
+PASS 1280px /app/ return bus restores original village
+PASS 1280px /app/ return preserves avatar
+PASS 1280px /app/ skip cleans blackout and restores controls
+PASS 1280px /app/ skip deactivates vehicle collider and restores avatar
+PASS 1280px /app/ leaving world cancels travel without stranded blackout
+PASS 1280px /app/ tutorial blocks bus travel
+PASS 1280px /app/ no browser errors: 
+PASS 390px /app/ bus stop and market destinations built
+PASS 390px /app/ stop moved to western curb of full north-south eastern road
+PASS 390px /app/ full road is drawn in village map at north, centre and south
+PASS 390px /app/ both stops use narrow yellow bus pictogram signs
+PASS 390px /app/ clothing facade loads every glyph of full title together
+PASS 390px /app/ village map includes bus stop
+PASS 390px /app/ stop interaction uses bus wording
+PASS 390px /app/ bus status fits viewport
+PASS 390px /app/ travelling blocks movement, map, inventory and repeated interaction
+PASS 390px /app/ one bus presentation and no phone during travel
+PASS 390px /app/ boarding hides avatar and transition fades to black
+PASS 390px /app/ all seven bus phases execute in order
+PASS 390px /app/ every visible outbound transit frame stays outside rotated bus body
+PASS 390px /app/ market alighting follows waypoints around front of bus
+PASS 390px /app/ vehicle collider activates during travel and clears on completion
+PASS 390px /app/ market is separate and avatar alights
+PASS 390px /app/ arrival lands beside market stop
+PASS 390px /app/ inventory survives travel unchanged
+PASS 390px /app/ market map shows its four destinations
+PASS 390px /app/ bank entrance opens a walkable interior
+PASS 390px /app/ bank service screen fits viewport
+PASS 390px /app/ bank displays preparation screens without fake balances
+PASS 390px /app/ bank service blocks other panels
+PASS 390px /app/ service keyboard focus stays inside dialog
+PASS 390px /app/ bank service closes with Escape
+PASS 390px /app/ bank exit returns to market square
+PASS 390px /app/ clothing interior opens six-look collection screen
+PASS 390px /app/ market and store visits produce no DB writes
+PASS 390px /app/ mission screen keeps market return destination
+PASS 390px /app/ mission screen returns to the market
+PASS 390px /app/ club screen keeps market return destination
+PASS 390px /app/ club screen returns to the market
+PASS 390px /app/ return boarding routes around bus instead of crossing body
+PASS 390px /app/ every visible return transit frame stays outside bus body
+PASS 390px /app/ return bus restores original village
+PASS 390px /app/ return preserves avatar
+PASS 390px /app/ skip cleans blackout and restores controls
+PASS 390px /app/ skip deactivates vehicle collider and restores avatar
+PASS 390px /app/ leaving world cancels travel without stranded blackout
+PASS 390px /app/ tutorial blocks bus travel
+PASS 390px /app/ no browser errors: 
+PASS 1280px /socialworld-demo.html bus stop and market destinations built
+PASS 1280px /socialworld-demo.html stop moved to western curb of full north-south eastern road
+PASS 1280px /socialworld-demo.html full road is drawn in village map at north, centre and south
+PASS 1280px /socialworld-demo.html both stops use narrow yellow bus pictogram signs
+PASS 1280px /socialworld-demo.html clothing facade loads every glyph of full title together
+PASS 1280px /socialworld-demo.html village map includes bus stop
+PASS 1280px /socialworld-demo.html stop interaction uses bus wording
+PASS 1280px /socialworld-demo.html bus status fits viewport
+PASS 1280px /socialworld-demo.html travelling blocks movement, map, inventory and repeated interaction
+PASS 1280px /socialworld-demo.html one bus presentation and no phone during travel
+PASS 1280px /socialworld-demo.html boarding hides avatar and transition fades to black
+PASS 1280px /socialworld-demo.html all seven bus phases execute in order
+PASS 1280px /socialworld-demo.html every visible outbound transit frame stays outside rotated bus body
+PASS 1280px /socialworld-demo.html market alighting follows waypoints around front of bus
+PASS 1280px /socialworld-demo.html vehicle collider activates during travel and clears on completion
+PASS 1280px /socialworld-demo.html market is separate and avatar alights
+PASS 1280px /socialworld-demo.html arrival lands beside market stop
+PASS 1280px /socialworld-demo.html inventory survives travel unchanged
+PASS 1280px /socialworld-demo.html market map shows its four destinations
+PASS 1280px /socialworld-demo.html bank entrance opens a walkable interior
+PASS 1280px /socialworld-demo.html bank service screen fits viewport
+PASS 1280px /socialworld-demo.html bank displays preparation screens without fake balances
+PASS 1280px /socialworld-demo.html bank service blocks other panels
+PASS 1280px /socialworld-demo.html service keyboard focus stays inside dialog
+PASS 1280px /socialworld-demo.html bank service closes with Escape
+PASS 1280px /socialworld-demo.html bank exit returns to market square
+PASS 1280px /socialworld-demo.html clothing interior opens six-look collection screen
+PASS 1280px /socialworld-demo.html market and store visits produce no DB writes
+PASS 1280px /socialworld-demo.html mission screen keeps market return destination
+PASS 1280px /socialworld-demo.html mission screen returns to the market
+PASS 1280px /socialworld-demo.html club screen keeps market return destination
+PASS 1280px /socialworld-demo.html club screen returns to the market
+PASS 1280px /socialworld-demo.html return boarding routes around bus instead of crossing body
+PASS 1280px /socialworld-demo.html every visible return transit frame stays outside bus body
+PASS 1280px /socialworld-demo.html return bus restores original village
+PASS 1280px /socialworld-demo.html return preserves avatar
+PASS 1280px /socialworld-demo.html skip cleans blackout and restores controls
+PASS 1280px /socialworld-demo.html skip deactivates vehicle collider and restores avatar
+PASS 1280px /socialworld-demo.html leaving world cancels travel without stranded blackout
+PASS 1280px /socialworld-demo.html tutorial blocks bus travel
+PASS 1280px /socialworld-demo.html no browser errors: 
+PASS 390px /socialworld-demo.html reduced-motion bus stop and market destinations built
+PASS 390px /socialworld-demo.html reduced-motion stop moved to western curb of full north-south eastern road
+PASS 390px /socialworld-demo.html reduced-motion full road is drawn in village map at north, centre and south
+PASS 390px /socialworld-demo.html reduced-motion both stops use narrow yellow bus pictogram signs
+PASS 390px /socialworld-demo.html reduced-motion clothing facade loads every glyph of full title together
+PASS 390px /socialworld-demo.html reduced-motion village map includes bus stop
+PASS 390px /socialworld-demo.html reduced-motion stop interaction uses bus wording
+PASS 390px /socialworld-demo.html reduced-motion bus status fits viewport
+PASS 390px /socialworld-demo.html reduced-motion travelling blocks movement, map, inventory and repeated interaction
+PASS 390px /socialworld-demo.html reduced-motion one bus presentation and no phone during travel
+PASS 390px /socialworld-demo.html reduced-motion boarding hides avatar and transition fades to black
+PASS 390px /socialworld-demo.html reduced-motion all seven bus phases execute in order
+PASS 390px /socialworld-demo.html reduced-motion every visible outbound transit frame stays outside rotated bus body
+PASS 390px /socialworld-demo.html reduced-motion market alighting follows waypoints around front of bus
+PASS 390px /socialworld-demo.html reduced-motion vehicle collider activates during travel and clears on completion
+PASS 390px /socialworld-demo.html reduced-motion market is separate and avatar alights
+PASS 390px /socialworld-demo.html reduced-motion arrival lands beside market stop
+PASS 390px /socialworld-demo.html reduced-motion inventory survives travel unchanged
+PASS 390px /socialworld-demo.html reduced-motion market map shows its four destinations
+PASS 390px /socialworld-demo.html reduced-motion bank entrance opens a walkable interior
+PASS 390px /socialworld-demo.html reduced-motion bank service screen fits viewport
+PASS 390px /socialworld-demo.html reduced-motion bank displays preparation screens without fake balances
+PASS 390px /socialworld-demo.html reduced-motion bank service blocks other panels
+PASS 390px /socialworld-demo.html reduced-motion service keyboard focus stays inside dialog
+PASS 390px /socialworld-demo.html reduced-motion bank service closes with Escape
+PASS 390px /socialworld-demo.html reduced-motion bank exit returns to market square
+PASS 390px /socialworld-demo.html reduced-motion clothing interior opens six-look collection screen
+PASS 390px /socialworld-demo.html reduced-motion market and store visits produce no DB writes
+PASS 390px /socialworld-demo.html reduced-motion mission screen keeps market return destination
+PASS 390px /socialworld-demo.html reduced-motion mission screen returns to the market
+PASS 390px /socialworld-demo.html reduced-motion club screen keeps market return destination
+PASS 390px /socialworld-demo.html reduced-motion club screen returns to the market
+PASS 390px /socialworld-demo.html reduced-motion return boarding routes around bus instead of crossing body
+PASS 390px /socialworld-demo.html reduced-motion every visible return transit frame stays outside bus body
+PASS 390px /socialworld-demo.html reduced-motion return bus restores original village
+PASS 390px /socialworld-demo.html reduced-motion return preserves avatar
+PASS 390px /socialworld-demo.html reduced-motion skip cleans blackout and restores controls
+PASS 390px /socialworld-demo.html reduced-motion skip deactivates vehicle collider and restores avatar
+PASS 390px /socialworld-demo.html reduced-motion leaving world cancels travel without stranded blackout
+PASS 390px /socialworld-demo.html reduced-motion tutorial blocks bus travel
+PASS 390px /socialworld-demo.html reduced-motion no browser errors: 
+ALL 164 MARKET BROWSER CHECKS PASSED
+
+
+--- chat ---
+PASS 1280px /app/ corrected Escape wording applied
+PASS 1280px /app/ default profile is actual 3D character face PNG
+PASS 1280px /app/ circular portrait contains face pixels and sits left of username
+PASS 1280px /app/ grabbing header moves window without collapsing
+PASS 1280px /app/ header drag takes pointer capture
+PASS 1280px /app/ drag blocks game movement and releases cleanly
+PASS 1280px /app/ dragging n edge resizes corresponding dimensions
+PASS 1280px /app/ dragging e edge resizes corresponding dimensions
+PASS 1280px /app/ dragging s edge resizes corresponding dimensions
+PASS 1280px /app/ dragging w edge resizes corresponding dimensions
+PASS 1280px /app/ dragging ne edge resizes corresponding dimensions
+PASS 1280px /app/ dragging se edge resizes corresponding dimensions
+PASS 1280px /app/ dragging sw edge resizes corresponding dimensions
+PASS 1280px /app/ dragging nw edge resizes corresponding dimensions
+PASS 1280px /app/ window movement clamps inside viewport
+PASS 1280px /app/ resizing respects readable minimum dimensions
+PASS 1280px /app/ collapse leaves compact header
+PASS 1280px /app/ expanding restores chosen dimensions
+PASS 1280px /app/ resized viewport keeps custom window accessible
+PASS 1280px /app/ avatar customization updates next message portrait
+PASS 1280px /app/ bank interior shows chat
+PASS 1280px /app/ bank message appears over indoor player head
+PASS 1280px /app/ clothing interior shows chat
+PASS 1280px /app/ clothing message appears over indoor player head
+PASS 1280px /app/ window controls and local chat produce no database writes
+PASS 1280px /app/ reset removes window and releases pointer state
+PASS 1280px /app/ no browser errors: 
+PASS 390px /app/ corrected Escape wording applied
+PASS 390px /app/ default profile is actual 3D character face PNG
+PASS 390px /app/ circular portrait contains face pixels and sits left of username
+PASS 390px /app/ grabbing header moves window without collapsing
+PASS 390px /app/ header drag takes pointer capture
+PASS 390px /app/ drag blocks game movement and releases cleanly
+PASS 390px /app/ dragging n edge resizes corresponding dimensions
+PASS 390px /app/ dragging e edge resizes corresponding dimensions
+PASS 390px /app/ dragging s edge resizes corresponding dimensions
+PASS 390px /app/ dragging w edge resizes corresponding dimensions
+PASS 390px /app/ dragging ne edge resizes corresponding dimensions
+PASS 390px /app/ dragging se edge resizes corresponding dimensions
+PASS 390px /app/ dragging sw edge resizes corresponding dimensions
+PASS 390px /app/ dragging nw edge resizes corresponding dimensions
+PASS 390px /app/ window movement clamps inside viewport
+PASS 390px /app/ resizing respects readable minimum dimensions
+PASS 390px /app/ collapse leaves compact header
+PASS 390px /app/ expanding restores chosen dimensions
+PASS 390px /app/ resized viewport keeps custom window accessible
+PASS 390px /app/ avatar customization updates next message portrait
+PASS 390px /app/ bank interior shows chat
+PASS 390px /app/ bank message appears over indoor player head
+PASS 390px /app/ clothing interior shows chat
+PASS 390px /app/ clothing message appears over indoor player head
+PASS 390px /app/ window controls and local chat produce no database writes
+PASS 390px /app/ reset removes window and releases pointer state
+PASS 390px /app/ no browser errors: 
+PASS 1280px /socialworld-demo.html corrected Escape wording applied
+PASS 1280px /socialworld-demo.html default profile is actual 3D character face PNG
+PASS 1280px /socialworld-demo.html circular portrait contains face pixels and sits left of username
+PASS 1280px /socialworld-demo.html grabbing header moves window without collapsing
+PASS 1280px /socialworld-demo.html header drag takes pointer capture
+PASS 1280px /socialworld-demo.html drag blocks game movement and releases cleanly
+PASS 1280px /socialworld-demo.html dragging n edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging e edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging s edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging w edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging ne edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging se edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging sw edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging nw edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html window movement clamps inside viewport
+PASS 1280px /socialworld-demo.html resizing respects readable minimum dimensions
+PASS 1280px /socialworld-demo.html collapse leaves compact header
+PASS 1280px /socialworld-demo.html expanding restores chosen dimensions
+PASS 1280px /socialworld-demo.html resized viewport keeps custom window accessible
+PASS 1280px /socialworld-demo.html avatar customization updates next message portrait
+PASS 1280px /socialworld-demo.html bank interior shows chat
+PASS 1280px /socialworld-demo.html bank message appears over indoor player head
+PASS 1280px /socialworld-demo.html clothing interior shows chat
+PASS 1280px /socialworld-demo.html clothing message appears over indoor player head
+PASS 1280px /socialworld-demo.html window controls and local chat produce no database writes
+PASS 1280px /socialworld-demo.html reset removes window and releases pointer state
+PASS 1280px /socialworld-demo.html no browser errors: 
+PASS 390px /socialworld-demo.html corrected Escape wording applied
+PASS 390px /socialworld-demo.html default profile is actual 3D character face PNG
+PASS 390px /socialworld-demo.html circular portrait contains face pixels and sits left of username
+PASS 390px /socialworld-demo.html grabbing header moves window without collapsing
+PASS 390px /socialworld-demo.html header drag takes pointer capture
+PASS 390px /socialworld-demo.html drag blocks game movement and releases cleanly
+PASS 390px /socialworld-demo.html dragging n edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging e edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging s edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging w edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging ne edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging se edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging sw edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging nw edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html window movement clamps inside viewport
+PASS 390px /socialworld-demo.html resizing respects readable minimum dimensions
+PASS 390px /socialworld-demo.html collapse leaves compact header
+PASS 390px /socialworld-demo.html expanding restores chosen dimensions
+PASS 390px /socialworld-demo.html resized viewport keeps custom window accessible
+PASS 390px /socialworld-demo.html avatar customization updates next message portrait
+PASS 390px /socialworld-demo.html bank interior shows chat
+PASS 390px /socialworld-demo.html bank message appears over indoor player head
+PASS 390px /socialworld-demo.html clothing interior shows chat
+PASS 390px /socialworld-demo.html clothing message appears over indoor player head
+PASS 390px /socialworld-demo.html window controls and local chat produce no database writes
+PASS 390px /socialworld-demo.html reset removes window and releases pointer state
+PASS 390px /socialworld-demo.html no browser errors: 
+ALL 108 CHAT WINDOW BROWSER CHECKS PASSED
+
+
+--- social ---
+PASS 1280px /app/ Asia/Seoul chat not created in village
+PASS 1280px /app/ Asia/Seoul chat absent during outbound bus ride
+PASS 1280px /app/ Asia/Seoul market chat appears and fits viewport
+PASS 1280px /app/ Asia/Seoul clock hour and minute hands use 3D extruded geometry
+PASS 1280px /app/ Asia/Seoul both square benches have two opposing seats
+PASS 1280px /app/ Asia/Seoul bank bench faces counter
+PASS 1280px /app/ Asia/Seoul village stop bench faces road
+PASS 1280px /app/ Asia/Seoul market stop bench moves beside sign and stays single-sided
+PASS 1280px /app/ Asia/Seoul local clock handles 3:15:30 including midnight and computer-time changes
+PASS 1280px /app/ Asia/Seoul local clock handles 23:59:0 including midnight and computer-time changes
+PASS 1280px /app/ Asia/Seoul local clock handles 0:0:0 including midnight and computer-time changes
+PASS 1280px /app/ Asia/Seoul local clock handles 14:30:0 including midnight and computer-time changes
+PASS 1280px /app/ Asia/Seoul expanded chat fits viewport
+PASS 1280px /app/ Asia/Seoul typing blocks movement, map, inventory and interaction
+PASS 1280px /app/ Asia/Seoul send adds message and speech bubble
+PASS 1280px /app/ Asia/Seoul chat uses current nickname and bubble fits viewport
+PASS 1280px /app/ Asia/Seoul chat panel stays clear of arrival toast
+PASS 1280px /app/ Asia/Seoul speech bubble anchors above actual player head
+PASS 1280px /app/ Asia/Seoul Escape releases chat input
+PASS 1280px /app/ Asia/Seoul movement resumes after leaving input
+PASS 1280px /app/ Asia/Seoul speech bubble follows moving avatar
+PASS 1280px /app/ Asia/Seoul Korean IME Enter does not send unfinished composition
+PASS 1280px /app/ Asia/Seoul whitespace does not send empty message
+PASS 1280px /app/ Asia/Seoul user text is rendered safely as literal text
+PASS 1280px /app/ Asia/Seoul message length capped at 80 characters
+PASS 1280px /app/ Asia/Seoul local chat history bounded to 30 messages
+PASS 1280px /app/ Asia/Seoul chat makes no production or fake database writes
+PASS 1280px /app/ Asia/Seoul speech expires without retaining stale balloon
+PASS 1280px /app/ Asia/Seoul Enter opens collapsed chat and focuses input
+PASS 1280px /app/ Asia/Seoul bank interior allows market chat
+PASS 1280px /app/ Asia/Seoul bank chat anchors speech to indoor avatar
+PASS 1280px /app/ Asia/Seoul clothing interior allows market chat
+PASS 1280px /app/ Asia/Seoul clothing chat anchors speech to indoor avatar
+PASS 1280px /app/ Asia/Seoul market return keeps current-session chat history
+PASS 1280px /app/ Asia/Seoul return travel hides chat
+PASS 1280px /app/ Asia/Seoul village keeps market chat hidden
+PASS 1280px /app/ Asia/Seoul reset clears account chat and is repeatable
+PASS 1280px /app/ Asia/Seoul no browser errors: 
+PASS 390px /app/ America/Los_Angeles chat not created in village
+PASS 390px /app/ America/Los_Angeles chat absent during outbound bus ride
+PASS 390px /app/ America/Los_Angeles market chat appears and fits viewport
+PASS 390px /app/ America/Los_Angeles clock hour and minute hands use 3D extruded geometry
+PASS 390px /app/ America/Los_Angeles both square benches have two opposing seats
+PASS 390px /app/ America/Los_Angeles bank bench faces counter
+PASS 390px /app/ America/Los_Angeles village stop bench faces road
+PASS 390px /app/ America/Los_Angeles market stop bench moves beside sign and stays single-sided
+PASS 390px /app/ America/Los_Angeles local clock handles 3:15:30 including midnight and computer-time changes
+PASS 390px /app/ America/Los_Angeles local clock handles 23:59:0 including midnight and computer-time changes
+PASS 390px /app/ America/Los_Angeles local clock handles 0:0:0 including midnight and computer-time changes
+PASS 390px /app/ America/Los_Angeles local clock handles 14:30:0 including midnight and computer-time changes
+PASS 390px /app/ America/Los_Angeles expanded chat fits viewport
+PASS 390px /app/ America/Los_Angeles mobile input moves above virtual keyboard
+PASS 390px /app/ America/Los_Angeles typing blocks movement, map, inventory and interaction
+PASS 390px /app/ America/Los_Angeles send adds message and speech bubble
+PASS 390px /app/ America/Los_Angeles chat uses current nickname and bubble fits viewport
+PASS 390px /app/ America/Los_Angeles chat panel stays clear of arrival toast
+PASS 390px /app/ America/Los_Angeles speech bubble anchors above actual player head
+PASS 390px /app/ America/Los_Angeles Escape releases chat input
+PASS 390px /app/ America/Los_Angeles movement resumes after leaving input
+PASS 390px /app/ America/Los_Angeles speech bubble follows moving avatar
+PASS 390px /app/ America/Los_Angeles Korean IME Enter does not send unfinished composition
+PASS 390px /app/ America/Los_Angeles whitespace does not send empty message
+PASS 390px /app/ America/Los_Angeles user text is rendered safely as literal text
+PASS 390px /app/ America/Los_Angeles message length capped at 80 characters
+PASS 390px /app/ America/Los_Angeles local chat history bounded to 30 messages
+PASS 390px /app/ America/Los_Angeles chat makes no production or fake database writes
+PASS 390px /app/ America/Los_Angeles speech expires without retaining stale balloon
+PASS 390px /app/ America/Los_Angeles Enter opens collapsed chat and focuses input
+PASS 390px /app/ America/Los_Angeles bank interior allows market chat
+PASS 390px /app/ America/Los_Angeles bank chat anchors speech to indoor avatar
+PASS 390px /app/ America/Los_Angeles clothing interior allows market chat
+PASS 390px /app/ America/Los_Angeles clothing chat anchors speech to indoor avatar
+PASS 390px /app/ America/Los_Angeles market return keeps current-session chat history
+PASS 390px /app/ America/Los_Angeles return travel hides chat
+PASS 390px /app/ America/Los_Angeles village keeps market chat hidden
+PASS 390px /app/ America/Los_Angeles reset clears account chat and is repeatable
+PASS 390px /app/ America/Los_Angeles no browser errors: 
+PASS 1280px /socialworld-demo.html Asia/Seoul chat not created in village
+PASS 1280px /socialworld-demo.html Asia/Seoul chat absent during outbound bus ride
+PASS 1280px /socialworld-demo.html Asia/Seoul market chat appears and fits viewport
+PASS 1280px /socialworld-demo.html Asia/Seoul clock hour and minute hands use 3D extruded geometry
+PASS 1280px /socialworld-demo.html Asia/Seoul both square benches have two opposing seats
+PASS 1280px /socialworld-demo.html Asia/Seoul bank bench faces counter
+PASS 1280px /socialworld-demo.html Asia/Seoul village stop bench faces road
+PASS 1280px /socialworld-demo.html Asia/Seoul market stop bench moves beside sign and stays single-sided
+PASS 1280px /socialworld-demo.html Asia/Seoul local clock handles 3:15:30 including midnight and computer-time changes
+PASS 1280px /socialworld-demo.html Asia/Seoul local clock handles 23:59:0 including midnight and computer-time changes
+PASS 1280px /socialworld-demo.html Asia/Seoul local clock handles 0:0:0 including midnight and computer-time changes
+PASS 1280px /socialworld-demo.html Asia/Seoul local clock handles 14:30:0 including midnight and computer-time changes
+PASS 1280px /socialworld-demo.html Asia/Seoul expanded chat fits viewport
+PASS 1280px /socialworld-demo.html Asia/Seoul typing blocks movement, map, inventory and interaction
+PASS 1280px /socialworld-demo.html Asia/Seoul send adds message and speech bubble
+PASS 1280px /socialworld-demo.html Asia/Seoul chat uses current nickname and bubble fits viewport
+PASS 1280px /socialworld-demo.html Asia/Seoul chat panel stays clear of arrival toast
+PASS 1280px /socialworld-demo.html Asia/Seoul speech bubble anchors above actual player head
+PASS 1280px /socialworld-demo.html Asia/Seoul Escape releases chat input
+PASS 1280px /socialworld-demo.html Asia/Seoul movement resumes after leaving input
+PASS 1280px /socialworld-demo.html Asia/Seoul speech bubble follows moving avatar
+PASS 1280px /socialworld-demo.html Asia/Seoul Korean IME Enter does not send unfinished composition
+PASS 1280px /socialworld-demo.html Asia/Seoul whitespace does not send empty message
+PASS 1280px /socialworld-demo.html Asia/Seoul user text is rendered safely as literal text
+PASS 1280px /socialworld-demo.html Asia/Seoul message length capped at 80 characters
+PASS 1280px /socialworld-demo.html Asia/Seoul local chat history bounded to 30 messages
+PASS 1280px /socialworld-demo.html Asia/Seoul chat makes no production or fake database writes
+PASS 1280px /socialworld-demo.html Asia/Seoul speech expires without retaining stale balloon
+PASS 1280px /socialworld-demo.html Asia/Seoul Enter opens collapsed chat and focuses input
+PASS 1280px /socialworld-demo.html Asia/Seoul bank interior allows market chat
+PASS 1280px /socialworld-demo.html Asia/Seoul bank chat anchors speech to indoor avatar
+PASS 1280px /socialworld-demo.html Asia/Seoul clothing interior allows market chat
+PASS 1280px /socialworld-demo.html Asia/Seoul clothing chat anchors speech to indoor avatar
+PASS 1280px /socialworld-demo.html Asia/Seoul market return keeps current-session chat history
+PASS 1280px /socialworld-demo.html Asia/Seoul return travel hides chat
+PASS 1280px /socialworld-demo.html Asia/Seoul village keeps market chat hidden
+PASS 1280px /socialworld-demo.html Asia/Seoul reset clears account chat and is repeatable
+PASS 1280px /socialworld-demo.html Asia/Seoul no browser errors: 
+PASS 390px /socialworld-demo.html America/Los_Angeles chat not created in village
+PASS 390px /socialworld-demo.html America/Los_Angeles chat absent during outbound bus ride
+PASS 390px /socialworld-demo.html America/Los_Angeles market chat appears and fits viewport
+PASS 390px /socialworld-demo.html America/Los_Angeles clock hour and minute hands use 3D extruded geometry
+PASS 390px /socialworld-demo.html America/Los_Angeles both square benches have two opposing seats
+PASS 390px /socialworld-demo.html America/Los_Angeles bank bench faces counter
+PASS 390px /socialworld-demo.html America/Los_Angeles village stop bench faces road
+PASS 390px /socialworld-demo.html America/Los_Angeles market stop bench moves beside sign and stays single-sided
+PASS 390px /socialworld-demo.html America/Los_Angeles local clock handles 3:15:30 including midnight and computer-time changes
+PASS 390px /socialworld-demo.html America/Los_Angeles local clock handles 23:59:0 including midnight and computer-time changes
+PASS 390px /socialworld-demo.html America/Los_Angeles local clock handles 0:0:0 including midnight and computer-time changes
+PASS 390px /socialworld-demo.html America/Los_Angeles local clock handles 14:30:0 including midnight and computer-time changes
+PASS 390px /socialworld-demo.html America/Los_Angeles expanded chat fits viewport
+PASS 390px /socialworld-demo.html America/Los_Angeles mobile input moves above virtual keyboard
+PASS 390px /socialworld-demo.html America/Los_Angeles typing blocks movement, map, inventory and interaction
+PASS 390px /socialworld-demo.html America/Los_Angeles send adds message and speech bubble
+PASS 390px /socialworld-demo.html America/Los_Angeles chat uses current nickname and bubble fits viewport
+PASS 390px /socialworld-demo.html America/Los_Angeles chat panel stays clear of arrival toast
+PASS 390px /socialworld-demo.html America/Los_Angeles speech bubble anchors above actual player head
+PASS 390px /socialworld-demo.html America/Los_Angeles Escape releases chat input
+PASS 390px /socialworld-demo.html America/Los_Angeles movement resumes after leaving input
+PASS 390px /socialworld-demo.html America/Los_Angeles speech bubble follows moving avatar
+PASS 390px /socialworld-demo.html America/Los_Angeles Korean IME Enter does not send unfinished composition
+PASS 390px /socialworld-demo.html America/Los_Angeles whitespace does not send empty message
+PASS 390px /socialworld-demo.html America/Los_Angeles user text is rendered safely as literal text
+PASS 390px /socialworld-demo.html America/Los_Angeles message length capped at 80 characters
+PASS 390px /socialworld-demo.html America/Los_Angeles local chat history bounded to 30 messages
+PASS 390px /socialworld-demo.html America/Los_Angeles chat makes no production or fake database writes
+PASS 390px /socialworld-demo.html America/Los_Angeles speech expires without retaining stale balloon
+PASS 390px /socialworld-demo.html America/Los_Angeles Enter opens collapsed chat and focuses input
+PASS 390px /socialworld-demo.html America/Los_Angeles bank interior allows market chat
+PASS 390px /socialworld-demo.html America/Los_Angeles bank chat anchors speech to indoor avatar
+PASS 390px /socialworld-demo.html America/Los_Angeles clothing interior allows market chat
+PASS 390px /socialworld-demo.html America/Los_Angeles clothing chat anchors speech to indoor avatar
+PASS 390px /socialworld-demo.html America/Los_Angeles market return keeps current-session chat history
+PASS 390px /socialworld-demo.html America/Los_Angeles return travel hides chat
+PASS 390px /socialworld-demo.html America/Los_Angeles village keeps market chat hidden
+PASS 390px /socialworld-demo.html America/Los_Angeles reset clears account chat and is repeatable
+PASS 390px /socialworld-demo.html America/Los_Angeles no browser errors: 
+ALL 154 MARKET SOCIAL BROWSER CHECKS PASSED
+
+
+--- ui ---
+PASS  [desktop] 마을에 휴대폰 버튼이 보임
+PASS  [desktop] 화질·로그아웃 버튼은 HUD에서 빠짐(휴대폰 설정으로)
+PASS  [desktop] 도움말에 지도 키 안내
+PASS  [desktop] 코코 알림 + 휴대폰 배지
+PASS  [desktop] 알림 효과음
+PASS  [desktop] 알림 누르면 코코 창 열리고 배지 사라짐
+PASS  [desktop] 휴대폰 홈 — 닉네임 인사
+PASS  [desktop] 휴대폰이 열려 있으면 캐릭터가 안 움직임
+PASS  [desktop] 휴대폰 화면이 창 안에 들어감
+PASS  [desktop] Esc로 닫힘
+PASS  [desktop] 미션 — 환류 추천 미션이 맨 위·추천 표시
+PASS  [desktop] 미션 시작 → mission_progress insert
+PASS  [desktop] 미션 완료 → 내 행만 done으로 update
+PASS  [desktop] 미션 완료 효과음
+PASS  [desktop] 완료 개수 표시
+PASS  [desktop] 동아리 가입 → club_members insert
+PASS  [desktop] 연락처 — 루미·코코·이장 순
+PASS  [desktop] 대화 미저장 안내
+PASS  [desktop] 루미 바로 앞으로 순간이동
+PASS  [desktop] 루미 대화창 열림
+PASS  [desktop] 위기 선택지 → 109·1577-0199 안내
+PASS  [desktop] report_crisis 1회
+PASS  [desktop] npc_sessions — 원문 없이 신호 수치만
+PASS  [desktop] 지도 — 장소 13곳(버스 정류장 포함)
+PASS  [desktop] 지도에서 공원 → 공원 앞으로 이동
+PASS  [desktop] M으로 지도 열고 닫기
+PASS  [desktop] 다른 동작에 쓰는 키는 거절
+PASS  [desktop] 상호작용 키가 Q로 바뀜
+PASS  [desktop] 설정만 브라우저에 저장(대화·알림 없음)
+PASS  [desktop] 화질 가벼움 적용
+PASS  [desktop] 미니맵 시점 회전 적용
+PASS  [desktop] 대화 버튼에 바뀐 키 표시
+PASS  [desktop] E는 더 이상 대화를 열지 않음
+PASS  [desktop] Q로 이장 대화 열림
+PASS  [desktop] 대화창이 떠 있으면 지도 키 무시
+PASS  [desktop] 코코 알림은 로그인당 한 번
+PASS  [desktop] 투어 중 휴대폰 버튼 숨김
+PASS  [desktop] 투어 중 지도 키 무시
+PASS  [desktop] 설정 → 로그아웃 → 로그인 화면, 휴대폰 숨김
+PASS  [desktop] 페이지 오류 없음
+PASS  [mobile] 마을에 휴대폰 버튼이 보임
+PASS  [mobile] 화질·로그아웃 버튼은 HUD에서 빠짐(휴대폰 설정으로)
+PASS  [mobile] 도움말에 지도 키 안내
+PASS  [mobile] 코코 알림 + 휴대폰 배지
+PASS  [mobile] 알림 효과음
+PASS  [mobile] 알림 누르면 코코 창 열리고 배지 사라짐
+PASS  [mobile] 휴대폰 홈 — 닉네임 인사
+PASS  [mobile] 휴대폰이 열려 있으면 캐릭터가 안 움직임
+PASS  [mobile] 휴대폰 화면이 창 안에 들어감
+PASS  [mobile] Esc로 닫힘
+PASS  [mobile] 미션 — 환류 추천 미션이 맨 위·추천 표시
+PASS  [mobile] 미션 시작 → mission_progress insert
+PASS  [mobile] 미션 완료 → 내 행만 done으로 update
+PASS  [mobile] 미션 완료 효과음
+PASS  [mobile] 완료 개수 표시
+PASS  [mobile] 동아리 가입 → club_members insert
+PASS  [mobile] 연락처 — 루미·코코·이장 순
+PASS  [mobile] 대화 미저장 안내
+PASS  [mobile] 루미 바로 앞으로 순간이동
+PASS  [mobile] 루미 대화창 열림
+PASS  [mobile] 위기 선택지 → 109·1577-0199 안내
+PASS  [mobile] report_crisis 1회
+PASS  [mobile] npc_sessions — 원문 없이 신호 수치만
+PASS  [mobile] 지도 — 장소 13곳(버스 정류장 포함)
+PASS  [mobile] 지도에서 공원 → 공원 앞으로 이동
+PASS  [mobile] M으로 지도 열고 닫기
+PASS  [mobile] 다른 동작에 쓰는 키는 거절
+PASS  [mobile] 상호작용 키가 Q로 바뀜
+PASS  [mobile] 설정만 브라우저에 저장(대화·알림 없음)
+PASS  [mobile] 화질 가벼움 적용
+PASS  [mobile] 미니맵 시점 회전 적용
+PASS  [mobile] 대화 버튼에 바뀐 키 표시
+PASS  [mobile] E는 더 이상 대화를 열지 않음
+PASS  [mobile] Q로 이장 대화 열림
+PASS  [mobile] 대화창이 떠 있으면 지도 키 무시
+PASS  [mobile] 코코 알림은 로그인당 한 번
+PASS  [mobile] 투어 중 휴대폰 버튼 숨김
+PASS  [mobile] 투어 중 지도 키 무시
+PASS  [mobile] 설정 → 로그아웃 → 로그인 화면, 휴대폰 숨김
+PASS  [mobile] 페이지 오류 없음
+모두 통과
+
+
+--- coco ---
+PASS  [desktop] coco/coco.js 불러옴
+PASS  [desktop] 동아리센터 앞에 코코 자리 있음
+PASS  [desktop] 코코와 동아리센터 문이 E키 대상으로 겹치지 않음 (거리 4.2)
+PASS  [desktop] 가까이 가면 "코코 — 대화하기 (E)"
+PASS  [desktop] 코코 창 열림, 선택지 3개
+PASS  [desktop] 기존 대본형 NPC 창은 안 뜸
+PASS  [desktop] 코코 창이 떠 있으면 캐릭터가 안 움직임
+PASS  [desktop] E를 또 눌러도 창이 겹쳐 열리지 않음
+PASS  [desktop] 추천 카드 3장
+PASS  [desktop] 브라우저는 모드·개수만 보냄
+PASS  [desktop] 수요 로그 3건, 03 칸 이름(item_id)으로 기록
+PASS  [desktop] 코코 대화는 위험 신호(npc_sessions)로 남지 않음
+PASS  [desktop] 동아리 보러 가기 → 창 닫힘
+PASS  [desktop] 동아리센터 화면으로 이동
+PASS  [desktop] 돌아와서 다시 말 걸 수 있음
+PASS  [desktop] Esc로 닫힘
+PASS  [desktop] 페이지 오류 없음
+PASS  [mobile] coco/coco.js 불러옴
+PASS  [mobile] 동아리센터 앞에 코코 자리 있음
+PASS  [mobile] 코코와 동아리센터 문이 E키 대상으로 겹치지 않음 (거리 4.2)
+PASS  [mobile] 가까이 가면 "코코 — 대화하기 (E)"
+PASS  [mobile] 코코 창 열림, 선택지 3개
+PASS  [mobile] 기존 대본형 NPC 창은 안 뜸
+PASS  [mobile] 코코 창이 떠 있으면 캐릭터가 안 움직임
+PASS  [mobile] E를 또 눌러도 창이 겹쳐 열리지 않음
+PASS  [mobile] 추천 카드 3장
+PASS  [mobile] 브라우저는 모드·개수만 보냄
+PASS  [mobile] 수요 로그 3건, 03 칸 이름(item_id)으로 기록
+PASS  [mobile] 코코 대화는 위험 신호(npc_sessions)로 남지 않음
+PASS  [mobile] 동아리 보러 가기 → 창 닫힘
+PASS  [mobile] 동아리센터 화면으로 이동
+PASS  [mobile] 돌아와서 다시 말 걸 수 있음
+PASS  [mobile] Esc로 닫힘
+PASS  [mobile] 페이지 오류 없음
+모두 통과
+
+
+--- chief ---
+PASS  [desktop] chief/chief.js 불러옴
+PASS  [desktop] 이장 옆에서 "마을이장 — 대화하기 (E)"
+PASS  [desktop] 이장 창(모듈)이 열리고 대본 창은 안 뜸
+PASS  [desktop] 닉네임으로 인사
+PASS  [desktop] 이벤트 카드 2장, 내 코호트 대상(featured)이 위
+PASS  [desktop] 공개 뷰만 읽고 featured는 정렬에만 씀
+PASS  [desktop] 화면에 대상·근거·낙인 표현 없음
+PASS  [desktop] 장소·시각 표시
+PASS  [desktop] 이미 참여한 이벤트는 신청 완료 표시
+PASS  [desktop] 이장 창이 떠 있으면 캐릭터가 안 움직임
+PASS  [desktop] E를 또 눌러도 창이 겹쳐 열리지 않음
+PASS  [desktop] 참여는 join_world_event(id)로만
+PASS  [desktop] 참여 후 이장 대사
+PASS  [desktop] 참여 표에 직접 쓰지 않음
+PASS  [desktop] 이장 대화는 위험 신호로 남지 않음
+PASS  [desktop] 대화 마치기로 닫힘
+PASS  [desktop] 닫으면 첫 퀘스트 완료(튜토리얼 흐름 유지)
+PASS  [desktop] 다시 열고 Esc로 닫힘
+PASS  [desktop] 페이지 오류 없음
+PASS  [mobile] chief/chief.js 불러옴
+PASS  [mobile] 이장 옆에서 "마을이장 — 대화하기 (E)"
+PASS  [mobile] 이장 창(모듈)이 열리고 대본 창은 안 뜸
+PASS  [mobile] 닉네임으로 인사
+PASS  [mobile] 이벤트 카드 2장, 내 코호트 대상(featured)이 위
+PASS  [mobile] 공개 뷰만 읽고 featured는 정렬에만 씀
+PASS  [mobile] 화면에 대상·근거·낙인 표현 없음
+PASS  [mobile] 장소·시각 표시
+PASS  [mobile] 이미 참여한 이벤트는 신청 완료 표시
+PASS  [mobile] 이장 창이 떠 있으면 캐릭터가 안 움직임
+PASS  [mobile] E를 또 눌러도 창이 겹쳐 열리지 않음
+PASS  [mobile] 참여는 join_world_event(id)로만
+PASS  [mobile] 참여 후 이장 대사
+PASS  [mobile] 참여 표에 직접 쓰지 않음
+PASS  [mobile] 이장 대화는 위험 신호로 남지 않음
+PASS  [mobile] 대화 마치기로 닫힘
+PASS  [mobile] 닫으면 첫 퀘스트 완료(튜토리얼 흐름 유지)
+PASS  [mobile] 다시 열고 Esc로 닫힘
+PASS  [mobile] 페이지 오류 없음
+PASS  [premigration] 05 적용 전(뷰 오류): 카드 없이 안내만
+PASS  [premigration] 닫기 정상, 페이지 오류 없음
+PASS  [empty] 공개 이벤트 없음: 카드 없이 안내만
+PASS  [empty] 닫기 정상, 페이지 오류 없음
+모두 통과

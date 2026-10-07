@@ -39,5 +39,19 @@
   }
   return {getState,groups,add,equip,recycle,isEquipped:()=>state.equipped==='rod'};
  }
- root.InventoryStore={create};if(typeof module!=='undefined')module.exports={create};
+ function createOnline({economy,storage,key,data,onChange=()=>{}}){
+  const local=create({storage,key,data,onChange});
+  const online=()=>economy.status().hasOnlineState;
+  const getState=()=>online()?economy.getState().inventory:local.getState();
+  const canLocal=()=>economy.status().mode==='legacy';
+  const unsubscribe=economy.subscribe(onChange);
+  function groups(){const grouped=new Map();for(const e of getState().instances){const definition=data.items[e.itemId];if(!definition)continue;if(!grouped.has(e.itemId))grouped.set(e.itemId,{itemId:e.itemId,definition,instances:[]});grouped.get(e.itemId).instances.push({...e});}return [...grouped.values()];}
+  function requireReady(){if(!canLocal())throw root.OnlineEconomy.fail(economy.status().mode==='loading'?'BUSY':'OFFLINE');}
+  return {getState,groups,status:economy.status,isEquipped:()=>online()?economy.isRodEquipped():local.isEquipped(),destroy:unsubscribe,
+   add(entry){if(online())throw root.OnlineEconomy.fail('ONLINE_CATCH_REQUIRED');requireReady();return local.add(entry);},
+   equip(){if(online())return economy.run('equip_rod',{equipped:!getState().equipped});requireReady();return local.equip();},
+   recycle(id,category){if(online())return economy.run('recycle',{instanceId:id,category}).then(()=>true);requireReady();return local.recycle(id,category);}
+  };
+ }
+ root.InventoryStore={create,createOnline};if(typeof module!=='undefined')module.exports={create,createOnline};
 })(typeof window!=='undefined'?window:globalThis);

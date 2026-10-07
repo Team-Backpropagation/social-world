@@ -336,9 +336,13 @@
 
   function avatarKey(){ return "sw_avatar_" + (state.session ? state.session.user.id : "guest"); }
   function currentAvatar(){
-    if(state.profile && state.profile.avatar) return state.profile.avatar;
-    try { var raw = localStorage.getItem(avatarKey()); if(raw) return JSON.parse(raw); } catch(e){}
-    return null;
+    var av = state.profile && state.profile.avatar;
+    if(!av) try { var raw = localStorage.getItem(avatarKey()); if(raw) av = JSON.parse(raw); } catch(e){}
+    var data = economy && economy.getState();
+    var worn = data && data.inventory.instances.find(function(i){ return i.id === data.equippedClothing; });
+    var definition = worn && window.FishingData.items[worn.itemId];
+    if(definition && definition.kind === 'clothing') av = Object.assign({}, av || presetAvatar('calm','#4caf6e',nick()), {outfit:definition.color});
+    return av || null;
   }
 
   // ---------------- ① 사전 설문 ----------------
@@ -895,10 +899,24 @@
   })();
 
   // 휴대폰·지도·설정·코코 알림 (ui.js) — 앱 기능을 여기서 넘겨준다
+  var economy = null;
+  function getEconomy(){
+    var uid = state.session && state.session.user.id;
+    if(!uid || !window.OnlineEconomy) return null;
+    if(!economy || economy.userId !== uid){
+      if(economy) economy.destroy();
+      economy = window.OnlineEconomy.create({sb:sb,userId:uid});
+      var lastAppearance = null;
+      economy.subscribe(function(){ var av = currentAvatar() || presetAvatar('calm','#4caf6e',nick()); var signature = JSON.stringify(av); if(ENGINE && ENGINE.isRunning() && signature !== lastAppearance){ lastAppearance = signature; ENGINE.setAvatar(av); } });
+      economy.initialize();
+    }
+    return economy;
+  }
   var CONTACT_ORDER = ["psych","coco","chief","policy","job"];
   if(window.WorldUI) window.WorldUI.init({
     sb: sb,
     userId: function(){ return state.session ? state.session.user.id : null; },
+    economy: getEconomy,
     nickname: nick,
     feedback: function(){ return state.feedback; },
     npcs: function(){
@@ -920,6 +938,7 @@
   });
 
   if(window.MarketUI) window.MarketUI.init({
+    economy: getEconomy,
     engine: function(){ return ENGINE; },
     nickname: nick,
     portrait: function(){
@@ -936,7 +955,7 @@
   });
 
   // 테스트·디버그용 (콘솔에서 __sw().engine 등으로 확인)
-  window.__sw = function(){ return { state: state, engine: ENGINE, openRoom: openRoom, openNpc: openNpc }; };
+  window.__sw = function(){ return { state: state, engine: ENGINE, economy: economy, openRoom: openRoom, openNpc: openNpc }; };
 
   // ---------------- ④ 루미의 월드 소개 (대본형, LLM 없음) ----------------
   function tctx(){ return state.tutorialCtx || { mood:null, goal: state.profile && state.profile.join_goal, interests: (state.profile && state.profile.interests) || [] }; }
@@ -1037,6 +1056,7 @@
     });
   }
   function logout(){
+    if(economy) economy.destroy(); economy = null;
     if(window.MarketUI) window.MarketUI.reset();
     state.worldReturn = null; state.spawn = null; state.spawnFacing = null;
     if(state.tour && state.tour.walking) clearInterval(state.tour.walking); state.tour = null;
