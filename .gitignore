@@ -41,6 +41,7 @@ _archive/
 # 하루 — 복지로 API 응답 확인용 샘플(haru_probe.py가 만듦, 다시 받을 수 있음)
 risk_agent/haru_samples/
 
+#<<<<<<< Updated upstream
 # Browser test screenshots and local dependency/build caches
 node_modules/
 social_world/react_app/dist/
@@ -48,3 +49,9 @@ social_world/*/tests/shot_*.png
 social_world/*/tests/demo_*.png
 social_world/app/tests/fishing-*.png
 social_world/app/tests/*-qa/
+#=======
+#claude.md, .patch, .bundle
+CLAUDE.md
+*.patch
+*.bundle
+#>>>>>>> Stashed changes
