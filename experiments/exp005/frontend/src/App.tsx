@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { chat, end, health, start, type Action, type Npc, type Reply, type Session, type Turn } from './api';
+import { chat, end, health, start, initialNpc, listenWorldNpc, type Action, type Npc, type Reply, type Session, type Turn } from './api';
 
 const people = {
   lumi: { name: '루미', mark: '◒', title: '차분하게, 당신의 속도로', intro: '오늘 나누고 싶은 이야기부터 시작해요.' },
@@ -10,7 +10,7 @@ type Message = { id: string; side: 'user' | 'assistant'; text: string; npc: Npc;
 const statusNames = { unknown: '아직 묻지 않음', answered: '직접 답한 내용', skipped: '건너뛰었어요', declined: '답하지 않기로 했어요' };
 
 export default function App() {
-  const [npc, setNpc] = useState<Npc>('lumi');
+  const [npc, setNpc] = useState<Npc>(initialNpc);
   const [session, setSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -26,7 +26,19 @@ export default function App() {
   // 대화 종료 뒤 도착한 응답을 버리는 세대 번호입니다. 서버의 삭제 검사와 함께 사용합니다.
   const epoch = useRef(0);
   const listEnd = useRef<HTMLDivElement | null>(null);
+  const requestedNpc = useRef<Npc | null>(null);
+  const interactionBusy = useRef(false);
+  interactionBusy.current = busy || ending;
   const person = people[npc];
+
+  useEffect(() => listenWorldNpc(next => {
+    if (interactionBusy.current) requestedNpc.current = next;
+    else { requestedNpc.current = null; setNpc(next); }
+  }), []);
+  useEffect(() => {
+    // 요청 중 마을에서 NPC를 바꿔도 기존 턴의 이름을 바꾸지 않고 처리 후 적용합니다.
+    if (!busy && !ending && requestedNpc.current) { setNpc(requestedNpc.current); requestedNpc.current = null; }
+  }, [busy, ending]);
 
   useEffect(() => {
     let active = true;

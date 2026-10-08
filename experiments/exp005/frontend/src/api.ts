@@ -1,5 +1,21 @@
 /** 브라우저의 네트워크 경계. 키·전체 대화 이력·추정 상태는 전송하지 않습니다. */
 export type Npc = 'lumi' | 'coco' | 'haru';
+
+// 마을 점검 화면은 같은 출처의 iframe으로 연결합니다. 토큰·프로필은 부모에게 전달하지 않습니다.
+export function initialNpc(): Npc {
+  const candidate = new URLSearchParams(window.location.search).get('npc');
+  return candidate === 'coco' || candidate === 'haru' ? candidate : 'lumi';
+}
+export function listenWorldNpc(select: (npc: Npc) => void): () => void {
+  const receive = (event: MessageEvent) => {
+    if (window.parent === window || event.source !== window.parent || event.origin !== window.location.origin) return;
+    const data = event.data;
+    if (data?.type === 'ieum:set-npc' && ['lumi', 'coco', 'haru'].includes(data.npc)) select(data.npc);
+  };
+  window.addEventListener('message', receive);
+  if (window.parent !== window) window.parent.postMessage({ type: 'ieum:ready' }, window.location.origin);
+  return () => window.removeEventListener('message', receive);
+}
 export type Action = 'chat' | 'begin_intake' | 'skip' | 'decline' | 'choose_activity' | 'choose_resource' | 'edit_preference';
 export type Topic = { status: 'unknown' | 'answered' | 'skipped' | 'declined'; value: string | null; evidence_ref: string | null };
 export type State = { revision: number; preference: Topic; conditions: Topic; pending_question: 'preference' | 'conditions' | null; intake_enabled: boolean };

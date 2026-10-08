@@ -7,3 +7,5 @@ dist/
 *.log
 .npm-cache/
 *.tsbuildinfo
+integration/runtime/
+integration/backups/
