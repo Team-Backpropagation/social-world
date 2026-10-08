@@ -31,7 +31,8 @@
  * 내 의견함(2026-10-07): ../feedback/feedback.js가 있으면 휴대폰에 '내 의견함' 앱이 생긴다(07_feedback_chat.sql).
  *   휴대폰을 열 때·마을에 들어올 때 운영팀 새 답 수를 확인해 배지로 보여 준다.
  *
- * 저장: 이 브라우저 localStorage 에 설정(미니맵 방향·화질·키·효과음)만 남긴다.
+ * 저장: 설정(미니맵 방향·화질·키·효과음)과 사용자 ID별 인벤토리를
+ *       별도 localStorage 키에 남긴다. 인벤토리 저장은 inventory.js가 맡는다.
  *       대화 내용·알림 내용은 어디에도 저장하지 않는다.
  */
 (function () {
@@ -50,6 +51,7 @@
 
   // ---------------------------------------------------------------- 아이콘
   var PATHS = {
+    inventory: 'M4 7h16v14H4zM8 7V4h8v3M4 12h16M10 12v3h4v-3',
     settings: 'M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1 1-3ZM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
     phone: 'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2ZM10 5h4M11 18h2',
     map: 'm3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5ZM9 3v16M15 5v16',
@@ -91,9 +93,9 @@
   var CALL_ANYWHERE = { coco: true, chief: true };
 
   // ---------------------------------------------------------------- 키 설정
-  var DEFAULT_BINDINGS = { map: 'KeyM', forward: 'KeyW', left: 'KeyA', back: 'KeyS', right: 'KeyD', interact: 'KeyE' };
+  var DEFAULT_BINDINGS = { map: 'KeyM', inventory: 'KeyI', forward: 'KeyW', left: 'KeyA', back: 'KeyS', right: 'KeyD', interact: 'KeyE' };
   var KEY_NAMES = {
-    map: '전체 지도', forward: '앞으로 이동', left: '왼쪽으로 이동',
+    inventory: '인벤토리', map: '전체 지도', forward: '앞으로 이동', left: '왼쪽으로 이동',
     back: '뒤로 이동', right: '오른쪽으로 이동', interact: '대화 / 상호작용'
   };
   var validCode = function (code) { return /^(Key[A-Z]|Digit[0-9])$/.test(code); };
@@ -106,6 +108,10 @@
     var saved = {};
     try { saved = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch (e) { saved = {}; }
     var b = Object.assign({}, DEFAULT_BINDINGS, saved.bindings || {});
+    if (!saved.bindings || !saved.bindings.inventory) {
+      var used = Object.keys(b).filter(function(k){ return k !== 'inventory'; }).map(function(k){ return b[k]; });
+      b.inventory = ['KeyI','KeyB','KeyV','KeyN'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(function(c){return 'Key'+c;})).filter(function(c){return used.indexOf(c)<0;})[0];
+    }
     var codes = Object.keys(DEFAULT_BINDINGS).map(function (k) { return b[k]; });
     var ok = codes.every(validCode) && new Set(codes).size === codes.length && Object.keys(b).length === codes.length;
     return {
@@ -117,7 +123,7 @@
   }
 
   // ---------------------------------------------------------------- 상태
-  var host = null, engine = null;
+  var host = null, engine = null, fishingFeature = null, fishingUser = null;
   var settings = loadSettings();
   var ui = {
     panel: null,          // null | 'phone' | 'map'
@@ -134,6 +140,8 @@
     fbUser: null,
     fbCompose: false      // 내 의견함 화면에서 '새 의견' 폼을 보여 주는 중
   };
+
+  Object.defineProperty(ui, 'bindings', { get: function(){ return settings.bindings; } });
 
   function persist() {
     try {
@@ -156,6 +164,7 @@
 
   // ---------------------------------------------------------------- 패널 열고 닫기
   function openPanel(kind) {
+    if (fishingFeature) fishingFeature.cancel();
     ui.bindingTarget = null;
     if (!ui.panel) ui.modalFocus = document.activeElement;
     hideNotice();
@@ -197,7 +206,8 @@
     { id: 'lake', name: '호수', x: 10, z: 36.8 },
     { id: 'forest', name: '숲길', x: -38, z: 22 },
     { id: 'flowers', name: '꽃 언덕', x: 36, z: 38 },
-    { id: 'field', name: '들판', x: 42, z: 6 }
+    { id: 'field', name: '들판', x: 42, z: 6 },
+    { id: 'bus', name: '시장행 버스', ...window.MarketWorldData.villageStop }
   ];
   // 엔진 places()에 없는 산책로 장소
   var EXTRA_SPOTS = { lake: { x: 10, z: 36.8 }, forest: { x: -38, z: 22 }, flowers: { x: 36, z: 38 }, field: { x: 42, z: 6 } };
@@ -210,12 +220,13 @@
     if (!spot) { toast('이 장소는 아직 준비 중이에요.'); return; }
     closePanel();
     if (!host.teleport({ x: spot.x, z: spot.z })) return;
-    var name = (MAP_POINTS.filter(function (m) { return m.id === id; })[0] || {}).name || '목적지';
+    var name = (currentMapPoints().filter(function (m) { return m.id === id; })[0] || {}).name || '목적지';
     toast(name + ' 앞으로 이동했어요');
   }
 
   // NPC 앞(마을 가운데 쪽으로 1.8칸)으로 이동해 NPC를 바라본다
   function goNpc(id) {
+    if (isMarket()) { toast('마을 주민을 만나려면 버스를 타고 마을로 돌아가 주세요.'); return false; }
     if (!engine) return false;
     var n = engine.npcPositions().filter(function (x) { return x.id === id; })[0];
     if (!n) return false;
@@ -232,24 +243,33 @@
   }
 
   // ---------------------------------------------------------------- 전체 지도
+  function isMarket() { return engine && ['market', 'bank', 'clothing'].indexOf(engine.mode()) >= 0; }
+  function currentMapPoints() { return isMarket() ? window.MarketWorldData.points : MAP_POINTS; }
+  function currentMapPct(p) {
+    if (!isMarket()) return mapPct(p);
+    var b = window.MarketWorldData.mapBounds;
+    return { left: (p.x - b.x0) / (b.x1 - b.x0) * 100, top: (p.z - b.z0) / (b.z1 - b.z0) * 100 };
+  }
   function openMap() {
     if (!allowed()) return;
     openPanel('map');
+    var inMarket = isMarket();
     var inRoom = engine && engine.mode && engine.mode() === 'room';
     var here = engine ? (inRoom ? engine.places().home : engine.playerPos()) : { x: 0.6, z: 7.4 };
-    var pos = mapPct(here);
+    if (inMarket && engine.mode() !== 'market') here = engine.places()[engine.mode() === 'bank' ? 'market-bank' : 'market-clothing'];
+    var pos = currentMapPct(here);
     $('#overlay').innerHTML =
       '<section class="ui-dialog map-dialog" role="dialog" aria-modal="true" aria-labelledby="map-title">' +
         '<header class="dialog-top"><div class="avatar">' + icon('map') + '</div>' +
-          '<div><div class="eyebrow">IEUM VILLAGE</div><h2 id="map-title">이음 마을 지도</h2>' +
+          '<div><div class="eyebrow">' + (inMarket ? 'IEUM MARKET' : 'IEUM VILLAGE') + '</div><h2 id="map-title">' + (inMarket ? '이음 시장 지도' : '이음 마을 지도') + '</h2>' +
           '<p>장소 이름을 누르면 입구 앞으로 이동해요.</p></div>' +
           '<button class="icon-btn" data-close aria-label="지도 닫기">' + icon('close') + '</button></header>' +
         '<div class="map-main">' +
-          '<div class="map-caption"><span>' + (inRoom ? '지금은 내 방에 있어요. 장소를 누르면 밖으로 나가요.' : '궁금한 곳부터 천천히 둘러보세요.') +
+          '<div class="map-caption"><span>' + (inRoom ? '지금은 내 방에 있어요. 장소를 누르면 밖으로 나가요.' : inMarket && engine.mode() !== 'market' ? '지금은 실내에 있어요. 장소를 누르면 시장 광장으로 나가요.' : '궁금한 곳부터 천천히 둘러보세요.') +
             '</span><span><strong>N ↑</strong> 북쪽 고정</span></div>' +
           '<div class="map-frame"><canvas id="full-map" aria-label="이음 마을 전체 지도"></canvas>' +
-            MAP_POINTS.map(function (p) {
-              var q = mapPct(p);
+            currentMapPoints().map(function (p) {
+              var q = currentMapPct(p);
               return '<button class="map-point" style="left:' + q.left + '%;top:' + q.top + '%" data-place="' + p.id +
                 '" aria-label="' + p.name + ' 앞으로 이동">' + p.name + '</button>';
             }).join('') +
@@ -260,6 +280,7 @@
         '</div>' +
       '</section>';
     var c = $('#full-map'), g = c.getContext('2d');
+    c.setAttribute('aria-label', inMarket ? '이음 시장 전체 지도' : '이음 마을 전체 지도');
     c.width = 928; c.height = 736;
     if (engine && engine.mapBase) g.drawImage(engine.mapBase(), 0, 0, c.width, c.height);
     $('#overlay [data-close]').onclick = closePanel;
@@ -301,7 +322,7 @@
   function tryNotice() {
     ui.noticeTimer = null;
     if (ui.notice || !ui.ctx.inVillage || ui.ctx.tour || !document.body.classList.contains('in-world')) return;   // 다음 sync 때 다시
-    if (ui.panel || host.busy()) { ui.noticeTimer = setTimeout(tryNotice, COCO_NOTICE.retryMs); return; }
+    if (ui.panel || host.busy() || (fishingFeature && fishingFeature.state)) { ui.noticeTimer = setTimeout(tryNotice, COCO_NOTICE.retryMs); return; }
     ui.notice = { line: '같이 해볼 만한 모임이랑 활동을 찾아놨어. 한번 볼래?', read: false };
     var box = $('#notification');
     box.innerHTML =
@@ -534,7 +555,7 @@
         '<button class="action secondary setting-reset" id="setting-view"' + (hasEngine ? '' : ' disabled') + '>' + icon('reset') + ' 시점 초기화</button>' +
         '<p class="setting-note">시점의 방향·높이·줌을 처음 상태로 되돌려요.</p></section>' +
       '<section class="settings-section" aria-labelledby="sound-settings-title"><h3 id="sound-settings-title">소리</h3>' +
-        '<label class="setting-row" for="setting-sound"><span>효과음<small>코코 알림·미션 완료 소리</small></span>' +
+        '<label class="setting-row" for="setting-sound"><span>효과음<small>코코 알림·미션 완료·낚시 입질 소리</small></span>' +
           '<select id="setting-sound"><option value="on"' + (!settings.muted ? ' selected' : '') + '>켜기</option>' +
           '<option value="off"' + (settings.muted ? ' selected' : '') + '>끄기</option></select></label></section>' +
       '<section class="settings-section" aria-labelledby="key-settings-title"><h3 id="key-settings-title">키보드 조작</h3>' +
@@ -681,6 +702,10 @@
       if (ui.panel === 'map') { e.preventDefault(); closePanel(); return; }
       if (!ui.panel && allowed() && host && !host.busy()) { e.preventDefault(); openMap(); return; }
     }
+    // 인벤토리 키 — 앱 대화·튜토리얼 중에는 열지 않는다.
+    if (!typing && !e.ctrlKey && !e.altKey && !e.metaKey && !e.repeat && keyCode(e) === settings.bindings.inventory && fishingFeature && allowed() && !host.busy()) {
+      e.preventDefault(); fishingFeature.toggleInventory(); return;
+    }
     // 4) 열린 화면 안에서 Tab 순환
     if (e.key === 'Tab' && ui.panel) {
       var a = Array.prototype.filter.call($('#overlay').querySelectorAll('button:not(:disabled),textarea,a[href],input,select'),
@@ -703,20 +728,33 @@
     updateBadge();
   }
   function attach(e) {
-    if (engine === e) return;
+    var uid = host && host.userId();
+    if (fishingFeature && (engine !== e || fishingUser !== uid)) { fishingFeature.destroy(); fishingFeature = null; }
     engine = e;
     applySettings();
+    if (!fishingFeature && uid && window.createFishingFeature) {
+      fishingUser = uid;
+      fishingFeature = window.createFishingFeature({
+        engine: engine, ui: ui, openPanel: openPanel, closePanel: closePanel, setupFocus: focusFirst,
+        toast: toast, icon: icon, keyLabel: codeLabel, allowed: allowed, isBusy: host.busy,
+        storageKey: 'social-world-inventory-v1:' + encodeURIComponent(uid),
+        economy: host.economy ? host.economy() : null
+      });
+    }
   }
   function sync(ctx) {
     ui.ctx = { inVillage: !!ctx.inVillage, tour: !!ctx.tour, roomBusy: !!ctx.roomBusy };
     $('#phone-launch').hidden = ui.ctx.tour || ui.ctx.roomBusy;
     if (ui.panel && !allowed()) closePanel();
     if (ui.ctx.tour) hideNotice();
+    if (fishingFeature) { if (!allowed()) fishingFeature.cancel(); fishingFeature.updateHud(); }
     scheduleNotice();
     if (ui.ctx.inVillage && !ui.ctx.tour && ui.fbUser !== host.userId()) checkFeedback(true);   // 로그인마다 한 번
   }
   function reset() {
     closePanel();
+    if (fishingFeature) fishingFeature.destroy();
+    fishingFeature = null; fishingUser = null;
     hideNotice();
     clearTimeout(ui.noticeTimer); ui.noticeTimer = null;
     ui.notice = null; ui.noticeUser = null;
@@ -734,6 +772,13 @@
     keyLabel: function (action) { return codeLabel(settings.bindings[action] || DEFAULT_BINDINGS[action] || ''); },
     openPhone: openPhone,
     openMap: openMap,
+    target: function(t){ return fishingFeature ? fishingFeature.target(t) : t; },
+    interactFishing: function(options){ return fishingFeature ? fishingFeature.interact(options) : false; },
+    tick: function(){ if (fishingFeature) fishingFeature.tick(); },
+    cancelFishing: function(){ if (fishingFeature) fishingFeature.cancel(); },
+    isFishing: function(){ return !!(fishingFeature && fishingFeature.state); },
+    openInventory: function(){ if (fishingFeature) fishingFeature.toggleInventory(); },
+    get fishing(){ return fishingFeature; },
     state: ui            // 테스트·디버그용
   };
 })();

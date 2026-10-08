@@ -86,5 +86,6 @@
   // Add future sound files and names here.
   Sound.register('cocoNotification', 'assets/notification.mp3');
   Sound.register('missionComplete', 'assets/notification.mp3');
+  Sound.register('fishingBite', 'assets/universfield-bubble-pop-293342.mp3');
   // Future: register missionAccept with your own acceptance effect file.
 })(window);

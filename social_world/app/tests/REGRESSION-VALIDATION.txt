@@ -1,0 +1,164 @@
+=== 기존 UI: 80개 항목 통과 ===
+PASS  [desktop] 마을에 휴대폰 버튼이 보임
+PASS  [desktop] 화질·로그아웃 버튼은 HUD에서 빠짐(휴대폰 설정으로)
+PASS  [desktop] 도움말에 지도 키 안내
+PASS  [desktop] 코코 알림 + 휴대폰 배지
+PASS  [desktop] 알림 효과음
+PASS  [desktop] 알림 누르면 코코 창 열리고 배지 사라짐
+PASS  [desktop] 휴대폰 홈 — 닉네임 인사
+PASS  [desktop] 휴대폰이 열려 있으면 캐릭터가 안 움직임
+PASS  [desktop] 휴대폰 화면이 창 안에 들어감
+PASS  [desktop] Esc로 닫힘
+PASS  [desktop] 미션 — 환류 추천 미션이 맨 위·추천 표시
+PASS  [desktop] 미션 시작 → mission_progress insert
+PASS  [desktop] 미션 완료 → 내 행만 done으로 update
+PASS  [desktop] 미션 완료 효과음
+PASS  [desktop] 완료 개수 표시
+PASS  [desktop] 동아리 가입 → club_members insert
+PASS  [desktop] 연락처 — 루미·코코·이장 순
+PASS  [desktop] 대화 미저장 안내
+PASS  [desktop] 루미 바로 앞으로 순간이동
+PASS  [desktop] 루미 대화창 열림
+PASS  [desktop] 위기 선택지 → 109·1577-0199 안내
+PASS  [desktop] report_crisis 1회
+PASS  [desktop] npc_sessions — 원문 없이 신호 수치만
+PASS  [desktop] 지도 — 장소 13곳(버스 정류장 포함)
+PASS  [desktop] 지도에서 공원 → 공원 앞으로 이동
+PASS  [desktop] M으로 지도 열고 닫기
+PASS  [desktop] 다른 동작에 쓰는 키는 거절
+PASS  [desktop] 상호작용 키가 Q로 바뀜
+PASS  [desktop] 설정만 브라우저에 저장(대화·알림 없음)
+PASS  [desktop] 화질 가벼움 적용
+PASS  [desktop] 미니맵 시점 회전 적용
+PASS  [desktop] 대화 버튼에 바뀐 키 표시
+PASS  [desktop] E는 더 이상 대화를 열지 않음
+PASS  [desktop] Q로 이장 대화 열림
+PASS  [desktop] 대화창이 떠 있으면 지도 키 무시
+PASS  [desktop] 코코 알림은 로그인당 한 번
+PASS  [desktop] 투어 중 휴대폰 버튼 숨김
+PASS  [desktop] 투어 중 지도 키 무시
+PASS  [desktop] 설정 → 로그아웃 → 로그인 화면, 휴대폰 숨김
+PASS  [desktop] 페이지 오류 없음
+PASS  [mobile] 마을에 휴대폰 버튼이 보임
+PASS  [mobile] 화질·로그아웃 버튼은 HUD에서 빠짐(휴대폰 설정으로)
+PASS  [mobile] 도움말에 지도 키 안내
+PASS  [mobile] 코코 알림 + 휴대폰 배지
+PASS  [mobile] 알림 효과음
+PASS  [mobile] 알림 누르면 코코 창 열리고 배지 사라짐
+PASS  [mobile] 휴대폰 홈 — 닉네임 인사
+PASS  [mobile] 휴대폰이 열려 있으면 캐릭터가 안 움직임
+PASS  [mobile] 휴대폰 화면이 창 안에 들어감
+PASS  [mobile] Esc로 닫힘
+PASS  [mobile] 미션 — 환류 추천 미션이 맨 위·추천 표시
+PASS  [mobile] 미션 시작 → mission_progress insert
+PASS  [mobile] 미션 완료 → 내 행만 done으로 update
+PASS  [mobile] 미션 완료 효과음
+PASS  [mobile] 완료 개수 표시
+PASS  [mobile] 동아리 가입 → club_members insert
+PASS  [mobile] 연락처 — 루미·코코·이장 순
+PASS  [mobile] 대화 미저장 안내
+PASS  [mobile] 루미 바로 앞으로 순간이동
+PASS  [mobile] 루미 대화창 열림
+PASS  [mobile] 위기 선택지 → 109·1577-0199 안내
+PASS  [mobile] report_crisis 1회
+PASS  [mobile] npc_sessions — 원문 없이 신호 수치만
+PASS  [mobile] 지도 — 장소 13곳(버스 정류장 포함)
+PASS  [mobile] 지도에서 공원 → 공원 앞으로 이동
+PASS  [mobile] M으로 지도 열고 닫기
+PASS  [mobile] 다른 동작에 쓰는 키는 거절
+PASS  [mobile] 상호작용 키가 Q로 바뀜
+PASS  [mobile] 설정만 브라우저에 저장(대화·알림 없음)
+PASS  [mobile] 화질 가벼움 적용
+PASS  [mobile] 미니맵 시점 회전 적용
+PASS  [mobile] 대화 버튼에 바뀐 키 표시
+PASS  [mobile] E는 더 이상 대화를 열지 않음
+PASS  [mobile] Q로 이장 대화 열림
+PASS  [mobile] 대화창이 떠 있으면 지도 키 무시
+PASS  [mobile] 코코 알림은 로그인당 한 번
+PASS  [mobile] 투어 중 휴대폰 버튼 숨김
+PASS  [mobile] 투어 중 지도 키 무시
+PASS  [mobile] 설정 → 로그아웃 → 로그인 화면, 휴대폰 숨김
+PASS  [mobile] 페이지 오류 없음
+모두 통과
+
+=== 코코: 34개 항목 통과 ===
+PASS  [desktop] coco/coco.js 불러옴
+PASS  [desktop] 동아리센터 앞에 코코 자리 있음
+PASS  [desktop] 코코와 동아리센터 문이 E키 대상으로 겹치지 않음 (거리 4.2)
+PASS  [desktop] 가까이 가면 "코코 — 대화하기 (E)"
+PASS  [desktop] 코코 창 열림, 선택지 3개
+PASS  [desktop] 기존 대본형 NPC 창은 안 뜸
+PASS  [desktop] 코코 창이 떠 있으면 캐릭터가 안 움직임
+PASS  [desktop] E를 또 눌러도 창이 겹쳐 열리지 않음
+PASS  [desktop] 추천 카드 3장
+PASS  [desktop] 브라우저는 모드·개수만 보냄
+PASS  [desktop] 수요 로그 3건, 03 칸 이름(item_id)으로 기록
+PASS  [desktop] 코코 대화는 위험 신호(npc_sessions)로 남지 않음
+PASS  [desktop] 동아리 보러 가기 → 창 닫힘
+PASS  [desktop] 동아리센터 화면으로 이동
+PASS  [desktop] 돌아와서 다시 말 걸 수 있음
+PASS  [desktop] Esc로 닫힘
+PASS  [desktop] 페이지 오류 없음
+PASS  [mobile] coco/coco.js 불러옴
+PASS  [mobile] 동아리센터 앞에 코코 자리 있음
+PASS  [mobile] 코코와 동아리센터 문이 E키 대상으로 겹치지 않음 (거리 4.2)
+PASS  [mobile] 가까이 가면 "코코 — 대화하기 (E)"
+PASS  [mobile] 코코 창 열림, 선택지 3개
+PASS  [mobile] 기존 대본형 NPC 창은 안 뜸
+PASS  [mobile] 코코 창이 떠 있으면 캐릭터가 안 움직임
+PASS  [mobile] E를 또 눌러도 창이 겹쳐 열리지 않음
+PASS  [mobile] 추천 카드 3장
+PASS  [mobile] 브라우저는 모드·개수만 보냄
+PASS  [mobile] 수요 로그 3건, 03 칸 이름(item_id)으로 기록
+PASS  [mobile] 코코 대화는 위험 신호(npc_sessions)로 남지 않음
+PASS  [mobile] 동아리 보러 가기 → 창 닫힘
+PASS  [mobile] 동아리센터 화면으로 이동
+PASS  [mobile] 돌아와서 다시 말 걸 수 있음
+PASS  [mobile] Esc로 닫힘
+PASS  [mobile] 페이지 오류 없음
+모두 통과
+
+=== 마을이장: 42개 항목 통과 ===
+PASS  [desktop] chief/chief.js 불러옴
+PASS  [desktop] 이장 옆에서 "마을이장 — 대화하기 (E)"
+PASS  [desktop] 이장 창(모듈)이 열리고 대본 창은 안 뜸
+PASS  [desktop] 닉네임으로 인사
+PASS  [desktop] 이벤트 카드 2장, 내 코호트 대상(featured)이 위
+PASS  [desktop] 공개 뷰만 읽고 featured는 정렬에만 씀
+PASS  [desktop] 화면에 대상·근거·낙인 표현 없음
+PASS  [desktop] 장소·시각 표시
+PASS  [desktop] 이미 참여한 이벤트는 신청 완료 표시
+PASS  [desktop] 이장 창이 떠 있으면 캐릭터가 안 움직임
+PASS  [desktop] E를 또 눌러도 창이 겹쳐 열리지 않음
+PASS  [desktop] 참여는 join_world_event(id)로만
+PASS  [desktop] 참여 후 이장 대사
+PASS  [desktop] 참여 표에 직접 쓰지 않음
+PASS  [desktop] 이장 대화는 위험 신호로 남지 않음
+PASS  [desktop] 대화 마치기로 닫힘
+PASS  [desktop] 닫으면 첫 퀘스트 완료(튜토리얼 흐름 유지)
+PASS  [desktop] 다시 열고 Esc로 닫힘
+PASS  [desktop] 페이지 오류 없음
+PASS  [mobile] chief/chief.js 불러옴
+PASS  [mobile] 이장 옆에서 "마을이장 — 대화하기 (E)"
+PASS  [mobile] 이장 창(모듈)이 열리고 대본 창은 안 뜸
+PASS  [mobile] 닉네임으로 인사
+PASS  [mobile] 이벤트 카드 2장, 내 코호트 대상(featured)이 위
+PASS  [mobile] 공개 뷰만 읽고 featured는 정렬에만 씀
+PASS  [mobile] 화면에 대상·근거·낙인 표현 없음
+PASS  [mobile] 장소·시각 표시
+PASS  [mobile] 이미 참여한 이벤트는 신청 완료 표시
+PASS  [mobile] 이장 창이 떠 있으면 캐릭터가 안 움직임
+PASS  [mobile] E를 또 눌러도 창이 겹쳐 열리지 않음
+PASS  [mobile] 참여는 join_world_event(id)로만
+PASS  [mobile] 참여 후 이장 대사
+PASS  [mobile] 참여 표에 직접 쓰지 않음
+PASS  [mobile] 이장 대화는 위험 신호로 남지 않음
+PASS  [mobile] 대화 마치기로 닫힘
+PASS  [mobile] 닫으면 첫 퀘스트 완료(튜토리얼 흐름 유지)
+PASS  [mobile] 다시 열고 Esc로 닫힘
+PASS  [mobile] 페이지 오류 없음
+PASS  [premigration] 05 적용 전(뷰 오류): 카드 없이 안내만
+PASS  [premigration] 닫기 정상, 페이지 오류 없음
+PASS  [empty] 공개 이벤트 없음: 카드 없이 안내만
+PASS  [empty] 닫기 정상, 페이지 오류 없음
+모두 통과

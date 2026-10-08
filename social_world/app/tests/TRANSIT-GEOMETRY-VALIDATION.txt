@@ -1,0 +1,27 @@
+PASS village starts travel
+PASS village collision ejects actor from exact vehicle centre
+PASS village collision blocks body face 3.7,0
+PASS village collision blocks body face -3.7,0
+PASS village collision blocks body face 0,1.5
+PASS village collision blocks body face 0,-1.5
+PASS village collision leaves exterior unchanged
+PASS village full ride routes around body with zero visible-frame penetration
+PASS village completed travel releases vehicle collision
+PASS village hidden bus does not leave ghost collision
+PASS village font request includes full Korean title
+PASS village loading sign uses one complete fallback font
+PASS village font completion repaints entire title once
+PASS market starts travel
+PASS market collision ejects actor from exact vehicle centre
+PASS market collision blocks body face 3.7,0
+PASS market collision blocks body face -3.7,0
+PASS market collision blocks body face 0,1.5
+PASS market collision blocks body face 0,-1.5
+PASS market collision leaves exterior unchanged
+PASS market full ride routes around body with zero visible-frame penetration
+PASS market completed travel releases vehicle collision
+PASS market hidden bus does not leave ghost collision
+PASS market font request includes full Korean title
+PASS market loading sign uses one complete fallback font
+PASS market font completion repaints entire title once
+ALL 26 TRANSIT GEOMETRY AND FONT CHECKS PASSED
