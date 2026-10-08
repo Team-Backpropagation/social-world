@@ -1,0 +1,108 @@
+PASS 1280px /app/ corrected Escape wording applied
+PASS 1280px /app/ default profile is actual 3D character face PNG
+PASS 1280px /app/ circular portrait contains face pixels and sits left of username
+PASS 1280px /app/ grabbing header moves window without collapsing
+PASS 1280px /app/ header drag takes pointer capture
+PASS 1280px /app/ drag blocks game movement and releases cleanly
+PASS 1280px /app/ dragging n edge resizes corresponding dimensions
+PASS 1280px /app/ dragging e edge resizes corresponding dimensions
+PASS 1280px /app/ dragging s edge resizes corresponding dimensions
+PASS 1280px /app/ dragging w edge resizes corresponding dimensions
+PASS 1280px /app/ dragging ne edge resizes corresponding dimensions
+PASS 1280px /app/ dragging se edge resizes corresponding dimensions
+PASS 1280px /app/ dragging sw edge resizes corresponding dimensions
+PASS 1280px /app/ dragging nw edge resizes corresponding dimensions
+PASS 1280px /app/ window movement clamps inside viewport
+PASS 1280px /app/ resizing respects readable minimum dimensions
+PASS 1280px /app/ collapse leaves compact header
+PASS 1280px /app/ expanding restores chosen dimensions
+PASS 1280px /app/ resized viewport keeps custom window accessible
+PASS 1280px /app/ avatar customization updates next message portrait
+PASS 1280px /app/ bank interior shows chat
+PASS 1280px /app/ bank message appears over indoor player head
+PASS 1280px /app/ clothing interior shows chat
+PASS 1280px /app/ clothing message appears over indoor player head
+PASS 1280px /app/ window controls and local chat produce no database writes
+PASS 1280px /app/ reset removes window and releases pointer state
+PASS 1280px /app/ no browser errors: 
+PASS 390px /app/ corrected Escape wording applied
+PASS 390px /app/ default profile is actual 3D character face PNG
+PASS 390px /app/ circular portrait contains face pixels and sits left of username
+PASS 390px /app/ grabbing header moves window without collapsing
+PASS 390px /app/ header drag takes pointer capture
+PASS 390px /app/ drag blocks game movement and releases cleanly
+PASS 390px /app/ dragging n edge resizes corresponding dimensions
+PASS 390px /app/ dragging e edge resizes corresponding dimensions
+PASS 390px /app/ dragging s edge resizes corresponding dimensions
+PASS 390px /app/ dragging w edge resizes corresponding dimensions
+PASS 390px /app/ dragging ne edge resizes corresponding dimensions
+PASS 390px /app/ dragging se edge resizes corresponding dimensions
+PASS 390px /app/ dragging sw edge resizes corresponding dimensions
+PASS 390px /app/ dragging nw edge resizes corresponding dimensions
+PASS 390px /app/ window movement clamps inside viewport
+PASS 390px /app/ resizing respects readable minimum dimensions
+PASS 390px /app/ collapse leaves compact header
+PASS 390px /app/ expanding restores chosen dimensions
+PASS 390px /app/ resized viewport keeps custom window accessible
+PASS 390px /app/ avatar customization updates next message portrait
+PASS 390px /app/ bank interior shows chat
+PASS 390px /app/ bank message appears over indoor player head
+PASS 390px /app/ clothing interior shows chat
+PASS 390px /app/ clothing message appears over indoor player head
+PASS 390px /app/ window controls and local chat produce no database writes
+PASS 390px /app/ reset removes window and releases pointer state
+PASS 390px /app/ no browser errors: 
+PASS 1280px /socialworld-demo.html corrected Escape wording applied
+PASS 1280px /socialworld-demo.html default profile is actual 3D character face PNG
+PASS 1280px /socialworld-demo.html circular portrait contains face pixels and sits left of username
+PASS 1280px /socialworld-demo.html grabbing header moves window without collapsing
+PASS 1280px /socialworld-demo.html header drag takes pointer capture
+PASS 1280px /socialworld-demo.html drag blocks game movement and releases cleanly
+PASS 1280px /socialworld-demo.html dragging n edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging e edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging s edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging w edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging ne edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging se edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging sw edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html dragging nw edge resizes corresponding dimensions
+PASS 1280px /socialworld-demo.html window movement clamps inside viewport
+PASS 1280px /socialworld-demo.html resizing respects readable minimum dimensions
+PASS 1280px /socialworld-demo.html collapse leaves compact header
+PASS 1280px /socialworld-demo.html expanding restores chosen dimensions
+PASS 1280px /socialworld-demo.html resized viewport keeps custom window accessible
+PASS 1280px /socialworld-demo.html avatar customization updates next message portrait
+PASS 1280px /socialworld-demo.html bank interior shows chat
+PASS 1280px /socialworld-demo.html bank message appears over indoor player head
+PASS 1280px /socialworld-demo.html clothing interior shows chat
+PASS 1280px /socialworld-demo.html clothing message appears over indoor player head
+PASS 1280px /socialworld-demo.html window controls and local chat produce no database writes
+PASS 1280px /socialworld-demo.html reset removes window and releases pointer state
+PASS 1280px /socialworld-demo.html no browser errors: 
+PASS 390px /socialworld-demo.html corrected Escape wording applied
+PASS 390px /socialworld-demo.html default profile is actual 3D character face PNG
+PASS 390px /socialworld-demo.html circular portrait contains face pixels and sits left of username
+PASS 390px /socialworld-demo.html grabbing header moves window without collapsing
+PASS 390px /socialworld-demo.html header drag takes pointer capture
+PASS 390px /socialworld-demo.html drag blocks game movement and releases cleanly
+PASS 390px /socialworld-demo.html dragging n edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging e edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging s edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging w edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging ne edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging se edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging sw edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html dragging nw edge resizes corresponding dimensions
+PASS 390px /socialworld-demo.html window movement clamps inside viewport
+PASS 390px /socialworld-demo.html resizing respects readable minimum dimensions
+PASS 390px /socialworld-demo.html collapse leaves compact header
+PASS 390px /socialworld-demo.html expanding restores chosen dimensions
+PASS 390px /socialworld-demo.html resized viewport keeps custom window accessible
+PASS 390px /socialworld-demo.html avatar customization updates next message portrait
+PASS 390px /socialworld-demo.html bank interior shows chat
+PASS 390px /socialworld-demo.html bank message appears over indoor player head
+PASS 390px /socialworld-demo.html clothing interior shows chat
+PASS 390px /socialworld-demo.html clothing message appears over indoor player head
+PASS 390px /socialworld-demo.html window controls and local chat produce no database writes
+PASS 390px /socialworld-demo.html reset removes window and releases pointer state
+PASS 390px /socialworld-demo.html no browser errors: 
