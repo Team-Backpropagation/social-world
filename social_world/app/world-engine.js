@@ -487,13 +487,18 @@
         }
         g.position.set(x, y, z); g.scale.setScalar(s); g.rotation.y = x * 1.7 + z;
         scene.add(shade(g));
-        if (!y) { colliders.push({ x, z, r: 0.6 * s }); blob(x, z, 1.9 * s, 0.32); }
+        if (!y) {
+          const collider = { x, z, r: 0.6 * s }; colliders.push(collider);
+          g.userData.landscape = { collider, shadow: blob(x, z, 1.9 * s, 0.32) };
+        }
       }
       function bush(x, z, s = 1, fl = null) {
         const g = new THREE.Group();
         leafy(g, [{ x: 0, y: 0.55, z: 0, r: 0.85, n: 70, size: 0.45, pal: PAL.bush, flat: 0.7 }, { x: 0.6, y: 0.45, z: 0.3, r: 0.6, n: 40, size: 0.42, pal: PAL.bush, flat: 0.7 }], 0.03);
         if (fl) for (let i = 0; i < 9; i++) { const a = rnd() * 6.28; mesh(new THREE.SphereGeometry(0.09, 8, 6), M(fl), Math.cos(a) * 0.8, 0.5 + rnd() * 0.5, Math.sin(a) * 0.8, g); }
-        g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(shade(g)); colliders.push({ x, z, r: 0.9 * s }); blob(x, z, 1.4 * s, 0.28);
+        g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(shade(g));
+        const collider = { x, z, r: 0.9 * s }; colliders.push(collider);
+        g.userData.landscape = { collider, shadow: blob(x, z, 1.4 * s, 0.28) };
       }
       [
         [-17, -13.5, 'pine', 1.1], [-19, -7, 'round', 1.1], [-20, 4, 'pine', 1.2], [-18, 14, 'round', 1.15], [-10, 19.5, 'blossom', 1],
@@ -949,6 +954,49 @@
     let player = null, playerAvatarKey = '', guide = null, guideState = null, marker = null, zzz = null, knock = null, waitSpr = null;
     const hooks = { near: null, action: null, tick: null, view: null, blocked: () => false };
     let mode = 'village', running = false, nearTarget = null;
+    let marketWorld = null, villageScenery = null;
+    function isIndoor() { return mode === 'room' || mode === 'bank' || mode === 'clothing'; }
+    function indoorFocus() {
+      const p = mode === 'room' ? { x: RX, z: RZ } : window.MarketWorldData.rooms[mode];
+      return new THREE.Vector3(p.x + (player.position.x - p.x) * .35, 0, p.z + (player.position.z - p.z) * .35 + .6);
+    }
+    function ensureMarket() {
+      if (marketWorld || !window.createMarketWorld) return;
+      // Group the existing scenery after build() so its order and rnd() sequence stay intact.
+      villageScenery = new THREE.Group(); villageScenery.name = 'original-village-scenery';
+      const originals = scene.children.filter(o => !o.isLight && o !== sky && o !== skyDeco && o !== sun.target);
+      scene.add(villageScenery); originals.forEach(o => villageScenery.add(o));
+      // Clear only the eastern road, platform and connecting path after all rnd() calls.
+      const data = window.MarketWorldData, path = data.villagePath;
+      const clearFootprint = (x, z, pad = 0) => {
+        if (data.villageClearZones.some(b => x >= b.x0 - pad && x <= b.x1 + pad && z >= b.z0 - pad && z <= b.z1 + pad)) return true;
+        const dx = path.to.x - path.from.x, dz = path.to.z - path.from.z;
+        const t = Math.max(0, Math.min(1, ((x - path.from.x) * dx + (z - path.from.z) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - path.from.x - dx * t, z - path.from.z - dz * t) <= path.width / 2 + pad;
+      };
+      const landscape = [];
+      villageScenery.traverse(o => {
+        if (o.userData.landscape && clearFootprint(o.position.x, o.position.z, 1.1)) landscape.push(o);
+        if (!o.isInstancedMesh || !o.geometry.attributes.position) return;
+        const matrix = new THREE.Matrix4();
+        for (let i = 0; i < o.count; i++) {
+          o.getMatrixAt(i, matrix);
+          const x = matrix.elements[12], z = matrix.elements[14];
+          if (clearFootprint(x, z)) {
+            matrix.scale(new THREE.Vector3(0, 0, 0)); o.setMatrixAt(i, matrix);
+          }
+        }
+        o.instanceMatrix.needsUpdate = true;
+      });
+      for (const o of landscape) {
+        const { collider, shadow } = o.userData.landscape;
+        collider.off = true; o.visible = false; shadow.visible = false;
+        MAPDATA.trees = MAPDATA.trees.filter(([x, z]) => x !== o.position.x || z !== o.position.z);
+      }
+      marketWorld = window.createMarketWorld({ THREE, scene, mesh, M, rbox, shade, textSprite, canvasTex,
+        colliders, doors, places, engine: api, player: () => player, animatePerson, reduceMotion, resolveCollisions: collide });
+      grid = null;
+    }
     const keys = new Set(); let tapTarget = null, autoPath = null;
 
     function setAvatar(av) {
@@ -958,6 +1006,7 @@
       const seated = player && player.userData.seated;
       removePerson(player);
       player = person(lookFromAvatar(av)); player.position.copy(pos); player.rotation.y = rot; playerAvatarKey = key;
+      if(rodModel)player.add(rodModel);
       if (seated) setSeated(player, true);
     }
     function ensureGuide() {
@@ -977,8 +1026,8 @@
     // ---------------- 길찾기: 0.5칸 격자 A* + 직선 당기기 (건물·울타리·벤치를 돌아간다)
     let grid = null;
     function buildGrid() {
-      const cs = 0.5, x0 = -54, z0 = -19, nx = 217, nz = 149, blocked = new Uint8Array(nx * nz), pad = 0.5;
-      const cols = colliders.filter(c => (c.seg ? c.seg[1] < 60 : c.z < 60));
+      const cs = 0.5, x0 = -54, z0 = -19, nx = 225, nz = 149, blocked = new Uint8Array(nx * nz), pad = 0.5;
+      const cols = colliders.filter(c => !c.off && (!c.area || c.area === 'village') && (c.seg ? c.seg[1] < 60 : c.z < 60));
       for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
         const x = x0 + i * cs, z = z0 + j * cs;
         for (const c of cols) {
@@ -1035,7 +1084,7 @@
       return out;
     }
     function route(from, to) {
-      if (mode === 'room' || from.z > 40) return [{ x: to.x, z: to.z }];
+      if (mode !== 'village' || from.z > 40) return [{ x: to.x, z: to.z }];
       return astar(from, to) || route0(from, to);
     }
     function route0(from, to) {
@@ -1075,9 +1124,9 @@
     const VIEW0R = { yaw: 0, pitch: Math.atan2(8.6, 9.2), dist: Math.hypot(8.6, 9.2) };
     const view = { yaw: 0, pitch: VIEW0.pitch, zoom: 1 }, viewT = { yaw: 0, pitch: VIEW0.pitch, zoom: 1 };
     const PITCH_MIN = 0.36, PITCH_MAX = 1.12, ROOM_YAW = 0.6;
-    function base() { return mode === 'room' ? VIEW0R : VIEW0; }
+    function base() { return isIndoor() ? VIEW0R : VIEW0; }
     function clampView(v) {
-      if (mode === 'room') v.yaw = Math.max(-ROOM_YAW, Math.min(ROOM_YAW, v.yaw));   // 방은 벽이 가리지 않는 만큼만
+      if (isIndoor()) v.yaw = Math.max(-ROOM_YAW, Math.min(ROOM_YAW, v.yaw));   // 방은 벽이 가리지 않는 만큼만
       v.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, v.pitch)); v.zoom = Math.max(0.6, Math.min(1.35, v.zoom));
     }
     function viewChanged() { const b = base(); return Math.abs(viewT.yaw) > 0.03 || Math.abs(viewT.pitch - b.pitch) > 0.03 || Math.abs(viewT.zoom - 1) > 0.03; }
@@ -1118,15 +1167,16 @@
       let y0 = 0;
       for (let i = 0; i < 3; i++) { groundPlane.constant = y0; if (!ray.ray.intersectPlane(groundPlane, hit)) return; y0 = bendY(hit.x, hit.z); }
       for (const n of npcObjs) if (n.visible && Math.hypot(hit.x - n.x, hit.z - n.z) < 1.3 && Math.hypot(player.position.x - n.x, player.position.z - n.z) < 3.2) { if (hooks.action) hooks.action({ type: 'npc', id: n.id }); return; }
+      if(hooks.movementBlocked?.())return;
       autoPath = null; tapTarget = new THREE.Vector2(hit.x, hit.z);
     }
 
     // ---------------- 이동·충돌
-    const VB = { x0: -52, x1: 52, z0: -19, z1: 52 };
+    const VB = { x0: -52, x1: 56, z0: -19, z1: 52 };
     const RB = { x0: RX - 4.8, x1: RX + 4.8, z0: RZ - 3.8, z1: RZ + 3.9 };
     function collide(pos, r) {
       for (const c of colliders) {
-        if (c.off) continue;
+        if (c.off || (c.area && c.area !== mode)) continue;
         if (c.seg) {
           const [ax, az, bx, bz] = c.seg, vx = bx - ax, vz = bz - az, t = Math.max(0, Math.min(1, ((pos.x - ax) * vx + (pos.z - az) * vz) / (vx * vx + vz * vz)));
           const qx = ax + vx * t, qz = az + vz * t, dx = pos.x - qx, dz = pos.z - qz, d = Math.hypot(dx, dz), min = c.r + r;
@@ -1136,7 +1186,8 @@
         const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), min = c.r + r;
         if (d < min && d > 1e-4) { pos.x = c.x + dx / d * min; pos.z = c.z + dz / d * min; }
       }
-      const B = mode === 'room' ? RB : VB;
+      marketWorld?.collide(pos, r);
+      const B = mode === 'room' ? RB : marketWorld?.roomBounds(mode) || (mode === 'market' ? window.MarketWorldData.bounds : VB);
       pos.x = Math.min(B.x1, Math.max(B.x0, pos.x)); pos.z = Math.min(B.z1, Math.max(B.z0, pos.z));
     }
     function turnToward(obj, dx, dz, dt, rate = 10) { let d = Math.atan2(dx, dz) - obj.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); obj.rotation.y += d * Math.min(1, dt * rate); }
@@ -1149,7 +1200,7 @@
       { n: '동아리센터', x: 15, z: -11, w: 7, d: 5.5, c: '#A98BF0' }, { n: '게임방', x: 17.5, z: -1.5, r: 4.4, c: '#FFB45C' },
       { n: '카페', x: -11.8, z: -10.6, w: 6, d: 5, c: '#FF8FB3' }, { n: '내 집', x: 22, z: 12, w: 5.6, d: 5, c: '#6FB6F2' }
     ];
-    const MAP_AREA = [{ n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
+    const MAP_AREA = [{ n: '시장행 버스', ...window.MarketWorldData.villageStop }, { n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
     const NPC_DOT = { psych: '#B56CC0', haru: '#22706B', chief: '#E0A020', coco: '#2E6B4F' };
     let mm = null;
     function mmBase() {
@@ -1164,13 +1215,16 @@
       { const [px, py] = P(0, 0); g.fillStyle = '#F6E7C6'; g.beginPath(); g.arc(px, py, 9.4 * MAP_S, 0, 7); g.fill(); g.fillStyle = '#7FD0EA'; g.beginPath(); g.arc(px, py, 3.2 * MAP_S, 0, 7); g.fill(); }
       for (const l of MAPDATA.lakes) { const [px, py] = P(l.x, l.z); g.fillStyle = '#7FD0EA'; g.beginPath(); g.arc(px, py, l.r * MAP_S, 0, 7); g.fill(); }
       for (const t of MAPDATA.till) { const [a, b] = P(t.x0, t.z0), [c2, d] = P(t.x1, t.z1); g.fillStyle = '#B98B5E'; g.fillRect(a, b, c2 - a, d - b); }
+      marketWorld?.drawVillageMap(g, P, MAP_S);
       for (const b of MAP_BUILD) { const [px, py] = P(b.x, b.z); g.fillStyle = b.c; g.strokeStyle = '#3E4454'; g.lineWidth = 3; g.beginPath();
         if (b.r) g.arc(px, py, b.r * MAP_S, 0, 7); else if (g.roundRect) g.roundRect(px - b.w * MAP_S / 2, py - b.d * MAP_S / 2, b.w * MAP_S, b.d * MAP_S, 8); else g.rect(px - b.w * MAP_S / 2, py - b.d * MAP_S / 2, b.w * MAP_S, b.d * MAP_S);
         g.fill(); g.stroke(); }
       return c;
     }
     function drawMinimap() {
-      if (!mm || !player || mode !== 'village') return;
+      if (!mm || !player) return;
+      if (mode === 'market' && marketWorld) { marketWorld.drawMinimap(mm, player, view.yaw); return; }
+      if (mode !== 'village') return;
       if (!mm.base) mm.base = mmBase();
       { const cw = mm.canvas.clientWidth; if (cw && cw !== mm.size) attachMinimap(mm.canvas); }
       const dpr = mm.dpr, Sz = mm.size, R = Sz / 2, k = R / MAP_SPAN, g = mm.ctx, yaw = window.__SW_NORTH_FIXED ? 0 : view.yaw, px = player.position.x, pz = player.position.z;
@@ -1223,18 +1277,19 @@
     }
     const clock = new THREE.Clock(), tmpV = new THREE.Vector3();
     function nearest() {
+      if (marketWorld?.info()) return null;
       let best = null, bd = 99;
       const px = player.position.x, pz = player.position.z;
       if (mode === 'village') for (const n of npcObjs) { if (!n.visible) continue; const d = Math.hypot(px - n.x, pz - n.z); if (d < 3.0 && d < bd) { bd = d; best = { type: 'npc', id: n.id }; } }
-      for (const d0 of doors) { if (d0.area !== mode) continue; const d = Math.hypot(px - d0.x, pz - d0.z); if (d < d0.r && d < bd) { bd = d; best = { type: 'door', id: d0.id, label: d0.label }; } }
-      return best;
+      for (const d0 of doors) { if (d0.area !== mode) continue; const d = Math.hypot(px - d0.x, pz - d0.z); if (d < d0.r && d < bd) { bd = d; best = { type: d0.type || 'door', id: d0.id, label: d0.label }; } }
+      return hooks.target ? hooks.target(best) : best;
     }
     function tick() {
       if (!running) return;
       const dt = Math.min(clock.getDelta(), 0.05) * (window.__SW_TIMESCALE || 1), t = clock.elapsedTime;
       U.time.value = reduceMotion ? 0 : t;
       let mx = 0, mz = 0, stepCap = Infinity;
-      const blocked = hooks.blocked() || (player && player.userData.seated) || (guideState && guideState.lockPlayer);
+      const blocked = hooks.blocked() || hooks.movementBlocked?.() || (player && player.userData.seated) || (guideState && guideState.lockPlayer);
       if (!blocked) {
         if (keys.has(bindings.forward) || keys.has('ArrowUp')) mz -= 1;
         if (keys.has(bindings.back) || keys.has('ArrowDown')) mz += 1;
@@ -1320,8 +1375,10 @@
       const nt = nearest();
       if (JSON.stringify(nt) !== JSON.stringify(nearTarget)) { nearTarget = nt; if (hooks.near) hooks.near(nt); }
       if (hooks.tick) hooks.tick(dt);
+      updateFishingModels(t);
+      if (marketWorld) marketWorld.tick(dt, t);
 
-      if (mode === 'room') camFocus.lerp(new THREE.Vector3(RX + (player.position.x - RX) * 0.35, 0, RZ + (player.position.z - RZ) * 0.35 + 0.6), reduceMotion ? 1 : Math.min(1, dt * 3));
+      if (isIndoor()) camFocus.lerp(indoorFocus(), reduceMotion ? 1 : Math.min(1, dt * 3));
       else camFocus.lerp(player.position, reduceMotion ? 1 : Math.min(1, dt * 4));
       U.center.value.set(camFocus.x, 0, camFocus.z);
       petals.position.set(camFocus.x, -1, camFocus.z - 4);
@@ -1329,23 +1386,52 @@
         let dy = viewT.yaw - view.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
         view.yaw += dy * k; view.pitch += (viewT.pitch - view.pitch) * k; view.zoom += (viewT.zoom - view.zoom) * k; }
       U.yaw.value = view.yaw;
-      { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = mode === 'room' ? 1.6 : 3;
+      { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = isIndoor() ? 1.6 : 3;
         camera.position.set(camFocus.x + sy * Math.cos(view.pitch) * D, camFocus.y + Math.sin(view.pitch) * D, camFocus.z + cy * Math.cos(view.pitch) * D);
         camera.lookAt(camFocus.x - sy * ah, 0.9, camFocus.z - cy * ah); }
-      if (skyDeco) { skyDeco.visible = mode !== 'room'; skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
+      if (skyDeco) { skyDeco.visible = !isIndoor(); skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
       sun.position.copy(camFocus).addScaledVector(SUN_DIR, 50); sun.target.position.copy(camFocus); sun.target.updateMatrixWorld();
       if (mm && (mm.frame++ % 2 === 0)) drawMinimap();
       sky.position.copy(camera.position);
       tmpV.set(player.position.x, 0.9 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
       finalMat.uniforms.focusY.value += ((tmpV.y * 0.5 + 0.5) - finalMat.uniforms.focusY.value) * Math.min(1, dt * 5);
-      finalMat.uniforms.band.value = mode === 'room' ? 0.35 : 0.2;
+      finalMat.uniforms.band.value = isIndoor() ? 0.35 : 0.2;
       finalMat.uniforms.time.value = t;
+      hooks.afterView?.();
       renderFrame();
       requestAnimationFrame(tick);
     }
 
     // ---------------- 캐릭터 미리보기 (꾸미기 화면)
     let pv = null;
+    let portraitView = null, portraitKey = '', portraitImage = '';
+    function avatarPortrait() {
+      if (!player?.userData.head) return '';
+      if (portraitImage && portraitKey === playerAvatarKey) return portraitImage;
+      const saved = { k: U.k.value, center: U.center.value.clone(), yaw: U.yaw.value };
+      let head = null;
+      try {
+        if (!portraitView) {
+          const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+          r.outputEncoding = THREE.sRGBEncoding; r.setPixelRatio(1); r.setSize(96, 96, false); r.setClearColor('#E9EFDF', 1);
+          const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight('#FFF5E3', '#8A9B80', .95));
+          const light = new THREE.DirectionalLight('#FFF0D6', 1.15); light.position.set(-2, 3, 4); sc.add(light);
+          const cam = new THREE.OrthographicCamera(-.8, .8, .8, -.8, .1, 10); cam.position.set(0, .08, 3); cam.lookAt(0, .08, 0);
+          portraitView = { r, sc, cam };
+        }
+        // Clone only the live avatar's head. Geometry/materials remain shared;
+        // creating a portrait never consumes the village's seeded randomness.
+        head = player.userData.head.clone(true); head.position.set(0, 0, 0); head.rotation.set(0, 0, 0);
+        portraitView.sc.add(head); U.k.value = 0; U.center.value.set(0, 0, 0); U.yaw.value = 0;
+        portraitView.r.render(portraitView.sc, portraitView.cam);
+        portraitImage = portraitView.r.domElement.toDataURL('image/png'); portraitKey = playerAvatarKey;
+        return portraitImage;
+      } catch (_) { return ''; }
+      finally {
+        if (head) portraitView?.sc.remove(head);
+        U.k.value = saved.k; U.center.value.copy(saved.center); U.yaw.value = saved.yaw;
+      }
+    }
     function preview(container, av) {
       if (!pv) {
         const r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); r.outputEncoding = THREE.sRGBEncoding; r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -1373,20 +1459,76 @@
       }
     }
 
+    // Reusable fishing visuals use the same ground curvature as the village.
+    let rodEquipped=false,rodModel=null,floatModel=null,fishingLine=null,fishingRipple=null,fishingVisual=null;
+    function ensureFishingModels(){
+      if(rodModel||!player)return;
+      rodModel=new THREE.Group();rodModel.name='equipped-fishing-rod';
+      const stick=mesh(new THREE.CylinderGeometry(.026,.05,2.35,8),M('#8C6A43'),0,1.1,.65,rodModel);stick.rotation.x=.65;
+      mesh(new THREE.CylinderGeometry(.065,.065,.40,8),M('#3D5A47'),0,.27,.04,rodModel).rotation.x=.65;
+      mesh(new THREE.SphereGeometry(.10,12,8),M('#BBA166'),.09,.49,.19,rodModel);
+      rodModel.position.set(.48,.65,.24);player.add(rodModel);shade(rodModel,false,false);
+      floatModel=new THREE.Group();floatModel.name='fishing-float';
+      // Two hemispheres form a round red/white float.
+      mesh(new THREE.SphereGeometry(.23,20,12,0,Math.PI*2,0,Math.PI/2),M('#E96B52',{r:.4}),0,0,0,floatModel);
+      mesh(new THREE.SphereGeometry(.23,20,12,0,Math.PI*2,Math.PI/2,Math.PI/2),M('#FFF6DF',{r:.4}),0,0,0,floatModel);
+      mesh(new THREE.CylinderGeometry(.025,.025,.20,8),M('#D34E3C'),0,.29,0,floatModel);
+      scene.add(floatModel);shade(floatModel,false,false);floatModel.visible=false;
+      const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(9),3));
+      fishingLine=new THREE.Line(geometry,patch(new THREE.LineBasicMaterial({color:'#FFF7DB',transparent:true,opacity:.85})));fishingLine.name='fishing-line';fishingLine.frustumCulled=false;scene.add(fishingLine);fishingLine.visible=false;
+      fishingRipple=mesh(new THREE.TorusGeometry(.39,.018,6,32),M('#F7F6DF',{transparent:true,opacity:.65}),0,0,0);fishingRipple.rotation.x=-Math.PI/2;fishingRipple.name='fishing-ripple';fishingRipple.visible=false;
+    }
+    function updateFishingModels(t){
+      ensureFishingModels();
+      if(!rodModel)return;rodModel.visible=rodEquipped && !marketWorld?.info();
+      if(!fishingVisual){floatModel.visible=false;fishingLine.visible=false;fishingRipple.visible=false;return;}
+      const {point,phase,progress}=fishingVisual;
+      const dx=point.x-player.position.x,dz=point.z-player.position.z;
+      player.rotation.y=Math.atan2(dx,dz);
+      const tip=new THREE.Vector3(0,2.17,1.39);rodModel.localToWorld(tip);
+      const p=phase==='cast'?progress:1;
+      const x=tip.x+(point.x-tip.x)*p,z=tip.z+(point.z-tip.z)*p;
+      const y=phase==='cast'?tip.y+(point.y+.12-tip.y)*p+Math.sin(p*Math.PI)*1.05:phase==='bite'?point.y+.12-progress*.62:point.y+.12+Math.sin(t*3)*.045;
+      floatModel.position.set(x,y,z);floatModel.visible=true;
+      floatModel.rotation.z=phase==='bite'?Math.sin(t*38)*.20:0;
+      const positions=fishingLine.geometry.attributes.position;
+      positions.setXYZ(0,tip.x,tip.y,tip.z);positions.setXYZ(1,(tip.x+x)/2,(tip.y+y)/2-.20,(tip.z+z)/2);positions.setXYZ(2,x,y,z);positions.needsUpdate=true;fishingLine.visible=true;
+      fishingRipple.position.set(point.x,point.y+.015,point.z);fishingRipple.visible=phase!=='cast';fishingRipple.scale.setScalar(phase==='bite'?1+progress*.7:1+Math.sin(t*2)*.08);
+    }
+
     const api = {
       bubbleNpc: null,
       hooks,
+      setRodEquipped(on){rodEquipped=!!on;ensureFishingModels();if(rodModel)rodModel.visible=rodEquipped;},
+      setFishingVisual(value){ensureFishingModels();fishingVisual=value;if(!value)updateFishingModels(0);},
+      fishingVisualInfo:()=>({equipped:rodEquipped,rodAttached:!!rodModel&&rodModel.parent===player,phase:fishingVisual?.phase||null,floatVisible:!!floatModel?.visible,floatPosition:floatModel?{x:floatModel.position.x,y:floatModel.position.y,z:floatModel.position.z}:null}),
       places: () => places,
+      startBusRide(destination, callbacks) { return marketWorld ? marketWorld.start(destination, callbacks) : false; },
+      finishBusRide() { marketWorld?.finish(); },
+      cancelBusRide() { marketWorld?.cancel(); },
+      busRideInfo: () => marketWorld?.info() || null,
+      marketInfo: () => ({ ...marketWorld?.debug(), villageVisible: villageScenery?.visible }),
+      playerHeadScreen() {
+        if (!running || !['market', 'bank', 'clothing'].includes(mode) || !player?.visible) return null;
+        const p = new THREE.Vector3(player.position.x, 2.6 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
+        const b = renderer.domElement.getBoundingClientRect();
+        return { x: b.left + (p.x / 2 + .5) * b.width, y: b.top + (.5 - p.y / 2) * b.height, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2 };
+      },
       enter(m, opt = {}) {
+        hooks.teleport?.();fishingVisual=null;
         build();
+        ensureMarket();
         U.k.value = BEND_K;
         if (!zzz) { zzz = textSprite('Z z z', { size: 70, color: '#5B7DB1', stroke: '#5B7DB1' }); zzz.visible = false; scene.add(zzz); }
         if (!knock) { knock = textSprite('똑똑!', { stroke: '#B56CC0' }); knock.visible = false; scene.add(knock); }
         if (!waitSpr) { waitSpr = textSprite('이쪽이야!', { stroke: '#B56CC0' }); waitSpr.visible = false; scene.add(waitSpr); }
         setAvatar(opt.avatar);
-        mode = m; keys.clear(); tapTarget = null; autoPath = null;
-        U.k.value = mode === 'room' ? 0 : BEND_K;   // 실내는 둥근 지평선을 끈다(바닥이 꺼져 보이지 않게)
-        if (mode === 'room' || opt.resetView) resetView(true); else { clampView(viewT); notifyView(); }
+        mode = m; marketWorld?.enter(mode);
+        if (villageScenery) villageScenery.visible = mode === 'village' || mode === 'room';
+        keys.clear(); tapTarget = null; autoPath = null;
+        U.k.value = isIndoor() ? 0 : BEND_K;   // 실내는 둥근 지평선을 끈다(바닥이 꺼져 보이지 않게)
+        if (isIndoor() || opt.resetView) resetView(true); else { clampView(viewT); notifyView(); }
+        if (mode === 'market' && opt.resetView) { view.zoom = viewT.zoom = 1.25; view.pitch = viewT.pitch = .72; notifyView(); }
         const sp = opt.spawn || (opt.spawnPlace && places[opt.spawnPlace]);
         if (sp) {
           player.position.set(sp.x, 0, sp.z);
@@ -1401,16 +1543,18 @@
         player.rotation.y = opt.facing != null ? opt.facing : Math.atan2(-player.position.x, -player.position.z);
         setSeated(player, !!opt.seated); player.userData.sleeping = !!opt.sleeping;
         if (opt.seated) player.rotation.y = Math.PI / 2;
-        camFocus.copy(mode === 'room' ? new THREE.Vector3(RX + (player.position.x - RX) * 0.35, 0, RZ + (player.position.z - RZ) * 0.35 + 0.6) : player.position);
+        camFocus.copy(isIndoor() ? indoorFocus() : player.position);
+        if (mm) { mm.base = null; mm.frame = 0; }
         nearTarget = undefined;
         document.body.classList.add('in-world');
         if (!running) { running = true; setGfx(gfxHigh); clock.getDelta(); requestAnimationFrame(tick); }
       },
-      leave() { running = false; keys.clear(); document.body.classList.remove('in-world'); },
+      leave() { marketWorld?.cancel(); hooks.teleport?.();fishingVisual=null;updateFishingModels(0); running = false; keys.clear(); document.body.classList.remove('in-world'); },
       isRunning: () => running,
       mode: () => mode,
       wake() { player.userData.sleeping = false; setSeated(player, false); player.position.x += 0.6; player.rotation.y = Math.PI / 4; },
       playerPos: () => ({ x: player.position.x, z: player.position.z }),
+      avatarPortrait,
       setAvatar,
       setNpcVisible(id, on) { const n = npcObjs.find(x => x.id === id); if (!n) return; n.visible = on; n.obj.visible = on; n.obj.userData.blob.visible = on; n.col.off = !on; },
       guideShow(x, z, facing) { ensureGuide(); guide.visible = true; guide.userData.blob.visible = true; guide.position.set(x, 0, z); if (facing != null) guide.rotation.y = facing; guideState = { path: null }; },
@@ -1430,7 +1574,7 @@
       setQuality(high) { setGfx(!!high); return gfxHigh; },
       setBindings(value) { bindings = { ...bindings, ...value }; keys.clear(); },
       pauseInput() { keys.clear(); tapTarget = null; autoPath = null; drag.id = null; },
-      mapBase: () => mmBase(),
+      mapBase: () => mode === 'market' || mode === 'bank' || mode === 'clothing' ? marketWorld.mapBase() : mmBase(),
       npcPositions: () => npcObjs.map(n => ({ id:n.id, x:n.x, z:n.z })),
       attachMinimap,
       minimapInfo: () => mm ? { size: mm.size, span: MAP_SPAN } : null,

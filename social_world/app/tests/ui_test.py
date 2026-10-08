@@ -184,7 +184,7 @@ with sync_playwright() as p:
         # ---- 지도(M) → 공원
         pg.keyboard.press('m')
         pg.wait_for_selector('.map-dialog')
-        check(pg.locator('.map-point').count() == 12, T('지도 — 장소 12곳'))
+        check(pg.locator('.map-point').count() == 13, T('지도 — 장소 13곳(버스 정류장 포함)'))
         pg.screenshot(path=str(SHOTS / f'ui_{tag}_map.png'))
         pg.click('.map-point[data-place="park"]')
         park = pg.evaluate('window.__ENGINE.places().park')

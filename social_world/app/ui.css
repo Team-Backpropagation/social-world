@@ -1279,3 +1279,407 @@ body {
 select:disabled {
   opacity: .5
 }
+
+/* Inventory and fishing UI (shared overlay and key settings). */
+.inventory-dialog {
+  width:min(890px,100%);
+  max-height:calc(100dvh - 44px);
+  display:flex;
+  flex-direction:column
+}
+
+.inventory-dialog .dialog-top {
+  flex-shrink:0
+}
+
+.inventory-tabs {
+  display:flex;
+  gap:6px;
+  padding:13px 21px;
+  border-bottom:1px solid var(--line);
+  flex-shrink:0;
+  overflow-x:auto
+}
+
+.inventory-tabs button {
+  border:0;
+  border-radius:10px;
+  background:#edf1e7;
+  padding:9px 14px;
+  font-size:12px;
+  white-space:nowrap;
+  cursor:pointer
+}
+
+.inventory-tabs button.active {
+  background:var(--leaf);
+  color:#fff9ef
+}
+
+.inventory-body {
+  display:grid;
+  grid-template-columns:1fr 285px;
+  min-height:0;
+  overflow:auto;
+  flex:1
+}
+
+.inventory-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  align-content:start;
+  gap:12px;
+  padding:21px
+}
+
+.inventory-item {
+  position:relative;
+  min-width:0;
+  min-height:157px;
+  border:2px solid #e0e5d5;
+  border-radius:16px;
+  background:#fffdf7;
+  padding:12px 8px 32px;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px
+}
+
+.inventory-item.selected {
+  border-color:var(--leaf);
+  background:#eef4e5
+}
+
+.item-art {
+  display:grid;
+  place-items:center;
+  width:65px;
+  height:65px;
+  background:#e8edde;
+  border-radius:17px
+}
+
+.item-art svg {
+  width:50px;
+  height:50px
+}
+
+.inventory-item strong {
+  font-size:13px;
+  overflow-wrap:anywhere
+}
+
+.inventory-item small {
+  font-size:10px;
+  color:var(--muted)
+}
+
+.item-count {
+  position:absolute;
+  right:9px;
+  bottom:9px;
+  font-size:11px;
+  font-weight:700;
+  color:var(--leaf)
+}
+
+.equipped-label {
+  position:absolute;
+  left:8px;
+  bottom:9px;
+  font-size:10px;
+  color:var(--leaf)
+}
+
+.inventory-detail {
+  border-left:1px solid var(--line);
+  background:#f1f3e9;
+  padding:21px;
+  min-width:0
+}
+
+.inventory-detail h3 {
+  font-size:21px;
+  margin:11px 0
+}
+
+.inventory-detail p {
+  font-size:12px;
+  line-height:1.8;
+  color:#647568
+}
+
+.inventory-detail .action {
+  width:100%;
+  margin-top:12px;
+  font-size:12px
+}
+
+.detail-art {
+  display:grid;
+  place-items:center;
+  height:95px;
+  margin-top:12px
+}
+
+.detail-art svg {
+  width:85px;
+  height:85px
+}
+
+.inventory-dialog .type-tag {
+  display:inline-block;
+  font-size:11px;
+  background:#e1e8d6;
+  color:var(--leaf);
+  border-radius:7px;
+  padding:5px 9px
+}
+
+.fish-instances {
+  max-height:270px;
+  overflow:auto;
+  margin-top:15px;
+  overscroll-behavior:contain
+}
+
+.fish-instance {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:12px 0;
+  border-top:1px solid #dbe1d1;
+  font-size:11px
+}
+
+.fish-instance span small {
+  display:block;
+  font-size:10px;
+  color:var(--muted);
+  margin-top:4px
+}
+
+.fish-instance b {
+  font-size:17px;
+  color:var(--leaf);
+  white-space:nowrap
+}
+
+.fish-instance b small {
+  font-size:10px
+}
+
+.inventory-empty {
+  grid-column:1/-1;
+  font-size:13px;
+  line-height:1.8;
+  color:var(--muted);
+  padding:20px 5px
+}
+
+.inventory-footer {
+  display:flex;
+  justify-content:space-between;
+  padding:13px 21px;
+  border-top:1px solid var(--line);
+  font-size:11px;
+  color:var(--muted);
+  flex-shrink:0
+}
+
+.recycle-picker {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  font-size:12px;
+  margin-top:18px
+}
+
+.recycle-picker select {
+  width:100%;
+  padding:10px;
+  border:1px solid #d1dcc4;
+  border-radius:10px;
+  background:#fffdf7;
+  color:var(--leaf)
+}
+
+#fishing-status {
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:124px;
+  z-index:7;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:15px 18px;
+  width:min(410px,calc(100vw - 28px));
+  border-radius:18px;
+  background:#fff9efef;
+  border:1px solid #fff;
+  box-shadow:var(--shadow);
+  pointer-events:none
+}
+
+#fishing-status strong {
+  font-size:14px
+}
+
+#fishing-status p {
+  font-size:11px;
+  color:var(--muted);
+  margin:5px 0 0;
+  line-height:1.6
+}
+
+#fishing-status kbd {
+  margin-left:auto;
+  background:#e5eddc;
+  color:var(--leaf);
+  border-radius:7px;
+  padding:7px 10px;
+  font:700 13px inherit
+}
+
+#fishing-status button {
+  margin-left:auto;
+  border:0;
+  border-radius:9px;
+  background:#e5eddc;
+  color:var(--leaf);
+  font-size:12px;
+  padding:10px;
+  cursor:pointer;
+  pointer-events:auto
+}
+
+.fishing-indicator {
+  flex-shrink:0;
+  width:19px;
+  height:19px;
+  border:3px solid #fff;
+  border-radius:50%;
+  background:#dc765b;
+  box-shadow:0 0 0 1px #d6dbcf
+}
+
+#fishing-status[data-phase="bite"] {
+  background:#fff1d8;
+  border-color:#edb66b
+}
+
+#fishing-status[data-phase="bite"] .fishing-indicator {
+  background:#cf533c;
+  animation:fishing-bite .45s ease-in-out infinite alternate
+}
+
+@keyframes fishing-bite {
+  to {
+    transform:translateY(4px);
+    opacity:.6
+  }
+}
+
+#inventory-launch b {
+  font-size:10px;
+  background:#e4edd8;
+  border-radius:5px;
+  padding:2px 5px;
+  margin-left:4px
+}
+
+body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
+  bottom:214px
+}
+
+@media(max-width:700px) {
+  .inventory-dialog {
+    max-height:calc(100dvh - 24px)
+  }
+  .inventory-tabs {
+    padding:10px 12px;
+    gap:4px
+  }
+  .inventory-tabs button {
+    padding:9px 11px
+  }
+  .inventory-body {
+    grid-template-columns:1fr
+  }
+  .inventory-grid {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    padding:12px;
+    gap:8px
+  }
+  .inventory-item {
+    min-height:143px;
+    padding:9px 4px 29px
+  }
+  .item-art {
+    width:53px;
+    height:53px
+  }
+  .item-art svg {
+    width:44px;
+    height:44px
+  }
+  .inventory-item strong {
+    font-size:11px
+  }
+  .inventory-detail {
+    border-left:0;
+    border-top:1px solid var(--line);
+    padding:15px
+  }
+  .detail-art {
+    height:55px
+  }
+  .detail-art svg {
+    width:55px;
+    height:55px
+  }
+  .inventory-detail h3 {
+    font-size:18px;
+    margin:7px 0
+  }
+  .inventory-footer {
+    padding:12px;
+    font-size:10px
+  }
+  .fish-instances {
+    max-height:210px
+  }
+  #fishing-status {
+    bottom:129px;
+    padding:12px;
+    gap:10px
+  }
+  #fishing-status strong {
+    font-size:12px
+  }
+  #fishing-status p {
+    font-size:10px
+  }
+  body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
+    bottom:230px
+  }
+}
+
+#fishing-status {
+  padding-top:44px
+}
+
+#fishing-status .fishing-guide-dismiss {
+  position:absolute;
+  top:7px;
+  right:10px;
+  min-height:30px;
+  margin:0;
+  padding:5px 9px;
+  font-size:11px
+}
+
