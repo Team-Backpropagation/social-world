@@ -1,0 +1,16 @@
+text,expected,type,author,note
+그냥 죽고 싶어,strong,직접,Claude(샘플),
+죽고싶어어어 ㅠㅠㅠ,strong,직접,Claude(샘플),반복 글자·띄어쓰기 정규화
+사실 다 그만두고 싶을 때가 있어,strong,직접,Claude(샘플),루미 대본 위기 선택지(매핑표 3-5)
+요즘 살기 싫어,strong,직접,Claude(샘플),
+살 이유가 없는 것 같아,strong,직접,Claude(샘플),
+극단적인 생각까지 했어,strong,직접,Claude(샘플),
+그냥 사라지고 싶다,ambiguous,모호,Claude(샘플),작업계획 6-1 ①
+우울해 죽겠다,ambiguous,모호,Claude(샘플),작업계획 6-1 ① — LLM이 위기로 판정할 예
+배고파 죽겠다,none,관용어,Claude(샘플),작업계획 6-1 ①
+웃겨 죽겠네 ㅋㅋㅋ,none,관용어,Claude(샘플),
+더워서 죽겠어,none,관용어,Claude(샘플),
+배고파 죽겠고 그냥 죽고 싶어,strong,관용어,Claude(샘플),관용어가 섞여도 strong은 잡는다
+죽고 싶진 않아,none,부정,Claude(샘플),v1은 부정을 처리하지 않음 — 오탐으로 기록
+자살 예방 캠페인 포스터 봤어,none,일상,Claude(샘플),놓치지 않는 쪽을 택한 오탐 — 기록
+오늘 날씨 좋다,none,일상,Claude(샘플),

@@ -3,6 +3,9 @@
 자유 입력(LLM)을 쓰는 NPC가 공통으로 쓰는 부품이다. 지금은 루미(psych)용으로 만들었고, 페르소나가 정해지면 ③층만 갈아 끼운다.
 설계: `docs/planning/소셜월드_게임흐름_NPC_설계.md` 8-2·8-3·9절, `docs/planning/위험사전_근거_매핑표.md` 2·3절.
 
+> **심각도 계산은 Python으로 옮겼다(10/8).** 판단 코드는 Python 하나(`../risk_check.py`·`../severity.py`, 사전 `../lexicon/`)이고,
+> 이 폴더의 `severity.js`·`severity_config.json`과 3절은 **10/7 이전 규칙**이라 쓰지 않는다. 프롬프트 3층·`prompt.js`는 그대로 쓴다.
+
 > **아직 사용자에게 열지 않는다.** 위기 표현 사전(담당 A)과 서버(Edge Function `npc-chat`)가 붙기 전까지는 부품만 있다.
 
 ## 1. 파일

@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "name": "위험 키워드 사전",
+    "version": "0.1.0",
+    "updated": "2026-10-08",
+    "owner": "담당 B",
+    "status": "draft",
+    "note": "tags(정의·차원·기본 심각도·근거)는 위험사전_근거_매핑표.md 2·3절 값. items의 패턴은 테스트용 샘플(루미 대본·매핑표 예시 문장에서만 뽑음) — 담당 B가 태그당 10~20개로 채운다. 작성 규칙은 README.md"
+  },
+  "tags": {
+    "대화상대없음": { "dimension": "정서", "base_severity": 0.5, "strength": "강", "definition": "속얘기하거나 기댈 가까운 사람이 없다는 표현", "source": ["S1", "S2", "S4", "S5-a G-E1·G-E4", "S8"] },
+    "소외감":       { "dimension": "사회", "base_severity": 0.4, "strength": "강", "definition": "무리에서 빠져 있다, 사람들 속에서도 겉돈다는 표현", "source": ["S1", "S2", "S4", "S5-a G-P1·G-P2"] },
+    "사회적회피":   { "dimension": "행동", "base_severity": 0.5, "strength": "강", "definition": "사람·외출을 스스로 피한다는 표현", "source": ["S5-a H-1", "S6", "S9", "S1"] },
+    "고립지속":     { "dimension": "지속", "base_severity": 0.6, "strength": "강", "definition": "고립 상태가 몇 달 이어진다는 표현 — duration 규칙으로만 붙는다", "source": ["S5-a D", "S6"] },
+    "장기고립":     { "dimension": "지속", "base_severity": 0.8, "strength": "강", "definition": "1년 이상 고립·은둔이 이어졌다는 표현 — duration 규칙으로만 붙는다", "source": ["S5", "S6"] },
+    "구직단념":     { "dimension": "경제", "base_severity": 0.6, "strength": "강", "definition": "일자리 찾기를 그만뒀다는 표현 (2절 차원은 경제·행동, 가산에서는 경제)", "source": ["S5-a H-2", "S5"] },
+    "장기구직":     { "dimension": "경제", "base_severity": 0.4, "strength": "중", "definition": "구직이 오래 이어지고 있다는 표현", "source": ["S5", "S6", "S9", "S10"] },
+    "무기력":       { "dimension": "정서", "base_severity": 0.4, "strength": "중", "definition": "아무것도 하기 싫다, 기운이 없다는 표현", "source": ["S10", "S9", "S6", "S4"] },
+    "생계부담":     { "dimension": "경제", "base_severity": 0.3, "strength": "중", "definition": "생활비·월세 등 돈 걱정 표현", "source": ["S5-a G-E3", "S8", "S6", "S9"] }
+  },
+  "items": [
+    {
+      "id": "R-무기력-01", "kind": "risk", "tag": "무기력",
+      "patterns": ["아무것도하기싫", "다하기싫", "기운이없", "의욕이없", "지치", "지쳤", "지쳐"],
+      "exclude": [], "examples": ["요즘 좀 지치고 힘들어", "다 하기 싫어"],
+      "source": "루미 대본 root·jobtired / 매핑표 3-1 예시", "status": "draft"
+    },
+    {
+      "id": "R-대화상대없음-01", "kind": "risk", "tag": "대화상대없음",
+      "patterns": ["(얘기|이야기|대화|속얘기|속이야기)할사람이?(도|이)?(별로|아무도)?없"],
+      "exclude": [], "examples": ["속얘기할 사람이 별로 없어", "얘기할 사람도 없고"],
+      "source": "루미 대본 tired / 매핑표 3-1 예시", "status": "draft"
+    },
+    {
+      "id": "R-소외감-01", "kind": "risk", "tag": "소외감",
+      "patterns": ["겉돌", "겉도는", "끼지못", "나만빠져", "소외"],
+      "exclude": [], "examples": ["사람들 사이에서 나만 겉도는 느낌"],
+      "source": "매핑표 2절 정의", "status": "draft"
+    },
+    {
+      "id": "R-사회적회피-01", "kind": "risk", "tag": "사회적회피",
+      "patterns": ["집에만있", "밖에(도)?안나가", "혼자있는게편", "사람(을|들을)?피하"],
+      "exclude": [], "examples": ["다 귀찮고 혼자 있는 게 편해", "1년 넘게 집에만 있어"],
+      "source": "루미 대본 tired / 매핑표 3-1 예시", "status": "draft"
+    },
+    {
+      "id": "R-구직단념-01", "kind": "risk", "tag": "구직단념",
+      "patterns": ["(일자리|구직|취업|취준)(도|을|를|은|는)?(다)?포기", "구직(도|을|를)?그만"],
+      "exclude": [], "examples": ["일자리도 포기했어"],
+      "source": "매핑표 3-1 예시", "status": "draft"
+    },
+    {
+      "id": "R-장기구직-01", "kind": "risk", "tag": "장기구직",
+      "patterns": ["(취업|구직|취준)(준비)?(가|이|기간이)?(너무)?길어", "오래준비", "계속떨어", "계속탈락"],
+      "exclude": [], "examples": ["취업 준비가 길어져서 지쳤어", "오래 준비했는데 계속 떨어져서 지쳤어요"],
+      "source": "루미 대본 tired / 매핑표 3-5", "status": "draft"
+    },
+    {
+      "id": "R-생계부담-01", "kind": "risk", "tag": "생계부담",
+      "patterns": ["돈(도|이)?없", "생활비", "월세(가|도)?(밀|부담|걱정)"],
+      "exclude": [], "examples": ["돈도 없고", "생활비 지원 제도를 알고 싶어요"],
+      "source": "루미 대본(옛 정책 창구) / 매핑표 3-1 예시", "status": "draft"
+    }
+  ],
+  "duration": {
+    "_note": "매핑표 3-2 기간 표현표. 기간 태그는 하나만(긴 쪽). '계속·맨날'은 10/8 결정 (가): 다른 위험 태그가 같은 문장에 있을 때만 고립지속, 위험 태그 패턴이 이미 쓴 부분(예: '계속 떨어')은 세지 않는다",
+    "transient": { "effect": "mitigate", "patterns": ["오늘", "어제", "며칠", "요즘좀", "가끔"] },
+    "weeks":     { "effect": "none", "patterns": ["몇주", "한달쯤", "한달정도"] },
+    "months":    { "tag": "고립지속", "patterns": ["몇달째", "몇개월째", "반년", "([2-9]|1[01])(달|개월)(째|넘게|이상)", "(두|세|석|네|넉|다섯|여섯)달(째|넘게)"],
+                   "patterns_with_risk": ["계속", "맨날"] },
+    "years":     { "tag": "장기고립", "patterns": ["(1|일|한)년(넘|이상|째)", "몇년째", "수년째", "[0-9]+년(째|넘게|이상)"] }
+  }
+}

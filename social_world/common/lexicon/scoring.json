@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "name": "점수 규칙",
+    "updated": "2026-10-08",
+    "status": "confirmed",
+    "note": "위험사전_근거_매핑표.md 3절(10/8 확정)·위험사전_v1_작업계획.md 6-1. 태그별 기본 심각도·차원은 risk_tags.json(잠정). 옛 규칙은 ../npc/severity_config.json(JS, 쓰지 않음)"
+  },
+  "weights": { "keyword": 0.5, "tone": 0.5 },
+  "bands": { "suggest": 0.45, "strong": 0.8 },
+  "dimension_bonus": { "per_dimension": 0.1, "max": 0.2 },
+  "mitigation_penalty": 0.1,
+  "idiom_factor": 0.5,
+  "persistence": [
+    { "from_nth": 3, "bonus": 0.1 },
+    { "from_nth": 5, "bonus": 0.2 }
+  ],
+  "suggest_once_per_session": true,
+  "ambiguous_when_llm_unavailable": "crisis"
+}
