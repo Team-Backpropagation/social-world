@@ -162,14 +162,20 @@ def main():
     if real and args.supabase:
         micro = S.micro_detail(psych_df)
         escal = S.fetch_escalations(sb)
+        demand, _ = S.fetch_demand(sb, persona_table)   # 하루·코코 수요(수요 신호 — 점수에는 안 씀)
     else:
-        micro, escal = {}, []
+        micro, escal, demand = {}, [], {}
     with open(os.path.join(OUT, "micro_detail.json"), "w", encoding="utf-8") as f:
         json.dump(micro, f, ensure_ascii=False, indent=2)
     with open(os.path.join(OUT, "escalations.json"), "w", encoding="utf-8") as f:
         json.dump(escal, f, ensure_ascii=False, indent=2)
+    with open(os.path.join(OUT, "demand.json"), "w", encoding="utf-8") as f:
+        json.dump(demand, f, ensure_ascii=False, indent=2)
     if real and args.supabase:
         print(f"[대시보드] 위기 발화 최근 30일 {len(escal)}건 · 대화 현황 {len(micro)}개 코호트 저장")
+        if demand.get("haru"):
+            print("[대시보드] 하루 수요 최근 4주: " + " · ".join(f"{d['category']} 추천 {d['recommends']}·자격 미달 {d['ineligible']}" for d in demand["haru"])
+                  + f" (실제 {demand['live_total']}건, 나머지는 시연용 배경)")
 
     if real and args.supabase:
         S.push_feedback(sb, persona_table, feedback)

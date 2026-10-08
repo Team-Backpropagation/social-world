@@ -133,6 +133,11 @@ details.raw table{margin-top:8px}
 .kwbar.hot{background:var(--l5)}
 .kwrow .n{font-family:var(--mono);font-size:13px;text-align:right;color:var(--muted)}
 .privacy{font-size:12.5px;color:var(--muted)}
+/* 소셜 월드에서 찾은 지원(하루·코코 수요) */
+.dm td.bar{min-width:120px}
+.dm .ibar{display:inline-block;height:10px;border-radius:0 4px 4px 0;background:var(--l3);vertical-align:middle;margin-right:6px}
+.dm .rate{color:var(--muted);font-size:12.5px}
+.dm-note{display:grid;gap:4px}
 .empty{font-size:14px;color:var(--muted);background:var(--sunk);border-radius:10px;padding:10px 14px}
 
 /* 차트 */
@@ -223,6 +228,23 @@ footer{font-size:13px;color:var(--muted);display:grid;gap:6px}
     </table></div>
   </section>
 
+  <section class="panel" id="demand" hidden>
+    <div>
+      <h2>소셜 월드에서 찾은 지원 <span class="sub" id="demandSince" style="font-weight:400"></span></h2>
+      <div class="sub">하루(지원센터)에서 시민이 어떤 지원을 찾아봤고, 얼마나 신청까지 이어졌는지예요. 위험 점수에는 쓰지 않는 <b>수요 신호</b>예요.</div>
+    </div>
+    <div class="tbl dm"><table>
+      <thead><tr><th>하루 메뉴</th><th style="text-align:right">카드 본 횟수</th><th style="text-align:right">자세히</th><th style="text-align:right">신청 링크 열기</th><th style="text-align:right">신청했어요</th><th>자격 미달(제도 사각지대)</th></tr></thead>
+      <tbody id="dmtable"></tbody>
+    </table></div>
+    <div class="dm-note">
+      <p class="privacy" id="demandCoco"></p>
+      <p class="privacy"><b>자격 미달</b>은 시민이 메뉴를 열었을 때 나이·지역 조건이 맞지 않아 빠진 정책 수예요. 많을수록 "찾는 사람은 있는데 받을 수 있는 제도가 없는" 영역이에요.
+        장애인·저소득 같은 특정 대상 정책은 무엇을 펼쳤는지 기록하지 않아서 여기에 없어요. 개인 기록이 아니라 집단·주 단위 합계예요.</p>
+      <p class="privacy" id="demandSrc"></p>
+    </div>
+  </section>
+
   <details class="how">
     <summary>이 판단은 이렇게 만들어져요</summary>
     <ol id="howlist"></ol>
@@ -264,7 +286,7 @@ const LV_MEAN = {1:"평소와 같아요",2:"조금 달라졌어요. 지켜보기
 const GL = {M:"남성",F:"여성"};
 const AGE_ORDER = ["10대","20대","30대","40대","50대","60대이상"];
 const AGES = AGE_ORDER.filter(a => D.cohorts.some(c => c.age === a));
-const NPC = {psych:"심리상담 NPC",job:"취업상담 NPC",policy:"정책추천 NPC",civil:"민원 NPC"};
+const NPC = {psych:"루미(심리상담)",job:"하루(일·취업 안내)",policy:"하루(정책 안내)",civil:"하루(의견함)",coco:"코코(활동 추천)",haru:"하루(지원센터)"};
 const byId = Object.fromEntries(D.cohorts.map(c=>[c.id,c]));
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 const lvStyle = l => `background:var(--l${l});color:var(--l${l}-ink)`;
@@ -463,6 +485,38 @@ function talkSection(c){
   return `<div class="sec"><h3>상담 대화에서 나온 이야기</h3>${head}<div class="kw">${bars}</div>
     <p class="privacy">대화 원문은 저장하지 않아요. 상담 대본의 선택지에 붙은 주제 표시를 센 숫자예요(시연용 배경 포함). 빨간 막대는 더 무거운 주제예요.</p></div>`;
 }
+// ---------------- 소셜 월드에서 찾은 지원 (하루·코코 수요) ----------------
+const DM = D.demand;
+const fmtN = n => Number(n||0).toLocaleString("ko-KR");
+function renderDemand(){
+  if (!DM || !DM.haru) return;
+  document.getElementById("demand").hidden = false;
+  document.getElementById("demandSince").textContent = `— 최근 ${DM.weeks||4}주(${DM.since}부터)`;
+  const maxInel = Math.max(1, ...DM.haru.map(d=>d.ineligible));
+  document.getElementById("dmtable").innerHTML = DM.haru.map(d => {
+    const rate = d.recommends ? Math.round(d.apply_clicks / d.recommends * 100) : 0;
+    return `<tr><td>${esc(d.category)}</td><td class="num">${fmtN(d.recommends)}</td><td class="num">${fmtN(d.views)}</td>` +
+      `<td class="num">${fmtN(d.apply_clicks)} <span class="rate">(${rate}%)</span></td><td class="num">${fmtN(d.self_reported)}</td>` +
+      `<td class="bar"><span class="ibar" style="width:${Math.max(3, d.ineligible/maxInel*100)}px"></span><span class="num" style="font-family:var(--mono)">${fmtN(d.ineligible)}</span></td></tr>`;
+  }).join("");
+  const c = DM.coco || {};
+  document.getElementById("demandCoco").textContent =
+    `코코(활동 추천): 추천 ${fmtN(c.recommends)}회 · 신청 링크·동아리 보기 ${fmtN(c.apply_clicks)}회 · 참여했어요 ${fmtN(c.self_reported)}회`;
+  document.getElementById("demandSrc").textContent = DM.live_total
+    ? `실제 시민 기록 ${fmtN(DM.live_total)}건이 포함돼 있고, 나머지는 시연용 배경(가상)이에요.`
+    : `지금 숫자는 모두 시연용 배경(가상)이에요. 시민이 하루를 쓰면 실제 기록이 더해져요.`;
+}
+function demandSection(c){
+  if (!DM || !DM.haru) return "";
+  const d = c.demand;
+  if (!d) return `<div class="sec"><h3>소셜 월드에서 찾은 지원</h3><div class="empty">최근 ${DM.weeks||4}주 동안 이 집단이 하루에서 찾아본 기록이 없어요.</div></div>`;
+  if (d.k_hidden || !d.cats) return `<div class="sec"><h3>소셜 월드에서 찾은 지원</h3><div class="empty">하루를 쓴 사람이 ${D.k_min}명 미만이라 어떤 지원을 찾았는지는 가려요.</div></div>`;
+  const max = Math.max(1, ...d.cats.map(x=>x.recommends));
+  const bars = d.cats.map(x => `<div class="kwrow"><span>${esc(x.category)}${x.ineligible?` <span class="rate">· 자격 미달 ${fmtN(x.ineligible)}</span>`:""}</span>` +
+    `<span><span class="kwbar" style="display:block;width:${Math.max(4, x.recommends/max*100)}%"></span></span><span class="n">${fmtN(x.recommends)}</span></div>`).join("");
+  return `<div class="sec"><h3>소셜 월드에서 찾은 지원 <span class="sub" style="font-weight:400">— 하루 메뉴별 카드 본 횟수</span></h3><div class="kw">${bars}</div>
+    <p class="privacy">수요 신호예요(위험 점수에는 안 씀). 한 주에 하루를 연 사람이 가장 많았던 때 ${fmtN(d.users)}명 기준이에요.</p></div>`;
+}
 function renderDetail(){
   const c = byId[selected];
   const res = c.resources.length
@@ -476,6 +530,7 @@ function renderDetail(){
     <p class="why-main">${esc(causeText(c))}</p>
     <div class="sec"><h3>왜 이렇게 판단했나요?</h3>${signalRows(c)}${rawTable(c)}</div>
     ${talkSection(c)}
+    ${demandSection(c)}
     <div class="sec"><h3>카드 결제 흐름 <span class="sub" style="font-weight:400">— 평소(7~10월) 수준 = 100</span></h3>
       <div class="chart">${ch.svg}<div class="tip" hidden></div></div>
       <div class="legend"><span><span class="sw" style="background:var(--band)"></span>명절·연휴</span><span><span class="sw" style="background:var(--evalband)"></span>최근 비교 구간(11/1~12/23)</span><span>점선 = 평소 수준</span></div></div>
@@ -514,5 +569,6 @@ document.getElementById("howlist").innerHTML = [
 ].map(([t,d])=>`<li><b>${t}</b> <span>— ${d}</span></li>`).join("");
 
 function select(id){ selected=id; renderGrid(); renderDetail(); renderTable(); }
+renderDemand();
 select(selected);
 </script>

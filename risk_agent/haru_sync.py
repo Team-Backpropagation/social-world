@@ -6,7 +6,7 @@
   python haru_sync.py --dry-run        # 목록만 받아서 "상세를 몇 건 받을지"만 보여줌(DB에 안 씀)
   python haru_sync.py --only local     # central | local
   python haru_sync.py --max-calls 300  # 이번 실행 API 호출 상한(기본 900)
-  python haru_sync.py --refresh-menus  # API 없이 메뉴만 다시 계산(메뉴 규칙을 바꾼 뒤)
+  python haru_sync.py --refresh-menus  # API 없이 저장된 정책에 메뉴·특정 대상·나이 규칙을 다시 적용(규칙을 바꾼 뒤)
 
 흐름: ① 목록(청년·중장년 / 두 시군구) → ② 바뀐 것만 고르기 → ③ 상세(한도 안에서, 못 받으면 다음 실행에 이어서)
       → ④ 하루가 쓰기 좋게 정리(메뉴·대상 특성·나이 범위·문의처·복지로 링크) → ⑤ upsert, 목록에서 사라진 사업은 is_active=false
@@ -15,6 +15,7 @@
 설계: docs/planning/사회적고립_AI에이전트_통합기획서.md 6-3
 """
 import argparse
+import html
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -43,8 +44,17 @@ MENU_FROM_THEME = {
 # 관심주제만으로는 빠지는 경우 — "신혼부부 청년 전월세 대출이자"가 '서민금융'으로만 분류됨. 사업 이름의 낱말로 메뉴를 더한다
 MENU_FROM_NAME = [
     (re.compile(r"월세|전세|주거|임대|주택|보증금"), "housing"),
-    (re.compile(r"취업|일자리|구직|자격증|직업훈련|면접"), "job"),
+    (re.compile(r"취업(?!\s*후\s*상환)|일자리|구직|자격증|직업훈련|면접"), "job"),     # '취업 후 상환 학자금대출'은 대출
     (re.compile(r"심리|마음건강|정신건강"), "mind"),
+]
+# 2026-10-08 검수: 20·30대 시민에게 보이면 안 되는 사업 — 고등학생·학교 대상, 기관용 사업. 메뉴를 비워 하루에 안 나오게 한다
+EXCLUDE_NAME = re.compile(r"고교|고등학교|고졸|모델\s*개발")
+# 2026-10-08 검수: 복지로 '가구상황'에 안 걸리지만 특정한 사람만 받는 사업 — 이름으로 특정 대상을 더한다
+GROUP_FROM_NAME = [
+    (re.compile(r"의사상자"), "의사상자"),
+    (re.compile(r"자립준비청년|보호종료|퇴소\s*청소년"), "자립준비청년"),
+    (re.compile(r"경계선\s*지능"), "경계선지능"),
+    (re.compile(r"입양|가정위탁"), "입양·위탁가정"),
 ]
 MENU_LABEL = {"housing": "주거비", "living": "생활비", "mind": "마음건강", "social": "사람 만나기", "job": "일·취업"}
 
@@ -113,9 +123,10 @@ def split_list(s):
 # 나이 범위 — 대상 문장에서 확실할 때만 뽑는다. 애매하면 (None, None) → 화면에 '나이 조건 확인'
 # ------------------------------------------------------------------
 _N = r"(?:만\s*)?(\d{1,2})\s*세?"
-RANGE = re.compile(_N + r"\s*(?:이상)?\s*[~∼〜\-–]\s*" + r"(?:만\s*)?(\d{1,2})\s*세\s*(이하|미만)?")
+RANGE = re.compile(_N + r"\s*(?:이상)?\s*[~∼〜～\-–]\s*" + r"(?:만\s*)?(\d{1,2})\s*세\s*(이하|미만)?")
 RANGE_WORDS = re.compile(r"(?:만\s*)?(\d{1,2})\s*세\s*이상\s*(?:만\s*)?(\d{1,2})\s*세\s*(이하|미만)")
-MIN_ONLY = re.compile(r"(?:만\s*)?(\d{1,2})\s*세\s*이상")
+MIN_ONLY = re.compile(r"(?:만\s*)?(\d{1,2})\s*세\s*이상(?!이더라도|인\s*경우에도)")    # "18세 이상이더라도 재학 중이면"은 조건이 아님
+MAX_ONLY = re.compile(r"(?:만\s*)?(\d{1,2})\s*세\s*(미만|이하)(\s*(?:의|인)?\s*청소년)?")
 
 
 def _ranges(text):
@@ -131,7 +142,7 @@ def _ranges(text):
 
 
 def extract_age(*texts):
-    t = " ".join(x for x in texts if x)
+    t = html.unescape(" ".join(x for x in texts if x))          # 복지로 문장에 &sim; &lsquo; 같은 HTML 표기가 섞여 온다
     if not t:
         return None, None
     found = _ranges(t)
@@ -148,6 +159,12 @@ def extract_age(*texts):
     mins = {int(x) for x in MIN_ONLY.findall(t)}
     if len(mins) == 1 and min(mins) >= 14:
         return min(mins), None
+    if mins:
+        return None, None
+    # 상한만 — "만 40세 미만", "만 19세 미만의 청소년". 25세 아래 상한은 자녀 나이("만 18세 이하 자녀")가 많아서 '청소년'이 바로 붙을 때만
+    tops = {int(n) - (m == "미만") for n, m, youth in MAX_ONLY.findall(t) if int(n) >= 25 or youth}
+    if len(tops) == 1:
+        return None, tops.pop()
     return None, None
 
 
@@ -155,11 +172,23 @@ def extract_age(*texts):
 # 정리 — 중앙·지자체를 같은 모양의 행으로
 # ------------------------------------------------------------------
 def menus_of(themes, name=""):
-    """관심주제로 정한 메뉴가 하나라도 있을 때만 이름 낱말로 메뉴를 더한다(보육·출산만 있는 사업은 그대로 제외)"""
+    """관심주제로 정한 메뉴가 하나라도 있을 때만 이름 낱말로 메뉴를 더한다(보육·출산만 있는 사업은 그대로 제외)
+    고등학생·기관용 사업(EXCLUDE_NAME)은 메뉴를 비운다"""
+    if EXCLUDE_NAME.search(name or ""):
+        return []
     base = {MENU_FROM_THEME[t] for t in themes if t in MENU_FROM_THEME}
     if base:
         base |= {menu for rx, menu in MENU_FROM_NAME if rx.search(name or "")}
     return sorted(base)
+
+
+def groups_of(groups, name=""):
+    """복지로 가구상황(장애인·저소득 …) + 이름으로 알아낸 특정 대상. 순서는 복지로 것 먼저, 중복 없이"""
+    out = list(dict.fromkeys(groups or []))
+    for rx, g in GROUP_FROM_NAME:
+        if rx.search(name or "") and g not in out:
+            out.append(g)
+    return out
 
 
 def wanted(item):
@@ -193,7 +222,7 @@ def base_row(item, detail, now):
         "life_stages": stages,
         "themes": themes,
         "menus": menus_of(themes, detail.get("servNm") or item.get("servNm")),
-        "target_groups": groups,
+        "target_groups": groups_of(groups, detail.get("servNm") or item.get("servNm")),
         "online_apply": {"Y": True, "N": False}.get(item.get("onapPsbltYn")),
         "support_cycle": item.get("sprtCycNm") or detail.get("sprtCycNm") or None,
         "provision_type": item.get("srvPvsnNm") or detail.get("srvPvsnNm") or None,
@@ -408,19 +437,32 @@ def sync(sb, key, fetcher=HP.fetch, only=None, max_calls=MAX_CALLS, dry_run=Fals
     return stats, rows
 
 
+def refreshed(r):
+    """저장된 한 줄에 지금 규칙을 다시 적용한 값 — 메뉴·특정 대상·나이(대상 문장에서 다시 뽑음)"""
+    new = {"menus": menus_of(r.get("themes") or [], r.get("name") or ""),
+           "target_groups": groups_of(r.get("target_groups") or [], r.get("name") or "")}
+    if r.get("target_text") or r.get("criteria_text"):            # 문장이 없으면 나이는 그대로 둔다
+        new["age_min"], new["age_max"] = extract_age(r.get("target_text"), r.get("criteria_text"))
+    return {k: v for k, v in new.items()
+            if (sorted(v) != sorted(r.get(k) or []) if isinstance(v, list) else v != r.get(k))}
+
+
 def refresh_menus(sb, log=print):
-    """저장된 관심주제·이름으로 메뉴만 다시 계산한다 — 복지로 API를 부르지 않는다(메뉴 규칙을 바꾼 뒤 한 번)"""
+    """저장된 정책에 메뉴·특정 대상·나이 규칙을 다시 적용한다 — 복지로 API를 부르지 않는다(규칙을 바꾼 뒤 한 번)
+    특정 대상은 더하기만 한다(복지로에서 받은 가구상황은 지우지 않음)"""
     groups = {}
-    for r in sb.select("welfare_programs", "select=serv_id,name,themes,menus") or []:
-        new = menus_of(r.get("themes") or [], r.get("name") or "")
-        if new != sorted(r.get("menus") or []):
-            groups.setdefault(tuple(new), []).append(r["serv_id"])
+    for r in sb.select("welfare_programs", "select=serv_id,name,themes,menus,target_groups,target_text,criteria_text,age_min,age_max") or []:
+        ch = refreshed(r)
+        if ch:
+            key = tuple(sorted((k, tuple(v) if isinstance(v, list) else v) for k, v in ch.items()))
+            groups.setdefault(key, []).append(r["serv_id"])
     n = 0
-    for menus, ids in groups.items():
+    for key, ids in groups.items():
+        patch = {k: list(v) if isinstance(v, tuple) else v for k, v in key}
         for i in range(0, len(ids), 50):
-            sb.update("welfare_programs", f"serv_id=in.({','.join(ids[i:i + 50])})", {"menus": list(menus)})
+            sb.update("welfare_programs", f"serv_id=in.({','.join(ids[i:i + 50])})", patch)
         n += len(ids)
-    log(f"[하루 메뉴 다시 계산] {n}건 바꿈 (API 호출 0회)")
+    log(f"[하루 규칙 다시 적용] {n}건 바꿈 (메뉴·특정 대상·나이, API 호출 0회)")
     return n
 
 
@@ -442,7 +484,7 @@ def main(argv=None):
     ap.add_argument("--only", choices=["central", "local"])
     ap.add_argument("--dry-run", action="store_true", help="목록만 받아 몇 건을 받을지 보여 줌(DB에 쓰지 않음)")
     ap.add_argument("--max-calls", type=int, default=MAX_CALLS)
-    ap.add_argument("--refresh-menus", action="store_true", help="API 없이 저장된 정책의 메뉴만 다시 계산")
+    ap.add_argument("--refresh-menus", action="store_true", help="API 없이 저장된 정책에 메뉴·특정 대상·나이 규칙을 다시 적용")
     args = ap.parse_args(argv)
     import supabase_sync as S
     sb = S.client()

@@ -12,6 +12,7 @@
 | `06_haru.sql` | 하루 v1: 복지 정책 표 `welfare_programs`(risk_agent/haru_sync.py가 채움), `recommend_programs()`·`program_counts()`, 의견함 1차 `world_feedback` | 적용됨(10/7) |
 | `07_feedback_chat.sql` | 마을 의견함 대화: 창구(이장·하루)·`feedback_messages`·운영팀 명단 `staff_members`·시민/운영팀 함수·90일 삭제, 정책추천·취업상담 미션 → '지원센터 하루 만나기' | 확인 필요 |
 | `08_economy.sql` | 게임 화폐 지갑·예금·아이템 소유권·옷 구매·온라인 낚시·유저 거래 기반 + RLS·거래 함수 | ❌ 이번 작업에서는 실제 팀 DB에 적용하지 않음 |
+| `09_haru_rules.sql` | 하루 규칙 보정(10/8 실제 데이터 검수): '저소득'만 붙은 사업은 특정 대상이 아니라 기본 카드에 '소득 기준이 있어요'로 보임(청년월세·행복주택·버팀목전세 등). `recommend_programs()`·`program_counts()`만 바꿈, 재실행 안전. 검증 `tests/run_haru.sh` | ❌ 이번에 실행 |
 | `tests/` | `00_supabase_stub.sql`(코코용 축약 스텁), `01_auth_stub.sql`(auth만 흉내 → 실제 01~05를 그대로 올림)과 에이전트별 테스트 | — |
 | `full_schema_reference.sql` | 목표 설계 전체(테이블 31·뷰 3·RLS 44). 관제 대시보드의 케이스·보고서·권한까지 포함 | ❌ 참고용 — 아직 적용 안 함 |
 | `DB_테이블_정의서.md` | 전체 설계의 원칙·ERD·테이블 정의 + **11장 순환 연결로 실제 구현된 것** | |
@@ -24,7 +25,7 @@
 ## 새 Supabase 프로젝트에 처음부터 세팅하기
 
 1. Supabase 대시보드 → **SQL Editor** → New query → `01_socialworld_base.sql` 전체 붙여넣기 → Run
-2. 같은 방법으로 `02_loop_schema.sql` → Run, 이어서 `03_world_update.sql` → `04_coco.sql` → `05_chief.sql` → `06_haru.sql` → `07_feedback_chat.sql` → `08_economy.sql` 순서로 Run
+2. 같은 방법으로 `02_loop_schema.sql` → Run, 이어서 `03_world_update.sql` → `04_coco.sql` → `05_chief.sql` → `06_haru.sql` → `07_feedback_chat.sql` → `08_economy.sql` → `09_haru_rules.sql` 순서로 Run
    (04부터는 파일명이 `적용 순서 번호_에이전트 이름.sql`. 번호 순서대로 실행한다)
 3. **Authentication → Sign In / Providers → Anonymous Sign-Ins** 켜기
    (소셜 월드 데모의 "게스트로 들어가기"가 익명 로그인을 쓴다. 카카오 로그인은 `DB_연결_단계별_실행가이드.md` 5장)

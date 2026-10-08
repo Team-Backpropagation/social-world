@@ -115,6 +115,16 @@ with sync_playwright() as p:
         check(pg.evaluate('document.documentElement.scrollWidth <= innerWidth'), f'[{tag}] 가로 넘침 없음')
         check(pg.evaluate('(() => { const p = document.querySelector(".haru-panel"); return p.scrollWidth <= p.clientWidth; })()'), f'[{tag}] 창 안 가로 넘침 없음')
 
+        # 주거비 — 소득 기준(저소득)만 있는 사업은 기본 카드에 나오지만 어느 사업인지는 기록하지 않음(09)
+        pg.get_by_role('button', name='다른 지원 보기').click()
+        before = len(logs(pg))
+        pg.locator('[data-menu="housing"]').click()
+        pg.wait_for_selector('.haru-item')
+        low = pg.locator('.haru-item[data-id="WLF00004661"]')
+        check(low.count() == 1 and low.get_attribute('data-special') is None and '소득 기준이 있어요' in low.inner_text(), f'[{tag}] 저소득만 있는 사업은 기본 카드 + 소득 기준 안내')
+        rec = [r for r in logs(pg)[before:] if r['action'] == 'recommend']
+        check(sorted(str(r['item_id']) for r in rec) == ['None', 'WLF00005414'], f'[{tag}] 소득 기준 사업은 item_id 없이 추천 기록')
+
         # 일·취업 → npc_type job
         pg.get_by_role('button', name='다른 지원 보기').click()
         pg.locator('[data-menu="job"]').click()
