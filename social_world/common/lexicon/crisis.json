@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "name": "위기 표현 사전",
+    "version": "0.1.0",
+    "updated": "2026-10-08",
+    "owner": "담당 A",
+    "status": "draft",
+    "note": "첫 항목은 DB 임시 위기 검사 _haru_crisis(database/06_haru.sql)의 9개 표현을 옮긴 것 + 작업계획 6-1 ①·매핑표 3-5의 예시. 담당 A가 검토·확장한다. 작성 규칙은 README.md",
+    "grades": {
+      "strong": "즉시 위기 — 109·1577-0199 안내, LLM을 기다리지 않음",
+      "ambiguous": "LLM이 앞뒤 맥락으로 판정. LLM 실패·시간 초과면 위기",
+      "idiom": "확실한 관용 조합 — 위기 아님. 이 부분을 지운 뒤 strong·ambiguous를 검사한다"
+    }
+  },
+  "items": [
+    {
+      "id": "C-S01", "kind": "crisis", "tag": "위기발화", "grade": "strong",
+      "patterns": ["죽고싶"], "exclude": [], "base_severity": 1.0,
+      "examples": ["그냥 죽고 싶어"],
+      "source": "_haru_crisis(06_haru.sql) 이전", "status": "draft"
+    },
+    {
+      "id": "C-S02", "kind": "crisis", "tag": "위기발화", "grade": "strong",
+      "patterns": ["죽어버리"], "exclude": [], "base_severity": 1.0,
+      "examples": ["확 죽어 버리고 싶다"],
+      "source": "_haru_crisis(06_haru.sql) 이전", "status": "draft"
+    },
+    {
+      "id": "C-S03", "kind": "crisis", "tag": "위기발화", "grade": "strong",
+      "patterns": ["자살"], "exclude": [], "base_severity": 1.0,
+      "examples": ["자살 생각이 자꾸 나"],
+      "source": "_haru_crisis(06_haru.sql) 이전. 뉴스·예방 이야기도 걸리지만 놓치지 않는 쪽을 택함(오탐 기록)", "status": "draft"
+    },
+    {
+      "id": "C-S04", "kind": "crisis", "tag": "위기발화", "grade": "strong",
+      "patterns": ["극단적(선택|인생각)"], "exclude": [], "base_severity": 1.0,
+      "examples": ["극단적인 생각까지 했어"],
+      "source": "_haru_crisis(06_haru.sql) 이전", "status": "draft"
+    },
+    {
+      "id": "C-S05", "kind": "crisis", "tag": "위기발화", "grade": "strong",
+      "patterns": ["목숨을?끊"], "exclude": [], "base_severity": 1.0,
+      "examples": ["목숨을 끊고 싶다는 생각"],
+      "source": "_haru_crisis(06_haru.sql) 이전", "status": "draft"
+    },
+    {
+      "id": "C-S06", "kind": "crisis", "tag": "위기발화", "grade": "strong",
+      "patterns": ["살기싫"], "exclude": [], "base_severity": 1.0,
+      "examples": ["요즘 살기 싫어"],
+      "source": "_haru_crisis(06_haru.sql) 이전", "status": "draft"
+    },
+    {
+      "id": "C-S07", "kind": "crisis", "tag": "위기발화", "grade": "strong",
+      "patterns": ["살이유가없"], "exclude": [], "base_severity": 1.0,
+      "examples": ["살 이유가 없는 것 같아"],
+      "source": "_haru_crisis(06_haru.sql) 이전", "status": "draft"
+    },
+    {
+      "id": "C-S08", "kind": "crisis", "tag": "위기발화", "grade": "strong",
+      "patterns": ["다그만두고싶"], "exclude": [], "base_severity": 1.0,
+      "examples": ["사실 다 그만두고 싶을 때가 있어"],
+      "source": "위험사전_근거_매핑표.md 3-5 (루미 대본 위기 선택지). _haru_crisis에는 없음 — DB 갱신 때 반영", "status": "draft"
+    },
+    {
+      "id": "C-A01", "kind": "crisis", "tag": "위기발화", "grade": "ambiguous",
+      "patterns": ["사라지고싶", "없어지고싶"], "exclude": [], "base_severity": 1.0,
+      "examples": ["그냥 사라지고 싶다", "어디론가 없어지고 싶어"],
+      "source": "_haru_crisis(06_haru.sql) 이전 — 작업계획 6-1 ①에 따라 ambiguous", "status": "draft"
+    },
+    {
+      "id": "C-A02", "kind": "crisis", "tag": "위기발화", "grade": "ambiguous",
+      "patterns": ["죽겠"], "exclude": [], "base_severity": 1.0,
+      "examples": ["우울해 죽겠다"],
+      "source": "작업계획 6-1 ① (맨 \"죽겠다\")", "status": "draft"
+    },
+    {
+      "id": "C-I01", "kind": "crisis", "tag": "위기발화", "grade": "idiom",
+      "patterns": ["(배고파|배고프|웃겨|웃기|더워|덥)(서)?죽겠"], "exclude": [], "base_severity": 0,
+      "examples": ["배고파 죽겠다", "웃겨 죽겠네", "더워 죽겠어"],
+      "source": "작업계획 6-1 ① (확실한 관용 조합)", "status": "draft"
+    }
+  ]
+}
