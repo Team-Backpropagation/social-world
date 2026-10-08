@@ -1,0 +1,6 @@
+**/.env
+**/node_modules/
+.venv/
+**/dist/
+**/__pycache__/
+risk_agent/experiment_outputs/

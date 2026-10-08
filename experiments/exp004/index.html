@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172d47">
+  <title>함께, 더 가까이 — 이미지 충실형 시제품</title>
+  <style>
+    :root { font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; color: #172d47; background: #e9dcd9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button { font: inherit; cursor: pointer; }
+    .screen { width: 100%; overflow-x: auto; background: #e9dcd9; }
+    .stage { width: min(100%, 1536px); min-width: 900px; position: relative; margin: auto; aspect-ratio: 3 / 2; }
+    .stage img { display: block; width: 100%; height: 100%; object-fit: contain; user-select: none; pointer-events: none; }
+    .hotspot { position: absolute; left: calc(var(--x) * 100% / 1536); top: calc(var(--y) * 100% / 1024); width: calc(var(--w) * 100% / 1536); height: calc(var(--h) * 100% / 1024); border: 2px solid transparent; border-radius: 14px; background: transparent; padding: 0; color: transparent; }
+    .hotspot:hover { background: rgba(255, 249, 222, .16); border-color: rgba(255, 255, 255, .8); box-shadow: 0 0 0 2px rgba(24, 42, 64, .4); }
+    .hotspot:focus-visible, .quick button:focus-visible, .dialog button:focus-visible { outline: 4px solid #ffd26a; outline-offset: 2px; }
+    .mobile-actions { display: none; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .overlay { position: fixed; inset: 0; z-index: 10; background: rgba(10, 26, 43, .72); display: grid; place-items: center; padding: 20px; }
+    .overlay[hidden] { display: none; }
+    .dialog { position: relative; width: min(100%, 490px); max-height: min(88vh, 760px); overflow-y: auto; background: #fff9f2; color: #172d47; border: 4px solid #1a314a; border-radius: 20px; box-shadow: 0 18px 0 rgba(9, 26, 45, .36), 0 32px 70px rgba(0, 0, 0, .4); padding: 24px; }
+    .dialog h2 { margin: 0 34px 10px 0; font-size: clamp(22px, 4vw, 28px); line-height: 1.3; }
+    .dialog p { line-height: 1.7; margin: 10px 0; }
+    .dialog .eyebrow { color: #8d624d; font-size: 13px; font-weight: 800; letter-spacing: .05em; }
+    .dialog .close { position: absolute; right: 14px; top: 12px; border: 0; border-radius: 9px; width: 38px; height: 38px; background: #e9dfd3; color: #172d47; font-size: 25px; line-height: 1; }
+    .dialog .actions { display: grid; gap: 9px; margin-top: 20px; }
+    .dialog .actions button, .dialog .place-grid button { text-align: left; border: 2px solid #a7b8c4; border-radius: 12px; background: #eef5f5; color: #172d47; font-weight: 700; padding: 12px 15px; }
+    .dialog .actions button.primary { background: #1e5970; border-color: #173f58; color: white; }
+    .dialog .actions button:hover, .dialog .place-grid button:hover { filter: brightness(.94); }
+    .dialog .place-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 18px; }
+    .dialog .speech { background: #f0e7da; border-left: 5px solid #4a96b6; padding: 13px 15px; border-radius: 6px 12px 12px 6px; }
+    .dialog .progress { height: 22px; border: 2px solid #24485b; border-radius: 20px; overflow: hidden; background: #d5e1dc; margin: 16px 0 7px; }
+    .dialog .progress span { display: block; height: 100%; background: #63ab64; transition: width .2s; }
+    .dialog .small { font-size: 13px; color: #5c6572; }
+    @media (max-width: 700px) {
+      .stage { margin: 0; }
+      .mobile-actions { display: block; padding: 15px 14px 24px; background: #fff8f3; }
+      .mobile-actions h2 { margin: 0 0 5px; font-size: 18px; }
+      .mobile-actions p { margin: 0 0 12px; line-height: 1.5; font-size: 13px; }
+      .quick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+      .quick button { border: 2px solid #b7a7a4; border-radius: 11px; background: #fff; color: #172d47; min-height: 48px; font-weight: 700; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 class="sr-only">함께, 더 가까이 — 동네 탐험 시제품</h1>
+    <div class="screen" aria-label="첨부 이미지에 맞춘 쇼케이스 화면. 작은 화면에서는 좌우로 스크롤할 수 있습니다.">
+      <div class="stage">
+        <img src="reference.png" width="1536" height="1024" alt="벚꽃이 핀 동네의 아이소메트릭 지도, 다섯 단계의 이야기 카드, 하단의 여정 표시가 있는 함께 더 가까이 쇼케이스">
+        <button class="hotspot" style="--x:519;--y:75;--w:187;--h:62" data-place="home" aria-label="지도: 나의 집"></button>
+        <button class="hotspot" style="--x:676;--y:198;--w:235;--h:65" data-place="community" aria-label="지도: 주민센터"></button>
+        <button class="hotspot" style="--x:934;--y:88;--w:166;--h:66" data-place="counsel" aria-label="지도: 상담센터"></button>
+        <button class="hotspot" style="--x:1127;--y:218;--w:190;--h:64" data-place="job" aria-label="지도: 취업지원센터"></button>
+        <button class="hotspot" style="--x:251;--y:274;--w:208;--h:64" data-place="park" aria-label="지도: 공원"></button>
+        <button class="hotspot" style="--x:462;--y:379;--w:173;--h:61" data-place="cafe" aria-label="지도: 카페"></button>
+        <button class="hotspot" style="--x:932;--y:333;--w:195;--h:65" data-place="store" aria-label="지도: 편의점"></button>
+        <button class="hotspot" style="--x:1304;--y:398;--w:180;--h:71" data-place="volunteer" aria-label="지도: 봉사활동 센터"></button>
+        <button class="hotspot" style="--x:1260;--y:10;--w:257;--h:175" data-action="map" aria-label="미니맵과 장소 목록 열기"></button>
+        <button class="hotspot" style="--x:11;--y:592;--w:317;--h:323" data-stage="room" aria-label="1단계: 내 방에서 시작"></button>
+        <button class="hotspot" style="--x:337;--y:592;--w:322;--h:323" data-stage="chat" aria-label="2단계: AI 상담 Agent와 대화"></button>
+        <button class="hotspot" style="--x:669;--y:592;--w:277;--h:323" data-stage="explore" aria-label="3단계: 동네 탐험"></button>
+        <button class="hotspot" style="--x:954;--y:592;--w:247;--h:323" data-stage="mission" aria-label="4단계: 미션 진행"></button>
+        <button class="hotspot" style="--x:1210;--y:592;--w:323;--h:323" data-stage="reward" aria-label="5단계: 보상 및 성장"></button>
+        <button class="hotspot" style="--x:131;--y:938;--w:132;--h:59" data-stage="room" aria-label="여정: 내 방에서 시작"></button>
+        <button class="hotspot" style="--x:291;--y:938;--w:135;--h:59" data-stage="chat" aria-label="여정: AI와 대화"></button>
+        <button class="hotspot" style="--x:458;--y:938;--w:158;--h:59" data-stage="mission" aria-label="여정: 작은 미션 수행"></button>
+        <button class="hotspot" style="--x:648;--y:938;--w:138;--h:59" data-stage="explore" aria-label="여정: 동네 탐험"></button>
+        <button class="hotspot" style="--x:811;--y:938;--w:164;--h:59" data-action="community" aria-label="여정: 지역 활동 참여"></button>
+        <button class="hotspot" style="--x:1002;--y:938;--w:200;--h:59" data-stage="reward" aria-label="여정: 보상 획득"></button>
+        <button class="hotspot" style="--x:1237;--y:938;--w:258;--h:59" data-action="future" aria-label="여정: 더 넓은 세계로"></button>
+      </div>
+    </div>
+    <section class="mobile-actions" aria-label="모바일 빠른 조작">
+      <h2>여정 바로가기</h2>
+      <p>위 그림은 좌우로 밀어 볼 수 있습니다. 아래 버튼으로 이야기를 진행하세요.</p>
+      <div class="quick">
+        <button data-stage="room">1. 내 방</button><button data-stage="chat">2. 루미와 대화</button>
+        <button data-stage="explore">3. 동네 탐험</button><button data-stage="mission">4. 공원 미션</button>
+        <button data-stage="reward">5. 보상 보기</button><button data-action="map">장소 목록</button>
+      </div>
+    </section>
+  </main>
+  <div class="overlay" id="overlay" hidden>
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <button class="close" type="button" id="close" aria-label="창 닫기">×</button>
+      <div id="dialog-content"></div>
+    </section>
+  </div>
+  <div id="announcement" class="sr-only" aria-live="polite"></div>
+  <script>
+    (() => {
+      const KEY = 'ieum-exp004-reference-v1';
+      const places = {
+        home: ['나의 집', '개인 공간에서 이야기를 시작하고 미션 보상으로 방을 꾸밉니다.'],
+        community: ['주민센터', '정책 정보, 지원사업, 상담 연계를 살펴보는 장소입니다.'],
+        counsel: ['상담센터', 'AI 상담 Agent와 마음 상태를 이야기하는 장면입니다.'],
+        job: ['취업지원센터', '취업·교육 프로그램을 소개하는 장소입니다.'],
+        park: ['공원', '가볍게 걷고 공원 환경을 돌보는 작은 미션 장소입니다.'],
+        cafe: ['카페', '동아리와 커뮤니티 활동을 상상해 보는 장소입니다.'],
+        store: ['편의점', '일상 활동과 작은 미션을 둘러보는 장소입니다.'],
+        volunteer: ['봉사활동 센터', '지역 봉사활동과 연결되는 장소입니다.']
+      };
+      let state;
+      try { state = { choice: '', cleaned: 0, reward: false, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; }
+      catch { state = { choice: '', cleaned: 0, reward: false }; }
+      const overlay = document.querySelector('#overlay');
+      const content = document.querySelector('#dialog-content');
+      const close = document.querySelector('#close');
+      const announce = document.querySelector('#announcement');
+      let restoreFocus = null;
+      const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+      const button = (label, action, primary = false) => `<button type="button" data-do="${action}" class="${primary ? 'primary' : ''}">${label}</button>`;
+      const wrap = (tag, title, body, actions = '') => `<div class="eyebrow">${tag}</div><h2 id="dialog-title">${title}</h2>${body}<div class="actions">${actions}</div>`;
+      function show(html) { content.innerHTML = html; overlay.hidden = false; close.focus(); announce.textContent = content.querySelector('h2')?.textContent || ''; }
+      function hide() { overlay.hidden = true; content.innerHTML = ''; restoreFocus?.focus(); }
+      function room() {
+        show(wrap('1 / 5 · 나의 집', state.reward ? '조금 달라진 나의 방' : '내 방에서 시작',
+          `<p>${state.reward ? '공원 미션을 마쳐 방에 작은 화분이 놓였습니다. 다음 이야기는 이 공간에서 다시 시작할 수 있어요.' : '익숙한 방에서 루미가 먼저 말을 건넵니다. 부담 없이 지금 마음을 한마디로 골라 보세요.'}</p>`,
+          button('루미와 대화하기', 'chat', true) + (state.reward ? button('시연 처음부터', 'reset') : '')));
+      }
+      function chat() {
+        show(wrap('2 / 5 · AI 상담 Agent 목업', '루미와 대화',
+          '<p class="speech"><strong>루미</strong><br>오늘 하루는 어땠나요? 함께 작은 목표부터 시작해볼까요?</p><p class="small">선택지에 따른 고정 문구로 진행하는 시연입니다.</p>',
+          button('요즘 조금 지쳐요', 'choice:tired', true) + button('밖에 나가기가 어려워요', 'choice:outside') + button('작은 목표를 함께 정해봐요', 'choice:goal')));
+      }
+      function reply(type) {
+        state.choice = type; save();
+        const lines = { tired: '그랬군요. 오늘은 아주 가벼운 산책부터 생각해 볼까요?', outside: '괜찮아요. 처음부터 멀리 갈 필요는 없어요. 가까운 공원부터 둘러봐요.', goal: '좋아요. 공원에서 작은 정리 활동을 해 보는 건 어떨까요?' };
+        show(wrap('루미의 답변 · 고정 시연', '함께 정한 작은 목표', `<p class="speech"><strong>루미</strong><br>${lines[type]}</p>`, button('동네 둘러보기', 'explore', true) + button('다른 답변 고르기', 'chat')));
+      }
+      function explore() {
+        show(wrap('3 / 5 · 동네 탐험', '어디부터 가볼까요?',
+          '<p>벚꽃길과 강을 따라 여러 장소가 이어집니다. 먼저 공원에서 작은 활동을 시작해 볼 수 있어요.</p>',
+          button('공원 둘러보기', 'place:park', true) + button('전체 장소 보기', 'map')));
+      }
+      function place(id) {
+        const [name, description] = places[id];
+        const action = id === 'park' ? button('공원 미션 시작', 'mission', true) : id === 'home' ? button('내 방 보기', 'room', true) : id === 'counsel' ? button('루미와 대화', 'chat', true) : button('동네 탐험 계속', 'explore', true);
+        show(wrap('동네 장소 · 시연용', name, `<p>${description}</p><p class="small">시설 신청이나 상담 서비스는 연결되지 않은 UI 시안입니다.</p>`, action + button('장소 목록', 'map')));
+      }
+      function map() {
+        show(wrap('미니맵', '동네 장소', '<p>장소를 골라 설명과 다음 행동을 확인하세요.</p>') +
+          `<div class="place-grid">${Object.entries(places).map(([id, [name]]) => `<button type="button" data-do="place:${id}">${name}</button>`).join('')}</div>`);
+      }
+      function mission() {
+        const count = Math.max(0, Math.min(5, Number(state.cleaned) || 0));
+        show(wrap('4 / 5 · 작은 미션', '공원 플로깅 미션',
+          `<p>공원을 깨끗하게 만들어봐요. 이 시연에서는 버튼을 눌러 5번의 정리 활동을 기록합니다.</p><div class="progress" role="progressbar" aria-label="공원 정리 진행도" aria-valuemin="0" aria-valuemax="5" aria-valuenow="${count}"><span style="width:${count * 20}%"></span></div><p><strong>${count} / 5 완료</strong></p>`,
+          count < 5 ? button('주변 정리하기', 'clean', true) + button('동네로 돌아가기', 'explore') : button('보상 확인하기', 'reward', true)));
+      }
+      function reward() {
+        if (state.cleaned < 5) {
+          show(wrap('5 / 5 · 보상과 성장', '작은 화분을 향해', '<p>공원 미션을 완료하면 내 방에 화분을 놓을 수 있습니다.</p>', button('공원 미션 진행', 'mission', true)));
+          return;
+        }
+        state.reward = true; save();
+        show(wrap('5 / 5 · 보상 획득', '나의 방에 화분이 생겼어요', '<p>작은 활동이 쌓여 방에 새로운 화분이 놓였습니다. 그림 속 다섯 번째 카드처럼 공간이 조금 더 풍성해졌어요.</p>', button('바뀐 내 방 보기', 'room', true) + button('시연 처음부터', 'reset')));
+      }
+      function future() { show(wrap('여정의 다음 단계', '더 넓은 세계로', '<p>관계, 주민센터, 커뮤니티, 오프라인 활동으로 이어지는 방향을 담은 디자인 시안입니다.</p><p class="small">이 단계의 실제 서비스 연결은 구현되지 않았습니다.</p>', button('동네 장소 보기', 'map', true))); }
+      function community() { place('volunteer'); }
+      const actions = { room, chat, explore, mission, reward, map, future, community, clean() { state.cleaned = Math.min(5, (Number(state.cleaned) || 0) + 1); save(); mission(); }, reset() { state = { choice: '', cleaned: 0, reward: false }; save(); room(); } };
+      function run(value) { const [action, arg] = value.split(':'); if (action === 'place' && places[arg]) place(arg); else if (action === 'choice' && ['tired', 'outside', 'goal'].includes(arg)) reply(arg); else actions[action]?.(); }
+      document.addEventListener('click', event => {
+        const target = event.target.closest('button');
+        if (!target) return;
+        const value = target.dataset.do || (target.dataset.place && `place:${target.dataset.place}`) || target.dataset.stage || target.dataset.action;
+        if (value) { if (overlay.hidden) restoreFocus = target; run(value); }
+      });
+      close.addEventListener('click', hide);
+      overlay.addEventListener('click', event => { if (event.target === overlay) hide(); });
+      document.addEventListener('keydown', event => {
+        if (overlay.hidden) return;
+        if (event.key === 'Escape') { hide(); return; }
+        if (event.key === 'Tab') {
+          const focusable = [...overlay.querySelectorAll('button:not([disabled])')];
+          const index = focusable.indexOf(document.activeElement);
+          if (event.shiftKey && index <= 0) { event.preventDefault(); focusable.at(-1)?.focus(); }
+          else if (!event.shiftKey && index === focusable.length - 1) { event.preventDefault(); focusable[0]?.focus(); }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

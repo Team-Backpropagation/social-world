@@ -1,0 +1,58 @@
+{"kind":"deck","id":"pr/cbikyc","name":"Deck"}
+{"kind":"layout","layoutId":"42fc218d-5835-4af4-9538-1605523328f3","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"193adaad-2efe-4225-9d36-f20d41afe239","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/y77x5j","slide":1,"title":"이음 마을","textShapes":2}
+{"kind":"textbox","id":"sh/6dcnadg3","slide":1,"text":"이음 마을","textPreview":"이음 마을","textChars":5,"textLines":1,"bbox":[62,52,570,90]}
+{"kind":"textbox","id":"sh/tg3m5szu","slide":1,"text":"내 방에서 시작해 동네를 걷는\n작은 행동 시연","textPreview":"내 방에서 시작해 동네를 걷는 | 작은 행동 시연","textChars":25,"textLines":2,"bbox":[66,147,560,100]}
+{"kind":"image","id":"im/xo7upw7q","slide":1,"name":"","alt":"이음 마을 시작 화면의 아이소메트릭 마을과 내 방 상태","bbox":[56,273,1168,430]}
+{"kind":"notes","id":"nt/y77x5j","slide":1,"text":"출처: 2026-09-30 http://127.0.0.1:5173/ 에서 직접 캡처한 EXP-003 개인 시제품 UI. 첫 화면의 장소 표식, 상태 카드, 미니맵, 방 미리보기를 보여 준다. 팀 공식안은 아니다."}
+{"kind":"slide","id":"sl/wswyko","slide":2,"title":"장소와 길 찾기","textShapes":7}
+{"kind":"textbox","id":"sh/ulkzqx0n","slide":2,"text":"장소와 길 찾기","textPreview":"장소와 길 찾기","textChars":8,"textLines":1,"bbox":[62,33,740,31]}
+{"kind":"textbox","id":"sh/h8vilcje","slide":2,"text":"마을 탐색 화면","textPreview":"마을 탐색 화면","textChars":8,"textLines":1,"bbox":[62,72,1150,70]}
+{"kind":"textbox","id":"sh/wn2hs7it","slide":2,"text":"EXP-003  /  02","textPreview":"EXP-003  /  02","textChars":14,"textLines":1,"bbox":[1060,36,170,28]}
+{"kind":"textbox","id":"sh/mhkzmd0r","slide":2,"text":"8개 장소 표식","textPreview":"8개 장소 표식","textChars":8,"textLines":1,"bbox":[67,610,312,37]}
+{"kind":"textbox","id":"sh/9kbihsj2","slide":2,"text":"현재 위치와 목표","textPreview":"현재 위치와 목표","textChars":9,"textLines":1,"bbox":[430,610,365,37]}
+{"kind":"textbox","id":"sh/8j2honih","slide":2,"text":"방향키와 WASD 이동","textPreview":"방향키와 WASD 이동","textChars":12,"textLines":1,"bbox":[844,610,380,37]}
+{"kind":"textbox","id":"sh/red0rm1g","slide":2,"text":"공원 안내부터 이동 조작까지 한 화면에서 이어집니다.","textPreview":"공원 안내부터 이동 조작까지 한 화면에서 이어집니다.","textChars":29,"textLines":1,"bbox":[67,659,1135,36]}
+{"kind":"image","id":"im/65c7ql4b","slide":2,"name":"","alt":"장소 표식과 미니맵이 있는 마을 탐색 화면","bbox":[62,167,1156,424]}
+{"kind":"notes","id":"nt/wswyko","slide":2,"text":"출처: 2026-09-30 http://127.0.0.1:5173/ 에서 직접 캡처한 EXP-003 개인 시제품 UI. 장소 표식은 설명 팝업으로 연결된다. 이동은 키보드 및 화면 버튼을 사용한다."}
+{"kind":"slide","id":"sl/yhdlzw","slide":3,"title":"작은 목표 고르기","textShapes":7}
+{"kind":"textbox","id":"sh/ob2hgzmh","slide":3,"text":"작은 목표 고르기","textPreview":"작은 목표 고르기","textChars":9,"textLines":1,"bbox":[62,33,740,31]}
+{"kind":"textbox","id":"sh/nat0nu5c","slide":3,"text":"루미의 선택지 대화","textPreview":"루미의 선택지 대화","textChars":10,"textLines":1,"bbox":[62,72,1150,70]}
+{"kind":"textbox","id":"sh/m90ze94r","slide":3,"text":"EXP-003  /  03","textPreview":"EXP-003  /  03","textChars":14,"textLines":1,"bbox":[1060,36,170,28]}
+{"kind":"textbox","id":"sh/07ihczml","slide":3,"text":"상태를 묻는 첫 문장","textPreview":"상태를 묻는 첫 문장","textChars":11,"textLines":1,"bbox":[697,215,485,49]}
+{"kind":"textbox","id":"sh/z690ju50","slide":3,"text":"사용자는 쉬기, 산책하기,\n이야기하기 중 하나를 고릅니다.","textPreview":"사용자는 쉬기, 산책하기, | 이야기하기 중 하나를 고릅니다.","textChars":32,"textLines":2,"bbox":[698,282,492,115]}
+{"kind":"textbox","id":"sh/e50zap4f","slide":3,"text":"산책 선택 뒤 공원 목표가 열리고\n동네 탐색으로 이어집니다.","textPreview":"산책 선택 뒤 공원 목표가 열리고 | 동네 탐색으로 이어집니다.","textChars":33,"textLines":2,"bbox":[698,439,492,115]}
+{"kind":"textbox","id":"sh/l4vixona","slide":3,"text":"고정 응답을 보여 주는 시연용 대화입니다.","textPreview":"고정 응답을 보여 주는 시연용 대화입니다.","textChars":23,"textLines":1,"bbox":[698,617,493,36]}
+{"kind":"image","id":"im/o3a1gfed","slide":3,"name":"","alt":"세 가지 선택지를 제공하는 루미 대화창","bbox":[69,169,558,484]}
+{"kind":"notes","id":"nt/yhdlzw","slide":3,"text":"출처: 2026-09-30 http://127.0.0.1:5173/ 에서 직접 캡처한 EXP-003 개인 시제품 UI. 현재 시제품은 고정 선택지와 목업 응답을 사용하며 실제 상담 또는 AI API를 연결하지 않는다."}
+{"kind":"slide","id":"sl/pfso75","slide":4,"title":"동네 이동과 목표 상태","textShapes":7}
+{"kind":"textbox","id":"sh/qtg36x0v","slide":4,"text":"동네 이동과 목표 상태","textPreview":"동네 이동과 목표 상태","textChars":12,"textLines":1,"bbox":[62,33,740,31]}
+{"kind":"textbox","id":"sh/dwr2hcz6","slide":4,"text":"공원 산책 미션","textPreview":"공원 산책 미션","textChars":8,"textLines":1,"bbox":[62,72,1150,70]}
+{"kind":"textbox","id":"sh/cvil87i1","slide":4,"text":"EXP-003  /  04","textPreview":"EXP-003  /  04","textChars":14,"textLines":1,"bbox":[1060,36,170,28]}
+{"kind":"textbox","id":"sh/3qpkbih4","slide":4,"text":"루미와 산책 목표를 고릅니다.","textPreview":"루미와 산책 목표를 고릅니다.","textChars":16,"textLines":1,"bbox":[69,210,565,76]}
+{"kind":"textbox","id":"sh/25gj2x0j","slide":4,"text":"공원 표식을 눌러 입구로 이동합니다.","textPreview":"공원 표식을 눌러 입구로 이동합니다.","textChars":20,"textLines":1,"bbox":[69,314,565,76]}
+{"kind":"textbox","id":"sh/ps72dsza","slide":4,"text":"방향 버튼으로 공원까지 걸어갑니다.","textPreview":"방향 버튼으로 공원까지 걸어갑니다.","textChars":19,"textLines":1,"bbox":[69,418,565,76]}
+{"kind":"textbox","id":"sh/nmtknmho","slide":4,"text":"위치와 오늘의 목표가 화면 하단에 계속 표시됩니다.","textPreview":"위치와 오늘의 목표가 화면 하단에 계속 표시됩니다.","textChars":28,"textLines":1,"bbox":[69,621,1110,55]}
+{"kind":"image","id":"im/pkvih0ri","slide":4,"name":"","alt":"공원 입구 이동을 안내하는 장소 팝업","bbox":[676,186,538,389]}
+{"kind":"notes","id":"nt/pfso75","slide":4,"text":"출처: 2026-09-30 http://127.0.0.1:5173/ 에서 직접 캡처한 EXP-003 개인 시제품 UI. 시제품 흐름에서는 공원 입구에서 왼쪽 이동 버튼을 두 번 누르면 완료 상태가 된다."}
+{"kind":"slide","id":"sl/e5eqyo","slide":5,"title":"목표 완료 피드백","textShapes":6}
+{"kind":"textbox","id":"sh/qxobyxcz","slide":5,"text":"목표 완료 피드백","textPreview":"목표 완료 피드백","textChars":9,"textLines":1,"bbox":[62,33,740,31]}
+{"kind":"textbox","id":"sh/d0za9sbq","slide":5,"text":"보상과 방의 변화","textPreview":"보상과 방의 변화","textChars":9,"textLines":1,"bbox":[62,72,1150,70]}
+{"kind":"textbox","id":"sh/cz6t0nu5","slide":5,"text":"EXP-003  /  05","textPreview":"EXP-003  /  05","textChars":14,"textLines":1,"bbox":[1060,36,170,28]}
+{"kind":"textbox","id":"sh/pwfa5sbe","slide":5,"text":"완료 안내","textPreview":"완료 안내","textChars":5,"textLines":1,"bbox":[83,606,455,43]}
+{"kind":"textbox","id":"sh/4v6twnu9","slide":5,"text":"내 방에 놓인 화분","textPreview":"내 방에 놓인 화분","textChars":10,"textLines":1,"bbox":[681,606,493,43]}
+{"kind":"textbox","id":"sh/f6dszitc","slide":5,"text":"보상 상태는 브라우저에 저장되어 다시 방문해도 확인할 수 있습니다.","textPreview":"보상 상태는 브라우저에 저장되어 다시 방문해도 확인할 수 있습니다.","textChars":37,"textLines":1,"bbox":[66,665,1115,29]}
+{"kind":"image","id":"im/258fqhkr","slide":5,"name":"","alt":"산책 완료와 화분 보상을 안내하는 화면","bbox":[66,172,540,410]}
+{"kind":"image","id":"im/36hwjm1c","slide":5,"name":"","alt":"화분 보상 후의 내 방 미리보기","bbox":[655,201,538,331]}
+{"kind":"notes","id":"nt/e5eqyo","slide":5,"text":"출처: 2026-09-30 http://127.0.0.1:5173/ 에서 직접 캡처한 EXP-003 개인 시제품 UI. 화분은 시제품의 시각적 보상이며 실제 서비스의 보상이 아니다."}
+{"kind":"slide","id":"sl/jl1bfh","slide":6,"title":"발표 시연 순서","textShapes":7}
+{"kind":"textbox","id":"sh/judwv29k","slide":6,"text":"발표 시연 순서","textPreview":"발표 시연 순서","textChars":8,"textLines":1,"bbox":[62,33,740,31]}
+{"kind":"textbox","id":"sh/kvmxo7qp","slide":6,"text":"다섯 장면의 흐름","textPreview":"다섯 장면의 흐름","textChars":9,"textLines":1,"bbox":[62,72,1150,70]}
+{"kind":"textbox","id":"sh/5wvyxcra","slide":6,"text":"EXP-003  /  06","textPreview":"EXP-003  /  06","textChars":14,"textLines":1,"bbox":[1060,36,170,28]}
+{"kind":"textbox","id":"sh/v6twr298","slide":6,"text":"내 방에서 루미와 대화","textPreview":"내 방에서 루미와 대화","textChars":12,"textLines":1,"bbox":[64,406,1030,48]}
+{"kind":"textbox","id":"sh/w72xk7qt","slide":6,"text":"산책을 선택하고 공원에 도착하면 화분 보상을 확인합니다.","textPreview":"산책을 선택하고 공원에 도착하면 화분 보상을 확인합니다.","textChars":31,"textLines":1,"bbox":[64,465,1130,78]}
+{"kind":"textbox","id":"sh/x8vetcre","slide":6,"text":"현재 시연: 장소 소개, 고정 선택지 대화, 공원 산책, 방의 화분 변화","textPreview":"현재 시연: 장소 소개, 고정 선택지 대화, 공원 산책, 방의 화분 변화","textChars":40,"textLines":1,"bbox":[64,585,1130,34]}
+{"kind":"textbox","id":"sh/m1kfed8r","slide":6,"text":"실제 AI 상담, 기관 신청, 위험 판정, 서버 저장은 연결되지 않았습니다.","textPreview":"실제 AI 상담, 기관 신청, 위험 판정, 서버 저장은 연결되지 않았습니다.","textChars":42,"textLines":1,"bbox":[64,632,1130,34]}
+{"kind":"image","id":"im/3mlgnmts","slide":6,"name":"","alt":"내 방, 루미 대화, 동네 탐험, 미션, 보상 카드","bbox":[60,167,1160,197]}
+{"kind":"notes","id":"nt/jl1bfh","slide":6,"text":"출처: 2026-09-30 http://127.0.0.1:5173/ 에서 직접 캡처한 EXP-003 개인 시제품 UI. 개인 디자인 실험의 시연 범위다. 여정 카드는 직접 화면 이동을 지원한다."}

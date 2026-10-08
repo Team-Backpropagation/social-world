@@ -1,0 +1,49 @@
+{"kind":"deck","id":"pr/53oil7","name":"Deck"}
+{"kind":"layout","layoutId":"3e26b06e-9cf0-4f65-b7e9-670a91b10782","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"cb7a7de5-07af-4c99-a639-9d8eaeee7b1c","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/z3762b","slide":1,"title":"함께,","textShapes":3}
+{"kind":"textbox","id":"sh/oz6xwfa5","slide":1,"text":"함께,\n더 가까이","textPreview":"함께, | 더 가까이","textChars":9,"textLines":2,"bbox":[62,158,390,170]}
+{"kind":"textbox","id":"sh/3yxgna9k","slide":1,"text":"작은 행동을 시작하는\n동네 탐험 경험","textPreview":"작은 행동을 시작하는 | 동네 탐험 경험","textChars":20,"textLines":2,"bbox":[66,375,365,95]}
+{"kind":"textbox","id":"sh/2xofu5sz","slide":1,"text":"EXP-004  개인 디자인 시안","textPreview":"EXP-004  개인 디자인 시안","textChars":18,"textLines":1,"bbox":[66,613,360,40]}
+{"kind":"image","id":"im/wba5srqt","slide":1,"name":"","alt":"사용자가 제공한 함께, 더 가까이 EXP-004 인터페이스 이미지","bbox":[482,85,735,490]}
+{"kind":"notes","id":"nt/z3762b","slide":1,"text":"출처: 사용자 제공 EXP-004 참고 이미지(reference.png), 2026-09-29. 이 장은 시안 전체 구도를 보여 준다. 팀 채택 여부는 미확정이다."}
+{"kind":"slide","id":"sl/jh2my8","slide":2,"title":"동네 공간","textShapes":3}
+{"kind":"textbox","id":"sh/8rytsral","slide":2,"text":"동네 공간","textPreview":"동네 공간","textChars":5,"textLines":1,"bbox":[59,43,580,72]}
+{"kind":"textbox","id":"sh/7qpszmt0","slide":2,"text":"지도에서 장소를 고르고 다음 행동으로 이동합니다.","textPreview":"지도에서 장소를 고르고 다음 행동으로 이동합니다.","textChars":27,"textLines":1,"bbox":[61,116,1080,52]}
+{"kind":"shape","id":"sh/hwra5wb2","slide":2,"bbox":[0,618,1280,102]}
+{"kind":"textbox","id":"sh/gvytwbah","slide":2,"text":"내 방, 공원, 상담센터 등 8개 장소와 미니맵을 한 화면에 배치했습니다.","textPreview":"내 방, 공원, 상담센터 등 8개 장소와 미니맵을 한 화면에 배치했습니다.","textChars":41,"textLines":1,"bbox":[61,642,1110,42]}
+{"kind":"image","id":"im/bulkzm58","slide":2,"name":"","alt":"사용자가 제공한 함께, 더 가까이 EXP-004 인터페이스 이미지","bbox":[59,179,1162,775]}
+{"kind":"notes","id":"nt/jh2my8","slide":2,"text":"출처: 사용자 제공 EXP-004 참고 이미지(reference.png), 2026-09-29. 이미지 상단을 화면 설명을 위해 확대했다. 장소 버튼은 실제 EXP-004 HTML에서 동작한다."}
+{"kind":"slide","id":"sl/jdpsd6","slide":3,"title":"다섯 장면의 사용자 여정","textShapes":13}
+{"kind":"shape","id":"sh/2l4z69kj","slide":3,"bbox":[0,0,1280,191]}
+{"kind":"shape","id":"sh/nmd0zelo","slide":3,"bbox":[0,438,1280,282]}
+{"kind":"textbox","id":"sh/0zmh4z2d","slide":3,"text":"다섯 장면의 사용자 여정","textPreview":"다섯 장면의 사용자 여정","textChars":13,"textLines":1,"bbox":[59,43,1130,72]}
+{"kind":"textbox","id":"sh/10vix43y","slide":3,"text":"내 방에서 시작해 공원 미션을 마친 뒤 보상을 확인합니다.","textPreview":"내 방에서 시작해 공원 미션을 마친 뒤 보상을 확인합니다.","textChars":32,"textLines":1,"bbox":[61,115,1110,52]}
+{"kind":"textbox","id":"sh/ex4z2pk7","slide":3,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[65,488,140,37]}
+{"kind":"textbox","id":"sh/fydgvuls","slide":3,"text":"내 방","textPreview":"내 방","textChars":3,"textLines":1,"bbox":[65,531,213,56]}
+{"kind":"textbox","id":"sh/svmh0z21","slide":3,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[301,488,140,37]}
+{"kind":"textbox","id":"sh/dwvytk3m","slide":3,"text":"루미 대화","textPreview":"루미 대화","textChars":5,"textLines":1,"bbox":[301,531,213,56]}
+{"kind":"textbox","id":"sh/9w3a1cfy","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[537,488,140,37]}
+{"kind":"textbox","id":"sh/ovuts7ed","slide":3,"text":"동네 탐험","textPreview":"동네 탐험","textChars":5,"textLines":1,"bbox":[537,531,213,56]}
+{"kind":"textbox","id":"sh/nulsz2xs","slide":3,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[773,488,140,37]}
+{"kind":"textbox","id":"sh/mtcbqxwn","slide":3,"text":"공원 미션","textPreview":"공원 미션","textChars":5,"textLines":1,"bbox":[773,531,213,56]}
+{"kind":"textbox","id":"sh/1sjaxcf2","slide":3,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1009,488,140,37]}
+{"kind":"textbox","id":"sh/0rato7eh","slide":3,"text":"화분 보상","textPreview":"화분 보상","textChars":5,"textLines":1,"bbox":[1009,531,213,56]}
+{"kind":"textbox","id":"sh/z61sv2xw","slide":3,"text":"시연에서는 루미의 고정 선택지를 고르고 공원 정리 활동을 다섯 번 완료합니다.","textPreview":"시연에서는 루미의 고정 선택지를 고르고 공원 정리 활동을 다섯 번 완료합니다.","textChars":43,"textLines":1,"bbox":[61,638,1130,40]}
+{"kind":"image","id":"im/0nepgze9","slide":3,"name":"","alt":"사용자가 제공한 함께, 더 가까이 EXP-004 인터페이스 이미지","bbox":[51,-261,1178,785]}
+{"kind":"notes","id":"nt/jdpsd6","slide":3,"text":"출처: 사용자 제공 EXP-004 참고 이미지(reference.png), 2026-09-29. 방, 대화, 탐험, 공원 미션, 화분 보상은 EXP-004에서 클릭 흐름으로 시연된다."}
+{"kind":"slide","id":"sl/4aq15h","slide":4,"title":"현재 시연 범위","textShapes":8}
+{"kind":"shape","id":"sh/xs76pw76","slide":4,"bbox":[0,0,794,720]}
+{"kind":"shape","id":"sh/wrepgrql","slide":4,"bbox":[794,0,486,162]}
+{"kind":"shape","id":"sh/nm5oj2p4","slide":4,"bbox":[794,572,486,148]}
+{"kind":"shape","id":"sh/mlwnah8j","slide":4,"bbox":[1204,162,76,410]}
+{"kind":"textbox","id":"sh/9on6lc7a","slide":4,"text":"현재 시연 범위","textPreview":"현재 시연 범위","textChars":8,"textLines":1,"bbox":[59,48,700,70]}
+{"kind":"textbox","id":"sh/one5c7qp","slide":4,"text":"장소","textPreview":"장소","textChars":2,"textLines":1,"bbox":[62,166,610,43]}
+{"kind":"textbox","id":"sh/7ipov6p8","slide":4,"text":"표식을 누르면 각 장소의 설명을 볼 수 있습니다.","textPreview":"표식을 누르면 각 장소의 설명을 볼 수 있습니다.","textChars":27,"textLines":1,"bbox":[62,210,650,55]}
+{"kind":"textbox","id":"sh/6hg7m18n","slide":4,"text":"대화","textPreview":"대화","textChars":2,"textLines":1,"bbox":[62,290,610,43]}
+{"kind":"textbox","id":"sh/w3yh8zm1","slide":4,"text":"루미의 고정 선택지로 작은 목표를 정합니다.","textPreview":"루미의 고정 선택지로 작은 목표를 정합니다.","textChars":24,"textLines":1,"bbox":[62,334,650,55]}
+{"kind":"textbox","id":"sh/x47yh4nm","slide":4,"text":"미션과 보상","textPreview":"미션과 보상","textChars":6,"textLines":1,"bbox":[62,414,610,43]}
+{"kind":"textbox","id":"sh/a1wz6p4v","slide":4,"text":"공원 정리 5회 뒤 화분 보상 안내가 나타납니다.","textPreview":"공원 정리 5회 뒤 화분 보상 안내가 나타납니다.","textChars":27,"textLines":1,"bbox":[62,458,650,55]}
+{"kind":"textbox","id":"sh/b2pgfu5g","slide":4,"text":"실제 AI 상담, 기관 신청, 지역 데이터 연동은 포함되지 않습니다.","textPreview":"실제 AI 상담, 기관 신청, 지역 데이터 연동은 포함되지 않습니다.","textChars":38,"textLines":1,"bbox":[62,630,1120,45]}
+{"kind":"image","id":"im/fatk7m58","slide":4,"name":"","alt":"사용자가 제공한 함께, 더 가까이 EXP-004 인터페이스 이미지","bbox":[-728,-583,1933,1288]}
+{"kind":"notes","id":"nt/4aq15h","slide":4,"text":"출처: 사용자 제공 EXP-004 참고 이미지(reference.png), 2026-09-29. 개인 디자인 실험 범위다. 실제 서비스 연결, 위험 판정, 서버 저장은 없다."}

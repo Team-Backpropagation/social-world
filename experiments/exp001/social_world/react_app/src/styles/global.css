@@ -1,0 +1,561 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Gowun+Dodum&display=swap');
+
+:root {
+  --sw-green-dark: #2f7a4f;
+  --sw-green: #4caf6e;
+  --sw-green-light: #a8e6a1;
+  --sw-brown: #8a5a35;
+  --sw-brown-dark: #5c3b22;
+  --sw-cream: #fff8e7;
+  --sw-ink: #2b2b2b;
+  --sw-blue: #5b8def;
+  --sw-pink: #e08bb0;
+  --sw-shadow: rgba(0, 0, 0, 0.25);
+  --sw-radius: 14px;
+  font-family: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--sw-cream);
+  color: var(--sw-ink);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pixel-font {
+  font-family: 'Press Start 2P', monospace;
+}
+
+/* ---------- 공통 버튼 ---------- */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 10px;
+  border: 3px solid var(--sw-ink);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 3px 3px 0 var(--sw-shadow);
+  transition: transform 0.08s ease;
+}
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--sw-shadow);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--sw-green);
+  color: #fff;
+}
+.btn-kakao {
+  background: #fee500;
+  color: #3c1e1e;
+}
+.btn-guest {
+  background: #fff;
+}
+.btn-option {
+  background: var(--sw-blue);
+  color: #fff;
+  margin-top: 8px;
+}
+.btn-ghost {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--sw-green-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  padding: 6px 8px;
+  width: auto;
+}
+
+/* ---------- 패널(창틀) 공통 ---------- */
+.pixel-panel {
+  background: #fff;
+  border: 4px solid var(--sw-ink);
+  border-radius: var(--sw-radius);
+  box-shadow: 6px 6px 0 var(--sw-shadow);
+  padding: 22px;
+}
+
+/* ---------- 로그인 ---------- */
+.login-screen,
+.center-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 20%, var(--sw-green-light), transparent 40%),
+    radial-gradient(circle at 80% 80%, var(--sw-green-light), transparent 40%),
+    var(--sw-cream);
+}
+.login-card {
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+}
+.login-logo {
+  font-size: 48px;
+}
+.login-card h1,
+.onboarding-card h1 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 20px;
+  color: var(--sw-green-dark);
+  margin: 8px 0;
+}
+.login-sub {
+  color: #555;
+  margin-bottom: 18px;
+}
+.terms {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #777;
+  line-height: 1.5;
+}
+
+/* ---------- 설정 안내 ---------- */
+.setup-notice {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--sw-cream);
+}
+.setup-card {
+  max-width: 560px;
+  background: #fff;
+  border: 4px solid var(--sw-ink);
+  border-radius: var(--sw-radius);
+  box-shadow: 6px 6px 0 var(--sw-shadow);
+  padding: 28px;
+}
+.setup-card h1 {
+  margin-top: 0;
+  font-size: 22px;
+}
+.setup-card ol {
+  padding-left: 20px;
+  line-height: 1.8;
+}
+.setup-card code {
+  background: #f1f1f1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.setup-hint {
+  font-size: 13px;
+  color: #666;
+  background: #f7f7f7;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+/* ---------- 온보딩 ---------- */
+.onboarding-card {
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.onboarding-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  margin-top: 6px;
+}
+.onboarding-card input,
+.onboarding-card select,
+.onboarding-card textarea,
+.club-form input,
+.club-form select,
+.club-form textarea {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 2px solid var(--sw-ink);
+  border-radius: 8px;
+  background: #fffef9;
+}
+
+/* ---------- 상단바 ---------- */
+.screen-with-topbar {
+  min-height: 100vh;
+  background: var(--sw-cream);
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--sw-green-dark);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--sw-shadow);
+}
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 17px;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.topbar-nick {
+  font-weight: 700;
+}
+.topbar .btn-ghost {
+  color: #fff;
+}
+
+/* ---------- 광장 맵 ---------- */
+.plaza-wrap {
+  max-width: 960px;
+  margin: 20px auto;
+  padding: 0 16px;
+}
+.plaza-map {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 900 / 560;
+  border-radius: var(--sw-radius);
+  border: 4px solid var(--sw-ink);
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(
+        var(--sw-green) 0% 25%,
+        var(--sw-green-light) 0% 50%
+      )
+      0 0 / 8% 12.5%;
+  box-shadow: 6px 6px 0 var(--sw-shadow);
+}
+.plaza-deco {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: clamp(18px, 3.5vw, 30px);
+  pointer-events: none;
+  filter: drop-shadow(1px 2px 0 rgba(0, 0, 0, 0.2));
+}
+.plaza-sprite {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  min-width: 64px;
+  min-height: 64px;
+}
+.pixel-character {
+  /* EXP-001: 32×32 원본 격자를 광장에서는 정확히 2배(64×64 CSS px)로 표시한다. */
+  width: 64px;
+  height: 64px;
+  flex: none;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.25));
+}
+.plaza-sprite-icon {
+  font-size: clamp(22px, 4vw, 34px);
+  line-height: 1;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.25));
+}
+.plaza-npc-icon {
+  border-radius: 50%;
+  padding: 6px;
+  display: inline-flex;
+  border: 3px solid var(--sw-ink);
+}
+.plaza-sprite-label {
+  font-size: 11px;
+  font-weight: 800;
+  background: #fff;
+  border: 2px solid var(--sw-ink);
+  border-radius: 6px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.plaza-player {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: left 0.08s linear, top 0.08s linear;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.plaza-player-icon {
+  font-size: clamp(24px, 4.5vw, 36px);
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.3));
+}
+.plaza-player-shadow {
+  width: 22px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  margin-top: -4px;
+}
+.plaza-toast {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  background: var(--sw-ink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  max-width: min(80vw, 280px);
+  width: max-content;
+  white-space: normal;
+  text-align: center;
+}
+.plaza-hint {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  margin-top: 10px;
+}
+.plaza-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.plaza-shortcuts .btn {
+  margin: 0;
+  min-height: 48px;
+}
+
+/* 모바일 방향키 */
+.dpad {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 14px auto 0;
+  width: fit-content;
+}
+.dpad-row {
+  display: flex;
+  gap: 4px;
+}
+.dpad button {
+  width: 46px;
+  height: 46px;
+  font-size: 18px;
+  border: 3px solid var(--sw-ink);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--sw-shadow);
+}
+.dpad-interact {
+  background: var(--sw-green) !important;
+  color: #fff;
+}
+@media (max-width: 680px) {
+  /* 좁은 화면에서는 맵 높이를 확보해 64px 캐릭터가 겹치지 않게 한다. */
+  .plaza-map {
+    aspect-ratio: 6 / 5;
+  }
+  .plaza-shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dpad {
+    display: flex;
+  }
+}
+
+/* ---------- NPC 대화 모달 ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 50;
+}
+.npc-modal {
+  max-width: 420px;
+  width: 100%;
+  border-width: 5px;
+}
+.npc-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.npc-modal-portrait {
+  display: inline-flex;
+  border: 2px solid var(--sw-ink);
+  border-radius: 8px;
+  flex: none;
+}
+.npc-modal-name {
+  font-weight: 800;
+  font-size: 16px;
+}
+.npc-modal-disclaimer {
+  font-size: 11px;
+  color: #a34;
+  margin-top: 2px;
+}
+.npc-modal-close {
+  margin-left: auto;
+  font-size: 16px;
+}
+.npc-modal-text {
+  line-height: 1.6;
+  background: #f7f7f2;
+  border-radius: 8px;
+  padding: 12px;
+}
+.npc-modal-options {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 미션방 / 동아리방 공통 ---------- */
+.room-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
+}
+.back-btn {
+  padding-left: 0;
+}
+.room-desc {
+  color: #555;
+  line-height: 1.6;
+}
+.room-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.room-header-row .btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.mission-list,
+.club-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mission-item,
+.club-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+.mission-item-main,
+.club-item-main {
+  flex: 1 1 240px;
+}
+.mission-title {
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mission-reward {
+  font-size: 12px;
+  background: #fff2c9;
+  border: 1px solid #e0c14a;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.club-category {
+  font-size: 12px;
+  background: #e6f0ff;
+  border: 1px solid var(--sw-blue);
+  color: var(--sw-blue);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.mission-desc {
+  font-size: 13px;
+  color: #666;
+  margin: 6px 0 0;
+}
+.club-member-count {
+  font-size: 12px;
+  color: #888;
+  margin: 6px 0 0;
+}
+.mission-actions .btn {
+  width: auto;
+  margin-top: 0;
+}
+.badge {
+  font-size: 13px;
+  font-weight: 700;
+}
+.badge-done {
+  color: var(--sw-green-dark);
+}
+
+.club-form {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.club-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.club-form .btn {
+  width: auto;
+  align-self: flex-start;
+}
