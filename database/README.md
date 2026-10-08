@@ -10,11 +10,11 @@
 | `04_coco.sql` | 코코(활동 추천) v1: `activity_catalog` + 시연용 활동 10개, 동아리 관심사 태그(`clubs.interest_tags`), `my_quest_stage()`, `recommend_activities()`. **03이 먼저 있어야 한다**(`profiles.interests`·`missions.stage`). 검증 `tests/run_coco.sh`(20항목) | ❌ 03 적용 후 실행 |
 | `05_chief.sql` | 마을이장 v1: `world_events.status`(draft→published 승인제)·`template_key`·`theme`, 시민 뷰 `world_events_public`은 공개 이벤트만 + `joined`, 참여는 `join_world_event()`로만(03의 직접 insert 정책 제거), 관심사 분포 `chief_interest_counts()`(k=5, service_role). 검증 `tests/run_chief.sh`(27항목) | ❌ 03 적용 후 실행 |
 | `06_haru.sql` | 하루 v1: 복지 정책 표 `welfare_programs`(risk_agent/haru_sync.py가 채움), `recommend_programs()`·`program_counts()`, 의견함 1차 `world_feedback` | 적용됨(10/7) |
-| `07_feedback_chat.sql` | 마을 의견함 대화: 창구(이장·하루)·`feedback_messages`·운영팀 명단 `staff_members`·시민/운영팀 함수·90일 삭제, 정책추천·취업상담 미션 → '지원센터 하루 만나기' | 확인 필요 |
-| `08_economy.sql` | 게임 화폐 지갑·예금·아이템 소유권·옷 구매·온라인 낚시·유저 거래 기반 + RLS·거래 함수 | ❌ 이번 작업에서는 실제 팀 DB에 적용하지 않음 |
-| `09_haru_rules.sql` | 하루 규칙 보정(10/8 실제 데이터 검수): '저소득'만 붙은 사업은 특정 대상이 아니라 기본 카드에 '소득 기준이 있어요'로 보임(청년월세·행복주택·버팀목전세 등). `recommend_programs()`·`program_counts()`만 바꿈, 재실행 안전. 검증 `tests/run_haru.sh` | ❌ 이번에 실행 |
-| `10_achievements.sql` | 온라인 낚시·분리수거 업적과 시장 칭호. 기존 09_achievements에서 번호만 변경 | 실제 팀 DB 적용 여부 확인 필요 |
-| `11_fish_sales.sql` | 시장 수산 매입소: 서버 가격, 아이템 회수·소지금 지급, 영수증과 중복 방지. 기존 10_fish_sales에서 번호만 변경 | 실제 팀 DB 적용 여부 확인 필요 |
+| `07_feedback_chat.sql` | 마을 의견함 대화: 창구(이장·하루)·`feedback_messages`·운영팀 명단 `staff_members`·시민/운영팀 함수·90일 삭제, 정책추천·취업상담 미션 → '지원센터 하루 만나기' | ✅ 적용됨(10/8) |
+| `08_economy.sql` | 게임 화폐 지갑·예금·아이템 소유권·옷 구매·온라인 낚시·유저 거래 기반 + RLS·거래 함수 | ✅ 적용됨(10/8) |
+| `09_haru_rules.sql` | 하루 규칙 보정(10/8 실제 데이터 검수): '저소득'만 붙은 사업은 특정 대상이 아니라 기본 카드에 '소득 기준이 있어요'로 보임(청년월세·행복주택·버팀목전세 등). `recommend_programs()`·`program_counts()`만 바꿈, 재실행 안전. 검증 `tests/run_haru.sh` | ✅ 적용됨(10/8) |
+| `10_achievements.sql` | 온라인 낚시·분리수거 업적과 시장 칭호. 기존 09_achievements에서 번호만 변경 | ✅ 적용됨(10/8) |
+| `11_fish_sales.sql` | 시장 수산 매입소: 서버 가격, 아이템 회수·소지금 지급, 영수증과 중복 방지. 기존 10_fish_sales에서 번호만 변경 | ✅ 적용됨(10/8) |
 | `tests/` | `00_supabase_stub.sql`(코코용 축약 스텁), `01_auth_stub.sql`(auth만 흉내 → 실제 01~05를 그대로 올림)과 에이전트별 테스트 | — |
 | `full_schema_reference.sql` | 목표 설계 전체(테이블 31·뷰 3·RLS 44). 관제 대시보드의 케이스·보고서·권한까지 포함 | ❌ 참고용 — 아직 적용 안 함 |
 | `DB_테이블_정의서.md` | 전체 설계의 원칙·ERD·테이블 정의 + **11장 순환 연결로 실제 구현된 것** | |
@@ -54,7 +54,7 @@
 
 새 지갑의 기본 지원금 10,000원은 게임 시스템 시험용이다. 지원금은 `sw_economy_settings`, 옷 가격은 `sw_item_catalog`에서 관리한다. 브라우저는 잔액·아이템을 직접 쓰지 않고 `sw_economy` 함수를 호출한다.
 
-코드·독립된 PostgreSQL 검증은 준비되었고, 실제 팀 DB의 관리 접속·SQL 적용·실제 사용자 계정 확인은 아직 수행하지 않았다. 파일의 이전 적용 표만으로 현재 서버의 상태를 확정하지 않는다.
+10/8 팀 DB에 07~11을 적용했다(07→08→09→10→11 순서). 실제 사용자 계정에서의 동작 확인은 앱에서 이어서 한다.
 
 팀 공유용 안내: [돈 시스템·온라인 인벤토리 변경 정리](../docs/ONLINE-ECONOMY-CHANGES.md).
 
@@ -72,6 +72,6 @@
 
 SQL 번호는 01~09(main) → 10(업적) → 11(물고기 판매)로 통일했다. 이전 `09_achievements.sql`·`10_fish_sales.sql`을 이미 DB에 적용했다면 파일 이름 변경으로 데이터를 옮기거나 초기화할 필요가 없다. 새 파일에도 같은 테이블·RPC 이름을 유지한다. 새 main의 06·07·09가 없을 때 그 파일들을 추가로 적용한다.
 
-이 문서의 과거 적용 표는 작성 당시 팀 기록이며, 현재 서버 상태를 자동으로 확인한 결과가 아니다. 이번 통합에서는 격리된 PostgreSQL과 로컬 시험 도구로 검증했고 실제 팀 DB에는 실행하지 않았다.
+통합 코드는 격리된 PostgreSQL과 로컬 시험 도구로 검증했고, 이후 10/8 팀 DB에 07~11 SQL을 적용했다(위 파일 표 참고).
 
 전체 분석·통합 결과: [main 통합 안내](../docs/MAIN-INTEGRATION-2026-10-08.md).
