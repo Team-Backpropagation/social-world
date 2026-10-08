@@ -17,6 +17,7 @@
     points: [
       { id: 'market-bank', name: '이음 은행', x: MX - 12, z: -8 },
       { id: 'market-clothing', name: '오늘의 옷장', x: MX + 12, z: -8 },
+      { id: 'market-fish-shop', name: '이음 수산 매입소', minimapName: '수산 매입소', x: MX - 19, z: 4 },
       { id: 'market-square', name: '시장 광장', x: MX, z: 3 },
       { id: 'market-bus', name: '마을행 버스', x: MX - 1.8, z: 14.8 }
     ],
@@ -245,6 +246,29 @@
     }
     shop('market-bank', MX - 12, '#EEE7D1', '#648E7F', '이음 은행', true);
     shop('market-clothing', MX + 12, '#F5E6D4', '#CB8273', '오늘의 옷장', false);
+    // Fish buyer: an open-front stall in the western square, clear of the bus route.
+    const fishStall = new THREE.Group(); fishStall.name='market-fish-shop'; fishStall.position.set(MX-19,0,1); plaza.add(fishStall);
+    box(fishStall,5.4,.16,3.8,'#D2C4A5',0,.08,0);
+    box(fishStall,5.1,2.8,.16,'#C8DED6',0,1.45,-1.7);
+    for(const xx of [-2.45,2.45]){box(fishStall,.2,3.35,.2,'#527F77',xx,1.7,1.55);box(fishStall,.18,2.8,3.4,'#C8DED6',xx,1.45,-.1);}
+    box(fishStall,5.8,.3,4.25,'#4F8C85',0,3.25,0);
+    facadeSign(fishStall,'이음 수산 매입소',4.7,0,2.6,1.8);
+    box(fishStall,4.8,1.05,1.2,'#7BA69C',0,.62,1.05);
+    box(fishStall,5.1,.13,1.4,'#FFF2D6',0,1.18,1.05);
+    // Three shallow ice trays with procedural fish shapes.
+    for(let k=0;k<3;k++){
+      const xx=(k-1)*1.5;box(fishStall,1.28,.14,.85,'#B8DAD9',xx,1.31,1.06);
+      for(const zz of [-.16,.16]){
+        const fish=new THREE.Group();fishStall.add(fish);fish.position.set(xx,1.44,1.06+zz);
+        const body=mesh(new THREE.SphereGeometry(.22,12,8),M(k===1?'#9BAAB4':'#C3B489'),0,0,0,fish);body.scale.set(1.55,.32,.55);
+        const tail=mesh(new THREE.ConeGeometry(.13,.22,3),M('#809D9A'),-.4,0,0,fish);tail.rotation.z=Math.PI/2;tail.scale.z=.55;
+        mesh(new THREE.SphereGeometry(.024,6,4),M('#354C49'),.22,.035,.065,fish);
+      }
+    }
+    shade(fishStall);
+    for(const [ax,az,bx,bz] of [[-2.55,-1.8,2.55,-1.8],[-2.55,-1.8,-2.55,1.7],[2.55,-1.8,2.55,1.7],[-2.55,1.7,2.55,1.7]])colliders.push({seg:[MX-19+ax,1+az,MX-19+bx,1+bz],r:.17,area:'market'});
+    places['market-fish-shop']={x:MX-19,z:4};
+    doors.push({id:'market-fish-shop',label:'물고기 팔기',...places['market-fish-shop'],r:2.2,area:'market',type:'fish-shop'});
     // A central welcome arch and small places to rest give the square its identity.
     [-5, 5].forEach(x => { box(plaza, .38, 4.5, .38, '#887B60', MX + x, 2.25, -17); colliders.push({ x: MX + x, z: -17, r: .22, area: 'market' }); });
     box(plaza, 11.3, .65, .6, '#608A70', MX, 4.4, -17);
@@ -295,6 +319,15 @@
         box(g, 2.4, .9, 1.2, '#C59D85', 0, .45, -3.6);
         colliders.push({ seg: [p.x - 1.2, p.z - 3.6, p.x + 1.2, p.z - 3.6], r: .6, area: kind });
         for (let i = 0; i < 3; i++) box(g, .65, .12, .55, colors[i], -.75 + i * .75, 1.05, -3.6);
+        // Open-front fitting cubicle, away from the central clothing counter.
+        box(g,2.0,2.8,.15,'#D1B49B',-2.8,1.4,.45);
+        for(const x of [-3.78,-1.82]) { box(g,.12,2.8,2.15,'#B59374',x,1.4,1.5); colliders.push({seg:[p.x+x,p.z+.4,p.x+x,p.z+2.6],r:.10,area:kind}); }
+        box(g,2.0,.13,.15,'#927352',-2.8,2.8,2.58);
+        for(let i=0;i<4;i++) box(g,.12,2.5,.07,'#92AB99',-3.7+i*.09,1.43,2.57);
+        label(g,'탈의실',-2.8,3.15,2.65,48);
+        colliders.push({seg:[p.x-3.8,p.z+.45,p.x-1.8,p.z+.45],r:.12,area:kind});
+        places.fittingRoom={x:p.x-2.8,z:p.z+1.65};
+        doors.push({id:'clothing-fitting',label:'탈의실에서 입어 보기',...places.fittingRoom,r:1.0,area:kind,type:'wardrobe'});
         box(g, 1.6, .25, .9, '#CBA68A', 2.6, .3, 1.6);
         colliders.push({ seg: [p.x + 1.8, p.z + 1.6, p.x + 3.4, p.z + 1.6], r: .45, area: kind });
       }
@@ -519,6 +552,7 @@
         const [px, pz] = P(x, -8); g.fillStyle = color; g.fillRect(px - 48, pz - 37, 96, 74);
         g.strokeStyle = '#4D6556'; g.strokeRect(px - 48, pz - 37, 96, 74);
       }
+      const fishPoint=P(MX-19,1);g.fillStyle='#4F8C85';g.fillRect(fishPoint[0]-29,fishPoint[1]-21,58,42);g.strokeStyle='#426A61';g.strokeRect(fishPoint[0]-29,fishPoint[1]-21,58,42);
       g.fillStyle = '#628B6D'; for (const [x, z] of [[MX - 21, -17], [MX + 21, -17], [MX - 21, 10], [MX + 21, 10]]) { const p = P(x, z); g.beginPath(); g.arc(...p, 16, 0, Math.PI * 2); g.fill(); }
       marketMap = c;
       return c;
@@ -533,7 +567,7 @@
       for (const p of data.points) {
         const dx = (p.x - player.position.x) * k, dz = (p.z - player.position.z) * k;
         const x = R + dx * Math.cos(yaw) - dz * Math.sin(yaw), y = R + dx * Math.sin(yaw) + dz * Math.cos(yaw);
-        if (Math.hypot(x - R, y - R) < R - 15) { g.strokeStyle = '#FFF8E8'; g.lineWidth = 3; g.strokeText(p.name, x, y); g.fillStyle = '#365B4C'; g.fillText(p.name, x, y); }
+        if (Math.hypot(x - R, y - R) < R - 15) { g.strokeStyle = '#FFF8E8'; g.lineWidth = 3; g.strokeText(p.minimapName||p.name, x, y); g.fillStyle = '#365B4C'; g.fillText(p.minimapName||p.name, x, y); }
       }
       g.save(); g.translate(R, R); g.rotate(yaw - player.rotation.y); g.beginPath(); g.moveTo(0, 8); g.lineTo(-5, -5); g.lineTo(5, -5); g.closePath(); g.fillStyle = '#F26D58'; g.fill(); g.strokeStyle = '#FFFFFF'; g.lineWidth = 1.5; g.stroke(); g.restore();
       g.fillStyle = '#BA574B'; g.fillText('N', R + Math.sin(yaw) * (R - 10), R - Math.cos(yaw) * (R - 10));

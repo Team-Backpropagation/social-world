@@ -104,7 +104,7 @@ async function fits(page, selector, width, height) {
       check(await page.evaluate(saved => JSON.stringify(WorldUI.fishing.store.getState()) === saved, inventory), tag + ' inventory survives travel unchanged');
       await page.screenshot({ path: path.join(shotDir, 'market-' + width + (entry.includes('demo') ? '-bundle' : '') + '.png') });
       await page.keyboard.press('m');
-      check(await page.locator('#map-title').innerText() === '이음 시장 지도' && await page.locator('[data-place]').count() === 4 && await page.locator('[data-place="support"]').count() === 0, tag + ' market map shows its four destinations');
+      check(await page.locator('#map-title').innerText() === '이음 시장 지도' && await page.locator('[data-place]').count() === 5 && await page.locator('[data-place="market-fish-shop"]').count() === 1 && await page.locator('[data-place="support"]').count() === 0, tag + ' market map includes all five destinations with fish buyer');
       await page.locator('[data-place="market-bank"]').click(); await near(page, 'market-bank'); await page.keyboard.press('e');
       await page.waitForFunction(() => __sw().engine.mode() === 'bank');
       check(await page.locator('#hud-minimap').isHidden() && await page.evaluate(() => __sw().engine.marketInfo().interiors.bank), tag + ' bank entrance opens a walkable interior');

@@ -2,11 +2,12 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const {PGlite}=require(process.env.SW_PGLITE_PATH||'@electric-sql/pglite');
 const A='00000000-0000-0000-0000-000000000101',B='00000000-0000-0000-0000-000000000102',C='00000000-0000-0000-0000-000000000103';
-async function setup(){
+async function setup({fishSales=false}={}){
  const db=new PGlite();await db.waitReady;
  await db.exec(fs.readFileSync(path.join(__dirname,'01_auth_stub.sql'),'utf8'));
- for(const file of ['01_socialworld_base','02_loop_schema','03_world_update','04_coco','05_chief','06_haru','07_feedback_chat','08_economy'])await db.exec(fs.readFileSync(path.join(__dirname,'../'+file+'.sql'),'utf8'));
+ for(const file of ['01_socialworld_base','02_loop_schema','03_world_update','04_coco','05_chief','06_haru','07_feedback_chat','08_economy','09_haru_rules'])await db.exec(fs.readFileSync(path.join(__dirname,'../'+file+'.sql'),'utf8'));
  await db.exec(fs.readFileSync(path.join(__dirname,'../08_economy.sql'),'utf8'));
+ if(fishSales)for(const file of ['10_achievements','11_fish_sales'])await db.exec(fs.readFileSync(path.join(__dirname,'../'+file+'.sql'),'utf8'));
  async function user(id){await db.query('insert into auth.users(id) values($1) on conflict do nothing',[id]);}
  async function rpc(id,action='state',args={},requestId=action==='state'?null:crypto.randomUUID()){
   return db.transaction(async tx=>{
@@ -17,7 +18,7 @@ async function setup(){
  return {db,user,rpc};
 }
 async function main(){
- const {db,user,rpc}=await setup();let count=0;
+ const {db,user,rpc}=await setup({fishSales:process.env.SW_TEST_FISH_SALES==='1'});let count=0;
  const check=(ok,name)=>{assert(ok,name);console.log('PASS '+name);count++;};
  const rejects=async(task,text,name)=>{await assert.rejects(task,e=>String(e.message).includes(text),name);check(true,name);};
  try{

@@ -27,7 +27,7 @@ async function fits(page, w, h) { const b = await page.locator('#market-chat').b
       await context.addInitScript(() => { window.__SW_LITE = true; });
       const page = await context.newPage(), errors = []; page.on('pageerror', e => errors.push(e.message));
       await page.goto('http://127.0.0.1:' + server.address().port + entry, { waitUntil: 'commit' });
-      await page.waitForFunction(() => window.MarketUI && __sw().engine?.isRunning(), null, { timeout: 90000 });
+      await page.waitForFunction(() => window.MarketUI && window.__sw?.().engine?.isRunning(), null, { timeout: 90000 });
       await map(page, 'bus'); await page.keyboard.press('e'); await page.locator('#transit-skip').click();
       await page.waitForFunction(() => MarketUI.state().chatVisible);
       if (await page.locator('#market-chat').evaluate(e => e.classList.contains('is-collapsed'))) await page.locator('#market-chat-toggle').click();
@@ -84,7 +84,7 @@ async function fits(page, w, h) { const b = await page.locator('#market-chat').b
         await map(page, id); await page.keyboard.press('e'); await page.waitForFunction(mode => __sw().engine.mode() === mode, mode);
         check(await page.locator('#market-chat').isVisible(), tag + ' ' + mode + ' interior shows chat');
         await input.fill(text); await page.keyboard.press('Enter');
-        await page.waitForFunction(() => { const b = document.querySelector('#market-chat-bubble')?.getBoundingClientRect(), p = __sw().engine.playerHeadScreen(); return b && p && !document.querySelector('#market-chat-bubble').hidden && Math.abs(b.bottom - (p.y - 12)) < 3; });
+        await page.waitForFunction(() => { const b = document.querySelector('#market-chat-bubble')?.getBoundingClientRect(), n = document.querySelector('#market-nameplate')?.getBoundingClientRect(), p = __sw().engine.playerHeadScreen(); return b && n && p && !document.querySelector('#market-chat-bubble').hidden && Math.abs(n.bottom - (p.y - 6)) < 3 && Math.abs(b.bottom - (n.top - 8)) < 3; });
         check(await page.locator('#market-chat-bubble').innerText() === text, tag + ' ' + mode + ' message appears over indoor player head');
         await page.keyboard.press('Escape');
         await page.screenshot({ path: path.join(shots, mode + '-chat-' + suffix + '.png') });
