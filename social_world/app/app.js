@@ -316,10 +316,10 @@
   }
 
   function avatarKey(){ return "sw_avatar_" + (state.session ? state.session.user.id : "guest"); }
-  function currentAvatar(){
+  function currentAvatar(baseOnly){
     var av = state.profile && state.profile.avatar;
     if(!av) try { var raw = localStorage.getItem(avatarKey()); if(raw) av = JSON.parse(raw); } catch(e){}
-    var data = economy && economy.getState();
+    var data = !baseOnly && economy && economy.getState();
     var worn = data && data.inventory.instances.find(function(i){ return i.id === data.equippedClothing; });
     var definition = worn && window.FishingData.items[worn.itemId];
     if(definition && definition.kind === 'clothing') av = Object.assign({}, av || presetAvatar('calm','#4caf6e',nick()), {outfit:definition.color});
@@ -606,7 +606,7 @@
     if(state.tour || busyRoom || travelling || !t){ act.hidden = true; }
     else {
       act.hidden = false;
-      act.textContent = t.type === "bus" || t.type === "service" || t.type === "exit" ? t.label + " (" + key("interact") + ")"
+      act.textContent = t.type === "bus" || t.type === "service" || t.type === "exit" || t.type === "wardrobe" || t.type === "fish-shop" ? t.label + " (" + key("interact") + ")"
         : t.type === "fishing" ? t.label + " (" + key("interact") + ")"
         : t.type === "npc" ? npcName(t.id) + " — 대화하기 (" + key("interact") + ")"
         : t.id === "room-door" ? "🚪 밖으로 나가기 (" + key("interact") + ")" : t.label + " 들어가기 (" + key("interact") + ")";
@@ -629,6 +629,8 @@
     if(!t) return;
     if(t.type === "fishing"){ if(window.WorldUI) window.WorldUI.interactFishing(); return; }
     if(t.type === "bus"){ if(window.MarketUI) window.MarketUI.ride(); return; }
+    if(t.type === "wardrobe"){ window.Wardrobe?.open(t.id === "home-wardrobe" ? "home" : "shop"); return; }
+    if(t.type === "fish-shop"){ window.FishShop?.open(); return; }
     if(t.type === "service"){ if(window.MarketUI) window.MarketUI.openService(ENGINE.mode()); return; }
     if(t.type === "npc") openNpc(t.id);
     else doorAction(t.id);
@@ -769,7 +771,12 @@
     updateHud();
   }
 
+  var fittingInside = false;
   function onWorldTick(){
+    if(ENGINE) { var fp=ENGINE.places().fittingRoom, pos=ENGINE.playerPos();
+      var inside=ENGINE.mode()==='clothing'&&fp&&Math.abs(pos.x-fp.x)<.66&&pos.z>fp.z-.62&&pos.z<fp.z+.7;
+      if(inside&&!fittingInside&&!worldBlocked())window.Wardrobe?.open('shop'); fittingInside=!!inside;
+    }
     var t = state.tour;
     if(!t || t.arrived || t.intro || !ENGINE) return;
     var g = ENGINE.guidePos(), p = ENGINE.playerPos();
@@ -890,10 +897,13 @@
       economy = window.OnlineEconomy.create({sb:sb,userId:uid});
       var lastAppearance = null;
       economy.subscribe(function(){ var av = currentAvatar() || presetAvatar('calm','#4caf6e',nick()); var signature = JSON.stringify(av); if(ENGINE && ENGINE.isRunning() && signature !== lastAppearance){ lastAppearance = signature; ENGINE.setAvatar(av); } });
+      if(window.Achievements) window.Achievements.attach({sb:sb,userId:uid,economy:economy,toast:showToast});
       economy.initialize();
     }
     return economy;
   }
+  if(window.Wardrobe) window.Wardrobe.init({engine:function(){return ENGINE;},economy:getEconomy,baseAvatar:function(){return currentAvatar(true)||presetAvatar('calm','#4caf6e',nick());},tutorial:function(){return !!state.tour||(state.view==='room'&&state.room&&state.room.phase!=='free');},toast:showToast});
+  window.FishShop?.init({engine:function(){return ENGINE;},economy:getEconomy,toast:showToast});
   var CONTACT_ORDER = ["psych","coco","chief","haru"];
   if(window.WorldUI) window.WorldUI.init({
     sb: sb,
@@ -1038,6 +1048,7 @@
     });
   }
   function logout(){
+    window.FishShop?.close(); window.Wardrobe?.close(); window.Achievements?.reset(); fittingInside=false;
     if(economy) economy.destroy(); economy = null;
     if(window.MarketUI) window.MarketUI.reset();
     state.worldReturn = null; state.spawn = null; state.spawnFacing = null;

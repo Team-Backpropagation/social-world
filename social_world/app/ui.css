@@ -1683,3 +1683,9 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
   font-size:11px
 }
 
+
+/* Five phone apps: retain achievements and main feedback in a compact grid. */
+.home-apps.five{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:18px 0}
+.home-apps.five button{min-width:0}
+.home-apps.five .app-icon{width:45px;height:45px}
+.home-apps button:nth-child(5) .app-icon{background:#e7eff5;color:#4a7382}

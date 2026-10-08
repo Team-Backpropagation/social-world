@@ -16,7 +16,7 @@ PASS 1280px /app/ vehicle collider activates during travel and clears on complet
 PASS 1280px /app/ market is separate and avatar alights
 PASS 1280px /app/ arrival lands beside market stop
 PASS 1280px /app/ inventory survives travel unchanged
-PASS 1280px /app/ market map shows its four destinations
+PASS 1280px /app/ market map includes all five destinations with fish buyer
 PASS 1280px /app/ bank entrance opens a walkable interior
 PASS 1280px /app/ bank service screen fits viewport
 PASS 1280px /app/ bank displays preparation screens without fake balances
@@ -57,7 +57,7 @@ PASS 390px /app/ vehicle collider activates during travel and clears on completi
 PASS 390px /app/ market is separate and avatar alights
 PASS 390px /app/ arrival lands beside market stop
 PASS 390px /app/ inventory survives travel unchanged
-PASS 390px /app/ market map shows its four destinations
+PASS 390px /app/ market map includes all five destinations with fish buyer
 PASS 390px /app/ bank entrance opens a walkable interior
 PASS 390px /app/ bank service screen fits viewport
 PASS 390px /app/ bank displays preparation screens without fake balances
@@ -98,7 +98,7 @@ PASS 1280px /socialworld-demo.html vehicle collider activates during travel and 
 PASS 1280px /socialworld-demo.html market is separate and avatar alights
 PASS 1280px /socialworld-demo.html arrival lands beside market stop
 PASS 1280px /socialworld-demo.html inventory survives travel unchanged
-PASS 1280px /socialworld-demo.html market map shows its four destinations
+PASS 1280px /socialworld-demo.html market map includes all five destinations with fish buyer
 PASS 1280px /socialworld-demo.html bank entrance opens a walkable interior
 PASS 1280px /socialworld-demo.html bank service screen fits viewport
 PASS 1280px /socialworld-demo.html bank displays preparation screens without fake balances
@@ -139,7 +139,7 @@ PASS 390px /socialworld-demo.html reduced-motion vehicle collider activates duri
 PASS 390px /socialworld-demo.html reduced-motion market is separate and avatar alights
 PASS 390px /socialworld-demo.html reduced-motion arrival lands beside market stop
 PASS 390px /socialworld-demo.html reduced-motion inventory survives travel unchanged
-PASS 390px /socialworld-demo.html reduced-motion market map shows its four destinations
+PASS 390px /socialworld-demo.html reduced-motion market map includes all five destinations with fish buyer
 PASS 390px /socialworld-demo.html reduced-motion bank entrance opens a walkable interior
 PASS 390px /socialworld-demo.html reduced-motion bank service screen fits viewport
 PASS 390px /socialworld-demo.html reduced-motion bank displays preparation screens without fake balances

@@ -13,6 +13,8 @@
 | `07_feedback_chat.sql` | 마을 의견함 대화: 창구(이장·하루)·`feedback_messages`·운영팀 명단 `staff_members`·시민/운영팀 함수·90일 삭제, 정책추천·취업상담 미션 → '지원센터 하루 만나기' | 확인 필요 |
 | `08_economy.sql` | 게임 화폐 지갑·예금·아이템 소유권·옷 구매·온라인 낚시·유저 거래 기반 + RLS·거래 함수 | ❌ 이번 작업에서는 실제 팀 DB에 적용하지 않음 |
 | `09_haru_rules.sql` | 하루 규칙 보정(10/8 실제 데이터 검수): '저소득'만 붙은 사업은 특정 대상이 아니라 기본 카드에 '소득 기준이 있어요'로 보임(청년월세·행복주택·버팀목전세 등). `recommend_programs()`·`program_counts()`만 바꿈, 재실행 안전. 검증 `tests/run_haru.sh` | ❌ 이번에 실행 |
+| `10_achievements.sql` | 온라인 낚시·분리수거 업적과 시장 칭호. 기존 09_achievements에서 번호만 변경 | 실제 팀 DB 적용 여부 확인 필요 |
+| `11_fish_sales.sql` | 시장 수산 매입소: 서버 가격, 아이템 회수·소지금 지급, 영수증과 중복 방지. 기존 10_fish_sales에서 번호만 변경 | 실제 팀 DB 적용 여부 확인 필요 |
 | `tests/` | `00_supabase_stub.sql`(코코용 축약 스텁), `01_auth_stub.sql`(auth만 흉내 → 실제 01~05를 그대로 올림)과 에이전트별 테스트 | — |
 | `full_schema_reference.sql` | 목표 설계 전체(테이블 31·뷰 3·RLS 44). 관제 대시보드의 케이스·보고서·권한까지 포함 | ❌ 참고용 — 아직 적용 안 함 |
 | `DB_테이블_정의서.md` | 전체 설계의 원칙·ERD·테이블 정의 + **11장 순환 연결로 실제 구현된 것** | |
@@ -25,7 +27,7 @@
 ## 새 Supabase 프로젝트에 처음부터 세팅하기
 
 1. Supabase 대시보드 → **SQL Editor** → New query → `01_socialworld_base.sql` 전체 붙여넣기 → Run
-2. 같은 방법으로 `02_loop_schema.sql` → Run, 이어서 `03_world_update.sql` → `04_coco.sql` → `05_chief.sql` → `06_haru.sql` → `07_feedback_chat.sql` → `08_economy.sql` → `09_haru_rules.sql` 순서로 Run
+2. 같은 방법으로 `02_loop_schema.sql` → Run, 이어서 `03_world_update.sql` → `04_coco.sql` → `05_chief.sql` → `06_haru.sql` → `07_feedback_chat.sql` → `08_economy.sql` → `09_haru_rules.sql` → `10_achievements.sql` → `11_fish_sales.sql` 순서로 Run
    (04부터는 파일명이 `적용 순서 번호_에이전트 이름.sql`. 번호 순서대로 실행한다)
 3. **Authentication → Sign In / Providers → Anonymous Sign-Ins** 켜기
    (소셜 월드 데모의 "게스트로 들어가기"가 익명 로그인을 쓴다. 카카오 로그인은 `DB_연결_단계별_실행가이드.md` 5장)
@@ -55,3 +57,21 @@
 코드·독립된 PostgreSQL 검증은 준비되었고, 실제 팀 DB의 관리 접속·SQL 적용·실제 사용자 계정 확인은 아직 수행하지 않았다. 파일의 이전 적용 표만으로 현재 서버의 상태를 확정하지 않는다.
 
 팀 공유용 안내: [돈 시스템·온라인 인벤토리 변경 정리](../docs/ONLINE-ECONOMY-CHANGES.md).
+
+파일 번호 정리: 최신 main의 `06_haru.sql`·`07_feedback_chat.sql`과 겹치지 않도록 돈 시스템은 `08_economy.sql`로 변경했다. SQL 내용은 동일하며, 기존 `06_economy.sql`을 이미 적용한 DB는 파일 이름 변경 때문에 다시 실행할 필요가 없다.
+
+
+## 업적·시장 칭호
+
+`10_achievements.sql`은 `08_economy.sql`이 먼저 적용되어 있어야 한다. 업적 조건·개인 진행도·달성 내역과 지갑의 장착 칭호를 추가한다. 기존 잔액과 아이템은 초기화하지 않는다. 재실행 시 진행도·장착 칭호를 유지한다. 브라우저의 직접 업적 부여는 막고, `sw_achievements` 함수로 조회·장착한다. 낚시/분리수거 업적은 기존 경제 처리와 같은 DB 트랜잭션에서 판정한다.
+
+검증: `node database/tests/achievements_test.cjs` (독립된 PostgreSQL 엔진, 팀 DB에 연결하지 않음).
+
+
+## 2026-10-08 main 통합
+
+SQL 번호는 01~09(main) → 10(업적) → 11(물고기 판매)로 통일했다. 이전 `09_achievements.sql`·`10_fish_sales.sql`을 이미 DB에 적용했다면 파일 이름 변경으로 데이터를 옮기거나 초기화할 필요가 없다. 새 파일에도 같은 테이블·RPC 이름을 유지한다. 새 main의 06·07·09가 없을 때 그 파일들을 추가로 적용한다.
+
+이 문서의 과거 적용 표는 작성 당시 팀 기록이며, 현재 서버 상태를 자동으로 확인한 결과가 아니다. 이번 통합에서는 격리된 PostgreSQL과 로컬 시험 도구로 검증했고 실제 팀 DB에는 실행하지 않았다.
+
+전체 분석·통합 결과: [main 통합 안내](../docs/MAIN-INTEGRATION-2026-10-08.md).

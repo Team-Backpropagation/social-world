@@ -449,7 +449,7 @@
     if (pc) pc.scrollTop = 0;
   }
 
-  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정', feedback: '내 의견함' };
+  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정', achievements: '업적·칭호', feedback: '내 의견함' };
   var NAV = [['home', 'home', '홈'], ['clubs', 'club', '동아리'], ['missions', 'mission', '미션'], ['contacts', 'chat', '연락처'], ['settings', 'settings', '설정']];
 
   function homeHTML() {
@@ -463,10 +463,11 @@
         '<button class="action primary" data-coco>코코와 이야기하기 ' + icon('arrow') + '</button></section>' +
       '<div class="stack"><button class="action secondary" data-contact="chief">🎩 마을이장 · 이번 주 모임 보기</button>' +
         (hasFeedback() ? '<button class="action secondary" data-fb-compose>✉️ 마을에 건의하기</button>' : '') + '</div>' +
-      '<div class="home-apps' + (hasFeedback() ? ' four' : '') + '">' +
+      '<div class="home-apps' + (hasFeedback() ? ' five' : ' four') + '">' +
         '<button data-nav="clubs"><span class="app-icon">' + icon('club') + '</span>동아리</button>' +
         '<button data-nav="missions"><span class="app-icon">' + icon('mission') + '</span>미션</button>' +
         '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button>' +
+        '<button data-nav="achievements"><span class="app-icon">★</span>업적·칭호</button>' +
         (hasFeedback() ? '<button data-nav="feedback" aria-label="내 의견함' + (ui.fbUnread ? ', 새 답 ' + ui.fbUnread + '개' : '') + '"><span class="app-icon">' + icon('mail') +
           '<span class="app-badge" id="fb-app-badge"' + (ui.fbUnread ? '' : ' hidden') + '>' + ui.fbUnread + '</span></span>내 의견함</button>' : '') +
       '</div>' +
@@ -613,6 +614,7 @@
     var keepScroll = ui.page === 'settings' ? (($('#phone-content') || {}).scrollTop || 0) : 0;
     var body = ui.page === 'clubs' ? clubsHTML() : ui.page === 'missions' ? missionsHTML()
       : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML()
+      : ui.page === 'achievements' ? '<div id="achievement-mount"></div>'
       : ui.page === 'feedback' ? '<div id="fb-mount"></div>' : homeHTML();
     var now = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
     $('#overlay').innerHTML =
@@ -650,6 +652,7 @@
     each('[data-complete]', function (b) { b.onclick = function () { completeMission(Number(b.dataset.complete), b); }; });
     each('[data-fb-compose]', function (b) { b.onclick = function () { phoneNavigate('feedback', { compose: true }); focusFirst(); }; });
     if (ui.page === 'settings') { bindSettings(); $('#phone-content').scrollTop = keepScroll; }
+    if (ui.page === 'achievements' && window.Achievements) $('#achievement-mount').replaceChildren(window.Achievements.mount());
     if (ui.page === 'feedback') mountFeedback();
   }
 
@@ -667,8 +670,7 @@
       }));
     } else {
       m.replaceChildren(window.Feedback.inbox({
-        sb: host.sb,
-        onChange: setFbUnread,
+        sb: host.sb, onChange: setFbUnread,
         onCompose: function () { phoneNavigate('feedback', { compose: true }); focusFirst(); }
       }));
     }

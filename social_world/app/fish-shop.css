@@ -1,0 +1,43 @@
+#fish-shop-backdrop{position:fixed;inset:0;z-index:150;background:rgba(28,47,43,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;color:#304d45;font-family:"Gowun Dodum","Malgun Gothic",sans-serif}
+#fish-shop-dialog{width:min(590px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;background:#fffaf0;border:1px solid #dedacb;border-radius:22px;box-shadow:0 20px 70px #16392d40;padding:24px;box-sizing:border-box}
+#fish-shop-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.fish-shop-kicker{color:#6d897d;font-size:12px;letter-spacing:.06em}
+#fish-shop-title{margin:5px 0 0;font-size:25px;font-weight:700;color:#305b51}
+#fish-shop-dialog button{font:inherit;cursor:pointer;border:1px solid #cbd7cb;background:#f3f5eb;color:#426557;border-radius:10px;padding:8px 12px}
+#fish-shop-dialog button:disabled{opacity:.45;cursor:default}
+#fish-shop-dialog button:focus-visible,#fish-shop-dialog input:focus-visible,#fish-shop-dialog summary:focus-visible{outline:3px solid #bca259;outline-offset:3px}
+#fish-shop-close{font-size:26px!important;width:40px;height:40px;padding:0!important;flex:none;background:transparent!important;border:0!important}
+.fish-shop-wallet{background:#e6f0e6;border-radius:14px;display:flex;align-items:center;justify-content:space-between;margin:20px 0 15px;padding:15px 17px;font-size:14px}
+.fish-shop-wallet strong{font-size:22px;color:#315d4b}
+#fish-shop-help{font-size:14px;line-height:1.6;margin:0 0 18px;color:#68786a}
+.fish-shop-tools{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:12px 0;font-size:13px;flex-wrap:wrap}
+.fish-shop-tools>span{display:flex;gap:6px}
+.fish-shop-tools button{font-size:12px!important;padding:7px 9px!important}
+.fish-shop-list{max-height:290px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;border:1px solid #e2e3d5;border-radius:14px;background:#fffdf7}
+.fish-shop-row{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid #eeeadd;cursor:pointer}
+.fish-shop-row:last-child{border-bottom:0}
+.fish-shop-row:has(input:checked){background:#eaf2e4}
+.fish-shop-row input{width:18px;height:18px;accent-color:#508371;flex:none}
+.fish-shop-icon{background:#e5eeec;border-radius:12px;width:40px;height:40px;display:grid;place-items:center;font-size:23px;flex:none}
+.fish-shop-item{min-width:0;display:flex;flex-direction:column;gap:4px;flex:1;font-size:15px}
+.fish-shop-item>span{font-size:12px;color:#7c877b}
+.fish-shop-item small{font-size:11px;color:#9b8064;line-height:1.3}
+.fish-shop-price{font-size:14px;white-space:nowrap;color:#456752}
+.fish-shop-row.is-unavailable{cursor:default;background:#f5f3eb}
+.fish-shop-row.is-unavailable .fish-shop-price{font-size:12px;color:#9b927c}
+.fish-shop-empty{text-align:center;padding:30px 16px;color:#71846f;font-size:13px}
+.fish-shop-empty>span{display:block;font-size:34px;margin-bottom:10px}
+.fish-shop-empty strong{display:block;font-size:16px}
+#fish-shop-history{font-size:13px;margin:15px 0 0;color:#6a8072}
+#fish-shop-history summary{cursor:pointer;padding:7px 0}
+#fish-shop-receipts{margin:4px 0;padding:0;list-style:none;max-height:145px;overflow-y:auto}
+#fish-shop-receipts li{display:grid;grid-template-columns:1fr auto;gap:4px;padding:9px 2px;border-top:1px solid #e8e5d7}
+#fish-shop-receipts time{grid-column:1/-1;font-size:11px;color:#949889}
+#fish-shop-dialog footer{margin-top:18px}
+.fish-shop-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px}
+.fish-shop-summary strong{font-size:24px;color:#35694f;margin-left:6px}
+#fish-shop-message{font-size:13px;line-height:1.45;min-height:19px;color:#90714c;margin:10px 0}
+.fish-shop-actions{display:flex;gap:8px}
+#fish-shop-sell{background:#4e826c!important;color:#fffaf0!important;border-color:#4e826c!important;flex:1;font-weight:700;padding:13px!important}
+#fish-shop-dialog footer>small{display:block;font-size:11px;line-height:1.5;margin-top:12px;color:#899180}
+@media(max-width:520px){#fish-shop-backdrop{padding:10px}#fish-shop-dialog{padding:18px;max-height:calc(100dvh - 20px);border-radius:18px}#fish-shop-title{font-size:22px}.fish-shop-row{padding:12px 9px;gap:8px}.fish-shop-icon{width:32px;height:34px;font-size:20px}.fish-shop-summary strong{font-size:22px}.fish-shop-list{max-height:260px}}

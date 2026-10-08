@@ -45,7 +45,7 @@ async function fits(page, selector, w, h) {
       });
       const page = await ctx.newPage(), errors = []; page.on('pageerror', e => errors.push(e.message));
       await page.goto('http://127.0.0.1:' + server.address().port + entry, { waitUntil: 'commit' });
-      await page.waitForFunction(() => window.MarketUI && __sw().engine?.isRunning(), null, { timeout: 90000 });
+      await page.waitForFunction(() => window.MarketUI && window.__sw?.().engine?.isRunning(), null, { timeout: 90000 });
       check(await page.locator('#market-chat').count() === 0, tag + ' chat not created in village');
       await goMap(page, 'bus'); await page.keyboard.press('e'); await page.locator('#transit-card').waitFor();
       check(await page.locator('#market-chat').count() === 0, tag + ' chat absent during outbound bus ride');
@@ -87,8 +87,8 @@ async function fits(page, selector, w, h) {
         return [...document.querySelectorAll('.sw-toast')].every(t => { const b = t.getBoundingClientRect(); return b.bottom <= a.top || b.top >= a.bottom || b.right <= a.left || b.left >= a.right; });
       }), tag + ' chat panel stays clear of arrival toast');
       await page.waitForFunction(() => {
-        const b = document.getElementById('market-chat-bubble')?.getBoundingClientRect(), p = __sw().engine.playerHeadScreen();
-        return b && Math.abs(b.bottom - (p.y - 12)) < 3;
+        const b = document.getElementById('market-chat-bubble')?.getBoundingClientRect(), n = document.getElementById('market-nameplate')?.getBoundingClientRect(), p = __sw().engine.playerHeadScreen();
+        return b && n && Math.abs(n.bottom - (p.y - 6)) < 3 && Math.abs(b.bottom - (n.top - 8)) < 3;
       });
       check(true, tag + ' speech bubble anchors above actual player head');
       await page.keyboard.press('Escape');
@@ -98,8 +98,8 @@ async function fits(page, selector, w, h) {
       finally { await page.keyboard.up('a'); }
       check(await page.evaluate(p => Math.hypot(__sw().engine.playerPos().x - p.x, __sw().engine.playerPos().z - p.z) > .1, p), tag + ' movement resumes after leaving input');
       await page.waitForFunction(() => {
-        const b = document.getElementById('market-chat-bubble')?.getBoundingClientRect(), p = __sw().engine.playerHeadScreen();
-        return b && Math.abs(b.bottom - (p.y - 12)) < 3;
+        const b = document.getElementById('market-chat-bubble')?.getBoundingClientRect(), n = document.getElementById('market-nameplate')?.getBoundingClientRect(), p = __sw().engine.playerHeadScreen();
+        return b && n && Math.abs(n.bottom - (p.y - 6)) < 3 && Math.abs(b.bottom - (n.top - 8)) < 3;
       });
       check(true, tag + ' speech bubble follows moving avatar');
       const suffix = width + (entry.includes('demo') ? '-bundle' : '');

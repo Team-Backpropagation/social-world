@@ -139,3 +139,5 @@ node social_world/app/tests/market_test.cjs
 ```
 
 테스트용 `database/tests/01_auth_stub.sql`은 독립된 테스트 DB에서만 사용한다. 팀 Supabase의 기존 Auth를 대신하도록 실행하면 안 된다.
+
+2026-10-08 파일 번호 정리: main의 하루(06)·의견함(07)과 번호가 겹치지 않도록 `06_economy.sql`을 `08_economy.sql`로 이름만 변경했다. DB 테이블·함수·기존 데이터는 변경하지 않는다.
