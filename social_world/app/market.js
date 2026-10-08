@@ -4,6 +4,10 @@
   let host = null, travelling = false, destination = null, service = null, focusBefore = null;
   let chat = null, speech = null, speechUntil = 0, composing = false;
   let chatFrame = null, manipulation = null;
+  let nameplate=null,nameObserver=null,speechObserver=null;
+  let nameSize={w:0,h:24},speechSize={w:0,h:0};
+  function measureName(){if(nameplate)nameSize={w:nameplate.offsetWidth,h:nameplate.offsetHeight};}
+  function measureSpeech(){if(speech)speechSize={w:speech.offsetWidth,h:speech.offsetHeight};}
   const chatHistory = [];
   const marketModes = ['market', 'bank', 'clothing'];
   function chatAvailable() {
@@ -11,7 +15,7 @@
     return !!e?.isRunning() && marketModes.includes(e.mode()) && !travelling && !service && !host.blocked() && !host.tutorial() && !root.WorldUI?.isOpen();
   }
   function isTyping() { return !!chat && !chat.hidden && document.activeElement === chat.querySelector('input'); }
-  function clearSpeech() { speech?.remove(); speech = null; speechUntil = 0; }
+  function clearSpeech() { speechObserver?.disconnect(); speechObserver=null; speech?.remove(); speech = null; speechUntil = 0; speechSize={w:0,h:0}; }
   function expandChat(expanded, focus = false) {
     if (!chat) return;
     chat.classList.toggle('is-collapsed', !expanded);
@@ -67,7 +71,7 @@
       chatHistory.push(message); if (chatHistory.length > 30) chatHistory.shift();
       appendChatMessage(message); input.value = ''; input.focus();
       clearSpeech(); speech = document.createElement('div'); speech.id = 'market-chat-bubble'; speech.setAttribute('aria-hidden', 'true');
-      speech.textContent = text; document.body.append(speech);
+      speech.textContent = text; document.body.append(speech); measureSpeech(); speechObserver=new ResizeObserver(measureSpeech); speechObserver.observe(speech);
       speechUntil = performance.now() + Math.max(5000, Math.min(9000, Array.from(text).length * 70 + 2500));
       drawSpeech();
     };
@@ -171,15 +175,27 @@
   root.visualViewport?.addEventListener('resize', placeChatAboveKeyboard);
   root.visualViewport?.addEventListener('scroll', placeChatAboveKeyboard);
   function drawSpeech() {
-    if (!speech) return;
-    if (performance.now() >= speechUntil) { clearSpeech(); return; }
-    const p = host?.engine()?.playerHeadScreen?.();
-    speech.hidden = !chatAvailable() || !p?.visible;
-    if (speech.hidden) return;
-    const half = speech.offsetWidth / 2;
-    const x = Math.max(half + 12, Math.min(root.innerWidth - half - 12, p.x));
-    speech.style.left = x + 'px'; speech.style.top = Math.max(speech.offsetHeight + 20, p.y - 12) + 'px';
-    speech.style.setProperty('--chat-tail-x', Math.max(15, Math.min(speech.offsetWidth - 15, p.x - x + half)) + 'px');
+    const e=host?.engine(), available=chatAvailable(), p=e?.playerHeadScreen?.();
+    const visible=available&&p?.visible;
+    if(visible&&!nameplate){
+      nameplate=document.createElement('div');nameplate.id='market-nameplate';nameplate.innerHTML='<strong hidden></strong><span></span>';document.body.append(nameplate);
+      nameObserver=new ResizeObserver(measureName);nameObserver.observe(nameplate);
+    }
+    if(nameplate){
+      nameplate.hidden=!visible;
+      if(visible){const title=root.Achievements?.title()||'',nick=String(host.nickname?.()||'나'),t=nameplate.querySelector('strong'),n=nameplate.querySelector('span');
+        if(t.textContent!==title){t.textContent=title;t.hidden=!title;measureName();}if(n.textContent!==nick){n.textContent=nick;measureName();}
+        const half=nameSize.w/2,x=Math.max(half+12,Math.min(root.innerWidth-half-12,p.x));
+        nameplate.style.transform='translate3d('+x+'px,'+(p.y-6)+'px,0) translate(-50%,-100%)';nameplate.dataset.frame=String(p.frame);
+      }
+    }
+    if(!speech)return;
+    if(performance.now()>=speechUntil){clearSpeech();return;}
+    speech.hidden=!visible;if(!visible)return;
+    const half=speechSize.w/2,x=Math.max(half+12,Math.min(root.innerWidth-half-12,p.x));
+    const y=Math.max(speechSize.h+20,p.y-14-nameSize.h);
+    speech.style.transform='translate3d('+x+'px,'+y+'px,0) translate(-50%,-100%)';speech.dataset.frame=String(p.frame);
+    speech.style.setProperty('--chat-tail-x',Math.max(15,Math.min(speechSize.w-15,p.x-x+half))+'px');
   }
   const messages = {
     approach: ['버스가 오고 있어요', '정류장에서 잠시 기다려 주세요.'],
@@ -272,8 +288,9 @@
       '<header><div><span class="market-eyebrow">' + (bank ? 'IEUM BANK' : 'TODAY’S WARDROBE') + '</span><h2 id="market-service-title">' + (bank ? '이음 은행' : '오늘의 옷장') + '</h2><p>' + (bank ? '잠시 쉬면서 앞으로의 계획을 그려 보세요.' : '지금 마음에 드는 색을 천천히 둘러보세요.') + '</p></div><button type="button" id="market-service-close" aria-label="안내 닫기">×</button></header>' +
       '<div class="market-wallet"><span>소지금 <strong data-cash>—</strong></span><span>은행 예금 <strong data-bank>—</strong></span></div><div class="market-saving"><p id="market-save-status" role="status">불러오는 중이에요…</p><button type="button" id="market-economy-retry">다시 확인</button></div>' +
       (bank ? '<div class="market-bank-services"><article><h3>입금</h3><p>소지금을 은행에 맡겨요.</p><form data-bank-form="deposit"><label for="bank-deposit">입금할 금액</label><input id="bank-deposit" type="number" inputmode="numeric" min="1" max="9000000000000" step="1" required placeholder="금액 입력"><button type="submit" class="market-primary" data-bank-action="deposit">입금하기</button></form></article><article><h3>출금</h3><p>예금을 소지금으로 꺼내요.</p><form data-bank-form="withdraw"><label for="bank-withdraw">출금할 금액</label><input id="bank-withdraw" type="number" inputmode="numeric" min="1" max="9000000000000" step="1" required placeholder="금액 입력"><button type="submit" class="market-primary" data-bank-action="withdraw">출금하기</button></form></article></div>' : '<div class="market-collection">' + clothes() + '</div><p class="market-collection-note">구매한 옷은 인벤토리에 보관돼요. 여기에서 바로 입어 볼 수도 있어요.</p>') +
-      '<footer><button type="button" class="market-primary" id="market-service-done">계속 둘러보기</button><span>Esc로 닫기</span></footer></section>';
+      '<footer>' + (!bank ? '<button type="button" class="market-primary" id="market-fitting">탈의실에서 입어 보기</button>' : '') + '<button type="button" class="market-primary" id="market-service-done">계속 둘러보기</button><span>Esc로 닫기</span></footer></section>';
     document.body.append(modal);
+    modal.querySelector('#market-fitting')?.addEventListener('click',()=>{closeService();root.Wardrobe?.open('shop');});
     modal.querySelector('#market-service-close').onclick = closeService; modal.querySelector('#market-service-done').onclick = closeService;
     const economy = host.economy?.();
     modal.querySelector('#market-economy-retry').onclick = () => economyAction(() => economy.retry());
@@ -312,7 +329,7 @@
     isTravelling: () => travelling,
     isTyping, isManipulating: () => !!manipulation, sync: syncChat, drawSpeech,
     tick() { syncChat(); if (speech && performance.now() >= speechUntil) clearSpeech(); },
-    reset() { endManipulation(); closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatFrame = null; chatHistory.length = 0; composing = false; document.body.classList.remove('has-market-chat'); },
+    reset() { endManipulation(); closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatFrame = null; chatHistory.length = 0; nameObserver?.disconnect(); nameObserver=null; nameplate?.remove(); nameplate=null; composing = false; document.body.classList.remove('has-market-chat'); },
     state: () => ({ travelling, destination, service, typing: isTyping(), manipulating: !!manipulation, chatVisible: !!chat && !chat.hidden, messages: chatHistory.length, speech: speech?.textContent || null })
   };
 })(window);

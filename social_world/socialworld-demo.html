@@ -2112,7 +2112,7 @@ body.in-transit #fishing-status, body.in-transit #hud-view, body.in-transit #hud
 #market-chat.is-collapsed .market-chat-resize { display: none; }
 .market-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 #market-chat-bubble {
-  position: fixed; z-index: 3; transform: translate(-50%, -100%); pointer-events: none;
+  position: fixed; left:0; top:0; z-index: 3; transform: translate3d(-9999px,-9999px,0); will-change:transform; pointer-events: none;
   width: max-content; max-width: min(250px, calc(100vw - 32px)); box-sizing: border-box;
   padding: 10px 14px; border-radius: 15px; border: 1px solid #C9D8BF;
   background: #FFFDF5F5; color: #375A49; box-shadow: 0 4px 12px #22472E24;
@@ -2131,6 +2131,69 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   #market-chat-input { font-size: 16px; padding: 7px; }
   .market-chat-hint { font-size: 8px; }
 }
+
+</style>
+<style>
+#fish-shop-backdrop{position:fixed;inset:0;z-index:150;background:rgba(28,47,43,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;color:#304d45;font-family:"Gowun Dodum","Malgun Gothic",sans-serif}
+#fish-shop-dialog{width:min(590px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;background:#fffaf0;border:1px solid #dedacb;border-radius:22px;box-shadow:0 20px 70px #16392d40;padding:24px;box-sizing:border-box}
+#fish-shop-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.fish-shop-kicker{color:#6d897d;font-size:12px;letter-spacing:.06em}
+#fish-shop-title{margin:5px 0 0;font-size:25px;font-weight:700;color:#305b51}
+#fish-shop-dialog button{font:inherit;cursor:pointer;border:1px solid #cbd7cb;background:#f3f5eb;color:#426557;border-radius:10px;padding:8px 12px}
+#fish-shop-dialog button:disabled{opacity:.45;cursor:default}
+#fish-shop-dialog button:focus-visible,#fish-shop-dialog input:focus-visible,#fish-shop-dialog summary:focus-visible{outline:3px solid #bca259;outline-offset:3px}
+#fish-shop-close{font-size:26px!important;width:40px;height:40px;padding:0!important;flex:none;background:transparent!important;border:0!important}
+.fish-shop-wallet{background:#e6f0e6;border-radius:14px;display:flex;align-items:center;justify-content:space-between;margin:20px 0 15px;padding:15px 17px;font-size:14px}
+.fish-shop-wallet strong{font-size:22px;color:#315d4b}
+#fish-shop-help{font-size:14px;line-height:1.6;margin:0 0 18px;color:#68786a}
+.fish-shop-tools{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:12px 0;font-size:13px;flex-wrap:wrap}
+.fish-shop-tools>span{display:flex;gap:6px}
+.fish-shop-tools button{font-size:12px!important;padding:7px 9px!important}
+.fish-shop-list{max-height:290px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;border:1px solid #e2e3d5;border-radius:14px;background:#fffdf7}
+.fish-shop-row{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid #eeeadd;cursor:pointer}
+.fish-shop-row:last-child{border-bottom:0}
+.fish-shop-row:has(input:checked){background:#eaf2e4}
+.fish-shop-row input{width:18px;height:18px;accent-color:#508371;flex:none}
+.fish-shop-icon{background:#e5eeec;border-radius:12px;width:40px;height:40px;display:grid;place-items:center;font-size:23px;flex:none}
+.fish-shop-item{min-width:0;display:flex;flex-direction:column;gap:4px;flex:1;font-size:15px}
+.fish-shop-item>span{font-size:12px;color:#7c877b}
+.fish-shop-item small{font-size:11px;color:#9b8064;line-height:1.3}
+.fish-shop-price{font-size:14px;white-space:nowrap;color:#456752}
+.fish-shop-row.is-unavailable{cursor:default;background:#f5f3eb}
+.fish-shop-row.is-unavailable .fish-shop-price{font-size:12px;color:#9b927c}
+.fish-shop-empty{text-align:center;padding:30px 16px;color:#71846f;font-size:13px}
+.fish-shop-empty>span{display:block;font-size:34px;margin-bottom:10px}
+.fish-shop-empty strong{display:block;font-size:16px}
+#fish-shop-history{font-size:13px;margin:15px 0 0;color:#6a8072}
+#fish-shop-history summary{cursor:pointer;padding:7px 0}
+#fish-shop-receipts{margin:4px 0;padding:0;list-style:none;max-height:145px;overflow-y:auto}
+#fish-shop-receipts li{display:grid;grid-template-columns:1fr auto;gap:4px;padding:9px 2px;border-top:1px solid #e8e5d7}
+#fish-shop-receipts time{grid-column:1/-1;font-size:11px;color:#949889}
+#fish-shop-dialog footer{margin-top:18px}
+.fish-shop-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px}
+.fish-shop-summary strong{font-size:24px;color:#35694f;margin-left:6px}
+#fish-shop-message{font-size:13px;line-height:1.45;min-height:19px;color:#90714c;margin:10px 0}
+.fish-shop-actions{display:flex;gap:8px}
+#fish-shop-sell{background:#4e826c!important;color:#fffaf0!important;border-color:#4e826c!important;flex:1;font-weight:700;padding:13px!important}
+#fish-shop-dialog footer>small{display:block;font-size:11px;line-height:1.5;margin-top:12px;color:#899180}
+@media(max-width:520px){#fish-shop-backdrop{padding:10px}#fish-shop-dialog{padding:18px;max-height:calc(100dvh - 20px);border-radius:18px}#fish-shop-title{font-size:22px}.fish-shop-row{padding:12px 9px;gap:8px}.fish-shop-icon{width:32px;height:34px;font-size:20px}.fish-shop-summary strong{font-size:22px}.fish-shop-list{max-height:260px}}
+
+</style>
+<style>
+.wardrobe-backdrop{z-index:45;padding:18px;background:#182721aa;backdrop-filter:blur(5px)}
+.wardrobe-dialog{width:min(1080px,96vw);max-height:94dvh;background:#fff9ed;border-radius:22px;overflow:hidden;box-shadow:0 20px 80px #15231d66;color:#3d594c;display:flex;flex-direction:column;font-family:'Gowun Dodum','Malgun Gothic',sans-serif}
+.wardrobe-dialog header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #dedbcc}.wardrobe-dialog h2{margin:3px 0 0;font-size:23px}.wardrobe-eyebrow{font-size:10px;letter-spacing:2px;color:#937b59}
+.wardrobe-dialog button{font:inherit;cursor:pointer;border:1px solid #cbd5c3;border-radius:10px;padding:9px 12px;background:#f3efdf;color:#3d594c}.wardrobe-dialog button:disabled{cursor:default;opacity:.55}.wardrobe-dialog button:focus-visible{outline:3px solid #b08b44;outline-offset:2px}
+#wardrobe-close{border:0;font-size:25px;padding:0;width:38px;height:38px}.wardrobe-body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr);min-height:0;overflow:auto}.wardrobe-preview{position:relative;min-height:450px;background:#eee0cc}#wardrobe-scene{height:100%;min-height:450px;position:absolute;inset:0}#wardrobe-scene canvas{display:block;width:100%;height:100%;touch-action:none}
+.wardrobe-view-tools{position:absolute;bottom:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;background:#fff9ead9;padding:8px 10px;border-radius:10px;pointer-events:none}.wardrobe-view-tools button{pointer-events:auto;font-size:11px}
+.wardrobe-options{padding:18px;display:flex;flex-direction:column;gap:14px}.wardrobe-list-head{display:flex;justify-content:space-between;gap:10px;font-size:13px}.wardrobe-list-head span{font-size:11px;color:#8a7c65}#wardrobe-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:340px;overflow:auto;padding:3px}.wardrobe-item{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}.wardrobe-item svg{width:62px;height:62px}.wardrobe-item strong{font-size:11px}.wardrobe-item small{font-size:10px;color:#8d7b61}.wardrobe-item.is-selected{outline:2px solid #709778;background:#e4ebda}
+.wardrobe-selected{margin-top:auto;padding-top:10px;border-top:1px solid #dedbcc}.wardrobe-selected p{font-size:11px;line-height:1.6;min-height:36px}.wardrobe-selected>div{display:flex;gap:8px;flex-wrap:wrap}#wardrobe-wear,#wardrobe-buy{background:#577d61;color:#fff;border:0}.wardrobe-dialog footer{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 22px;border-top:1px solid #dedbcc;font-size:11px;line-height:1.5}
+.achievement-intro{font-size:13px;line-height:1.7}.achievement-equipped{display:flex;align-items:center;gap:10px;background:#f3eacf;border-radius:12px;padding:12px;font-size:12px}.achievement-equipped button{margin-left:auto}.achievement-list{display:grid;gap:10px;margin-top:14px}.achievement-card{display:flex;gap:12px;align-items:center;border:1px solid #dddccc;border-radius:12px;padding:14px;background:#faf8f0}.achievement-card.is-earned{border-color:#c9b780;background:#fff8df}.achievement-medal{font-size:28px;color:#ba9749}.achievement-card>div{flex:1;min-width:0}.achievement-card p{font-size:12px;margin:5px 0}.achievement-card small{display:block;font-size:10px;color:#8b806c}.achievement-card progress{width:100%;height:8px;accent-color:#749775}.achievement-card button,.achievement-equipped button{font:inherit;font-size:11px;border:1px solid #bdcbb2;border-radius:8px;background:#e9efdf;color:#47664f;padding:8px;cursor:pointer}.achievement-card button:disabled{opacity:.6;cursor:default}.achievement-status{font-size:12px;color:#997348}
+#market-nameplate{position:fixed;left:0;top:0;z-index:3;pointer-events:none;text-align:center;will-change:transform;transform:translate3d(-9999px,-9999px,0)}#market-nameplate strong{display:block;font:700 12px/1.6 'Gowun Dodum','Malgun Gothic',sans-serif;color:#f5db8f;text-shadow:0 1px 3px #243b2e,0 0 5px #243b2e}#market-nameplate span{display:block;font:700 13px/1.6 'Gowun Dodum','Malgun Gothic',sans-serif;color:#fff9ed;text-shadow:0 1px 3px #243b2e,0 0 5px #243b2e}
+@media(max-width:650px){.wardrobe-backdrop{padding:8px}.wardrobe-dialog{width:100%;max-height:97dvh;border-radius:15px}.wardrobe-dialog header{padding:12px 16px}.wardrobe-dialog h2{font-size:19px}.wardrobe-body{display:flex;flex-direction:column}.wardrobe-preview{min-height:300px;height:40dvh;flex-shrink:0}#wardrobe-scene{min-height:300px}.wardrobe-options{padding:12px}#wardrobe-list{grid-template-columns:repeat(4,minmax(0,1fr));max-height:190px}.wardrobe-item svg{width:42px;height:42px}.wardrobe-item strong{font-size:10px}.wardrobe-dialog footer{padding:10px 14px;font-size:10px}.wardrobe-selected p{min-height:0}.achievement-card{padding:10px;gap:8px}}
+
+.home-apps.four{grid-template-columns:repeat(4,1fr);gap:8px}.home-apps.four .app-icon{width:54px;height:54px}
+@media(max-width:650px){.wardrobe-preview{min-height:250px;height:32dvh}#wardrobe-scene{min-height:250px}.wardrobe-options{padding:10px;gap:10px}#wardrobe-list{max-height:140px}.wardrobe-selected p{font-size:10px;margin:6px 0}.wardrobe-view-tools{font-size:10px;bottom:8px;padding:6px 8px}.wardrobe-view-tools button{font-size:10px;padding:6px 8px}}
 
 </style>
 </head>
@@ -2195,6 +2258,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(new THREE.Color('#A6D4F2').convertSRGBToLinear(), 110, 300);   // 맑은 날: 먼 곳만 옅은 하늘색
     const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 400);
+    let headViewport = null, projectionFrame = 0;
 
     // ---------------- 공통: 둥근 지평선 + 바람 (원본 그대로)
     const U = { center: { value: new THREE.Vector3() }, k: { value: 0.0045 }, time: { value: 0 }, yaw: { value: 0 } };
@@ -2419,7 +2483,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       if (acc === 'headphones') { const band = mesh(new THREE.TorusGeometry(0.55, 0.045, 8, 24, Math.PI), M('#3B3B3B'), 0, 0.02, 0, head); band.rotation.z = 0; for (const sx of [-0.53, 0.53]) mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.12, 16), M('#3B3B3B'), sx, -0.02, 0, head).rotation.z = Math.PI / 2; }
       if (acc === 'flower' || o.flower) { const f = new THREE.Group(); for (let i = 0; i < 5; i++) { const a = i / 5 * 6.28; mesh(new THREE.SphereGeometry(0.06, 8, 6), M('#F4A6C0'), Math.cos(a) * 0.07, Math.sin(a) * 0.07, 0, f); } mesh(new THREE.SphereGeometry(0.04, 8, 6), M('#F6D06A'), 0, 0, 0.03, f); f.position.set(0.3, 0.28, 0.3); f.rotation.y = 0.6; head.add(f); }
       g.scale.setScalar(s);
-      g.userData = { legs, arms, head, phase: rnd() * 6.28, baseY: 0 };
+      g.userData = { legs, arms, head, phase: o.staticPreview ? 0 : rnd() * 6.28, baseY: 0 };
       parent.add(shade(g));
       if (parent === scene) g.userData.blob = blob(0, 0, 1.1 * s, 0.4);
       return g;
@@ -2925,6 +2989,13 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
         const shelf = new THREE.Group(); shelf.position.set(-4.75, 0, 1.4); g.add(shelf);
         mesh(rbox(0.6, 2.3, 1.8, 0.06), M('#A57852'), 0, 1.15, 0, shelf);
         for (let r = 0; r < 3; r++) for (let i = 0; i < 6; i++) mesh(rbox(0.36, 0.5, 0.18, 0.02), M(['#E0654A', '#3F8C86', '#F2C14E', '#5B7DB1', '#C9A4E0', '#FFFDF7'][(i + r) % 6]), 0.12, 0.45 + r * 0.7, -0.62 + i * 0.25, shelf);
+        // 내 옷장 — 출입문·침대·책상 동선과 떨어진 앞쪽 벽.
+        const closet = new THREE.Group(); closet.position.set(-2.7,0,2.1); g.add(closet);
+        mesh(rbox(1.7,2.35,.65,.08),M('#A8805D'),0,1.175,0,closet);
+        for (const x of [-.41,.41]) { mesh(rbox(.78,2.18,.06,.04),M('#D0AB82'),x,1.16,.35,closet); mesh(new THREE.SphereGeometry(.05,8,8),M('#786345'),x<0?-.08:.08,1.12,.41,closet); }
+        places.homeWardrobe = { x:RX-2.7,z:RZ+3.15 };
+        doors.push({ id:'home-wardrobe',label:'옷장 열기',...places.homeWardrobe,r:1.15,area:'room',type:'wardrobe' });
+        colliders.push({seg:[RX-3.55,RZ+2.1,RX-1.85,RZ+2.1],r:.38,area:'room'});
         // 러그·화분
         const rug = mesh(new THREE.CylinderGeometry(2.1, 2.1, 0.04, 40), M('#E9C46A'), 0.3, 0.03, 0.6, g); rug.scale.z = 0.75; rug.receiveShadow = true;
         const pot = new THREE.Group(); pot.position.set(4.4, 0, 0.4); g.add(pot);
@@ -3427,6 +3498,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     function resize() {
       W = window.innerWidth; Hh = window.innerHeight;
       renderer.setPixelRatio(DPR); renderer.setSize(W, Hh, false);
+      headViewport = null;
       camera.aspect = W / Hh; camera.fov = W < 640 ? 50 : 36; camera.updateProjectionMatrix();
       buildRTs();
     }
@@ -3448,6 +3520,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     }
     function tick() {
       if (!running) return;
+      if (window.Wardrobe?.isOpen()) { clock.getDelta(); requestAnimationFrame(tick); return; }
       const dt = Math.min(clock.getDelta(), 0.05) * (window.__SW_TIMESCALE || 1), t = clock.elapsedTime;
       U.time.value = reduceMotion ? 0 : t;
       let mx = 0, mz = 0, stepCap = Infinity;
@@ -3551,6 +3624,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = isIndoor() ? 1.6 : 3;
         camera.position.set(camFocus.x + sy * Math.cos(view.pitch) * D, camFocus.y + Math.sin(view.pitch) * D, camFocus.z + cy * Math.cos(view.pitch) * D);
         camera.lookAt(camFocus.x - sy * ah, 0.9, camFocus.z - cy * ah); }
+      camera.updateMatrixWorld(true); projectionFrame++;
       if (skyDeco) { skyDeco.visible = !isIndoor(); skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
       sun.position.copy(camFocus).addScaledVector(SUN_DIR, 50); sun.target.position.copy(camFocus); sun.target.updateMatrixWorld();
       if (mm && (mm.frame++ % 2 === 0)) drawMinimap();
@@ -3673,8 +3747,8 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       playerHeadScreen() {
         if (!running || !['market', 'bank', 'clothing'].includes(mode) || !player?.visible) return null;
         const p = new THREE.Vector3(player.position.x, 2.6 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
-        const b = renderer.domElement.getBoundingClientRect();
-        return { x: b.left + (p.x / 2 + .5) * b.width, y: b.top + (.5 - p.y / 2) * b.height, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2 };
+        const b = headViewport || (headViewport = renderer.domElement.getBoundingClientRect());
+        return { frame: projectionFrame, x: b.left + (p.x / 2 + .5) * b.width, y: b.top + (.5 - p.y / 2) * b.height, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2 };
       },
       enter(m, opt = {}) {
         hooks.teleport?.();fishingVisual=null;
@@ -3708,7 +3782,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
         camFocus.copy(isIndoor() ? indoorFocus() : player.position);
         if (mm) { mm.base = null; mm.frame = 0; }
         nearTarget = undefined;
-        document.body.classList.add('in-world');
+        document.body.classList.add('in-world'); headViewport = null;
         if (!running) { running = true; setGfx(gfxHigh); clock.getDelta(); requestAnimationFrame(tick); }
       },
       leave() { marketWorld?.cancel(); hooks.teleport?.();fishingVisual=null;updateFishingModels(0); running = false; keys.clear(); document.body.classList.remove('in-world'); },
@@ -3717,6 +3791,15 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       wake() { player.userData.sleeping = false; setSeated(player, false); player.position.x += 0.6; player.rotation.y = Math.PI / 4; },
       playerPos: () => ({ x: player.position.x, z: player.position.z }),
       avatarPortrait,
+      createWardrobeAvatar(av) {
+        const group = new THREE.Group(), avatar = person({ ...lookFromAvatar(av), staticPreview: true, scale: 1.12 }, group);
+        const materials = new Map();
+        avatar.traverse(o => { if (!o.isMesh) return;
+          const flat = m => { if (!materials.has(m)) { const n = m.clone(); n.onBeforeCompile = () => {}; n.customProgramCacheKey = () => 'wardrobe-flat'; materials.set(m,n); } return materials.get(m); };
+          o.material = Array.isArray(o.material) ? o.material.map(flat) : flat(o.material); o.customDepthMaterial = undefined;
+        });
+        return group;
+      },
       setAvatar,
       setNpcVisible(id, on) { const n = npcObjs.find(x => x.id === id); if (!n) return; n.visible = on; n.obj.visible = on; n.obj.userData.blob.visible = on; n.col.off = !on; },
       guideShow(x, z, facing) { ensureGuide(); guide.visible = true; guide.userData.blob.visible = true; guide.position.set(x, 0, z); if (facing != null) guide.rotation.y = facing; guideState = { path: null }; },
@@ -3772,6 +3855,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     points: [
       { id: 'market-bank', name: '이음 은행', x: MX - 12, z: -8 },
       { id: 'market-clothing', name: '오늘의 옷장', x: MX + 12, z: -8 },
+      { id: 'market-fish-shop', name: '이음 수산 매입소', minimapName: '수산 매입소', x: MX - 19, z: 4 },
       { id: 'market-square', name: '시장 광장', x: MX, z: 3 },
       { id: 'market-bus', name: '마을행 버스', x: MX - 1.8, z: 14.8 }
     ],
@@ -4000,6 +4084,29 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     }
     shop('market-bank', MX - 12, '#EEE7D1', '#648E7F', '이음 은행', true);
     shop('market-clothing', MX + 12, '#F5E6D4', '#CB8273', '오늘의 옷장', false);
+    // Fish buyer: an open-front stall in the western square, clear of the bus route.
+    const fishStall = new THREE.Group(); fishStall.name='market-fish-shop'; fishStall.position.set(MX-19,0,1); plaza.add(fishStall);
+    box(fishStall,5.4,.16,3.8,'#D2C4A5',0,.08,0);
+    box(fishStall,5.1,2.8,.16,'#C8DED6',0,1.45,-1.7);
+    for(const xx of [-2.45,2.45]){box(fishStall,.2,3.35,.2,'#527F77',xx,1.7,1.55);box(fishStall,.18,2.8,3.4,'#C8DED6',xx,1.45,-.1);}
+    box(fishStall,5.8,.3,4.25,'#4F8C85',0,3.25,0);
+    facadeSign(fishStall,'이음 수산 매입소',4.7,0,2.6,1.8);
+    box(fishStall,4.8,1.05,1.2,'#7BA69C',0,.62,1.05);
+    box(fishStall,5.1,.13,1.4,'#FFF2D6',0,1.18,1.05);
+    // Three shallow ice trays with procedural fish shapes.
+    for(let k=0;k<3;k++){
+      const xx=(k-1)*1.5;box(fishStall,1.28,.14,.85,'#B8DAD9',xx,1.31,1.06);
+      for(const zz of [-.16,.16]){
+        const fish=new THREE.Group();fishStall.add(fish);fish.position.set(xx,1.44,1.06+zz);
+        const body=mesh(new THREE.SphereGeometry(.22,12,8),M(k===1?'#9BAAB4':'#C3B489'),0,0,0,fish);body.scale.set(1.55,.32,.55);
+        const tail=mesh(new THREE.ConeGeometry(.13,.22,3),M('#809D9A'),-.4,0,0,fish);tail.rotation.z=Math.PI/2;tail.scale.z=.55;
+        mesh(new THREE.SphereGeometry(.024,6,4),M('#354C49'),.22,.035,.065,fish);
+      }
+    }
+    shade(fishStall);
+    for(const [ax,az,bx,bz] of [[-2.55,-1.8,2.55,-1.8],[-2.55,-1.8,-2.55,1.7],[2.55,-1.8,2.55,1.7],[-2.55,1.7,2.55,1.7]])colliders.push({seg:[MX-19+ax,1+az,MX-19+bx,1+bz],r:.17,area:'market'});
+    places['market-fish-shop']={x:MX-19,z:4};
+    doors.push({id:'market-fish-shop',label:'물고기 팔기',...places['market-fish-shop'],r:2.2,area:'market',type:'fish-shop'});
     // A central welcome arch and small places to rest give the square its identity.
     [-5, 5].forEach(x => { box(plaza, .38, 4.5, .38, '#887B60', MX + x, 2.25, -17); colliders.push({ x: MX + x, z: -17, r: .22, area: 'market' }); });
     box(plaza, 11.3, .65, .6, '#608A70', MX, 4.4, -17);
@@ -4050,6 +4157,15 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
         box(g, 2.4, .9, 1.2, '#C59D85', 0, .45, -3.6);
         colliders.push({ seg: [p.x - 1.2, p.z - 3.6, p.x + 1.2, p.z - 3.6], r: .6, area: kind });
         for (let i = 0; i < 3; i++) box(g, .65, .12, .55, colors[i], -.75 + i * .75, 1.05, -3.6);
+        // Open-front fitting cubicle, away from the central clothing counter.
+        box(g,2.0,2.8,.15,'#D1B49B',-2.8,1.4,.45);
+        for(const x of [-3.78,-1.82]) { box(g,.12,2.8,2.15,'#B59374',x,1.4,1.5); colliders.push({seg:[p.x+x,p.z+.4,p.x+x,p.z+2.6],r:.10,area:kind}); }
+        box(g,2.0,.13,.15,'#927352',-2.8,2.8,2.58);
+        for(let i=0;i<4;i++) box(g,.12,2.5,.07,'#92AB99',-3.7+i*.09,1.43,2.57);
+        label(g,'탈의실',-2.8,3.15,2.65,48);
+        colliders.push({seg:[p.x-3.8,p.z+.45,p.x-1.8,p.z+.45],r:.12,area:kind});
+        places.fittingRoom={x:p.x-2.8,z:p.z+1.65};
+        doors.push({id:'clothing-fitting',label:'탈의실에서 입어 보기',...places.fittingRoom,r:1.0,area:kind,type:'wardrobe'});
         box(g, 1.6, .25, .9, '#CBA68A', 2.6, .3, 1.6);
         colliders.push({ seg: [p.x + 1.8, p.z + 1.6, p.x + 3.4, p.z + 1.6], r: .45, area: kind });
       }
@@ -4274,6 +4390,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
         const [px, pz] = P(x, -8); g.fillStyle = color; g.fillRect(px - 48, pz - 37, 96, 74);
         g.strokeStyle = '#4D6556'; g.strokeRect(px - 48, pz - 37, 96, 74);
       }
+      const fishPoint=P(MX-19,1);g.fillStyle='#4F8C85';g.fillRect(fishPoint[0]-29,fishPoint[1]-21,58,42);g.strokeStyle='#426A61';g.strokeRect(fishPoint[0]-29,fishPoint[1]-21,58,42);
       g.fillStyle = '#628B6D'; for (const [x, z] of [[MX - 21, -17], [MX + 21, -17], [MX - 21, 10], [MX + 21, 10]]) { const p = P(x, z); g.beginPath(); g.arc(...p, 16, 0, Math.PI * 2); g.fill(); }
       marketMap = c;
       return c;
@@ -4288,7 +4405,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       for (const p of data.points) {
         const dx = (p.x - player.position.x) * k, dz = (p.z - player.position.z) * k;
         const x = R + dx * Math.cos(yaw) - dz * Math.sin(yaw), y = R + dx * Math.sin(yaw) + dz * Math.cos(yaw);
-        if (Math.hypot(x - R, y - R) < R - 15) { g.strokeStyle = '#FFF8E8'; g.lineWidth = 3; g.strokeText(p.name, x, y); g.fillStyle = '#365B4C'; g.fillText(p.name, x, y); }
+        if (Math.hypot(x - R, y - R) < R - 15) { g.strokeStyle = '#FFF8E8'; g.lineWidth = 3; g.strokeText(p.minimapName||p.name, x, y); g.fillStyle = '#365B4C'; g.fillText(p.minimapName||p.name, x, y); }
       }
       g.save(); g.translate(R, R); g.rotate(yaw - player.rotation.y); g.beginPath(); g.moveTo(0, 8); g.lineTo(-5, -5); g.lineTo(5, -5); g.closePath(); g.fillStyle = '#F26D58'; g.fill(); g.strokeStyle = '#FFFFFF'; g.lineWidth = 1.5; g.stroke(); g.restore();
       g.fillStyle = '#BA574B'; g.fillText('N', R + Math.sin(yaw) * (R - 10), R - Math.cos(yaw) * (R - 10));
@@ -4988,7 +5105,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
  const wardrobe=[['sage-shirt','세이지 셔츠','#8FAA9B',1000],['apricot-shirt','살구 셔츠','#D9917F',1000],['cream-knit','크림 니트','#E2CF9C',1200],['sky-shirt','하늘 셔츠','#96B4CC',1000],['lavender-knit','라벤더 니트','#B5A4C1',1200],['brown-shirt','소프트 브라운','#B9987C',1000]].map(([id,name,color,price])=>({id,name,color,price,kind:'clothing'}));
  function register(catalog){for(const c of catalog||[])if(c.kind==='clothing'&&/^#[0-9a-f]{6}$/i.test(c.color)&&root.FishingData)root.FishingData.items[c.id]={name:c.name,kind:'clothing',color:c.color,description:'오늘의 옷장에서 고른 옷이에요.'};}
  register(wardrobe);
- const messages={SETUP_REQUIRED:'온라인 보관함을 준비 중이에요. 기존 아이템은 이 브라우저에서 사용할 수 있어요.',OFFLINE:'서버에 연결하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.',invalid_import:'이전 보관함을 옮기지 못했어요. 기존 기록은 이 브라우저에 남아 있어요.',PENDING:'처리 결과를 확인 중이에요. 다시 확인을 눌러 주세요.',BUSY:'처리 중이에요. 잠시 기다려 주세요.',insufficient_cash:'소지금이 부족해요.',insufficient_bank:'예금 잔액이 부족해요.',invalid_amount:'1원 이상의 정수를 입력해 주세요.',already_owned:'이미 가지고 있는 옷이에요.',wrong_recycle_bin:'다른 수거함을 골라 주세요.',item_not_owned:'현재 보유한 아이템이 아니에요.',item_in_trade:'거래 중인 아이템이에요.',bite_missed:'입질 시간이 지났어요. 다시 낚시해 보세요.',too_early:'찌가 잠길 때 낚아채세요.',rod_not_equipped:'낚싯대를 먼저 장착해 주세요.',fishing_cooldown:'잠시 뒤에 다시 던져 주세요.',legacy_item_not_tradable:'이전 브라우저에서 가져온 아이템은 거래할 수 없어요.',STORAGE:'저장 기능을 사용할 수 없어요. 브라우저 설정을 확인해 주세요.',ONLINE_CATCH_REQUIRED:'온라인 낚시로 아이템을 획득해 주세요.'};
+ const messages={FISH_SHOP_SETUP:'수산 매입소를 준비 중이에요. DB에 10_fish_sales.sql을 적용해 주세요.',legacy_item_not_sellable:'이전 브라우저에서 가져온 물고기는 판매할 수 없어요.',fish_not_accepted:'지금은 매입하지 않는 물고기예요.',invalid_fish_size:'크기 기록을 확인할 수 없는 물고기예요.',invalid_sale_selection:'판매할 물고기를 1~100마리 선택해 주세요.',fish_price_changed:'매입 가격이 바뀌었어요. 새 가격을 확인하고 다시 판매해 주세요.',wallet_limit:'소지금 한도를 초과해요. 먼저 은행에 입금해 주세요.',request_mismatch:'이미 처리된 요청과 내용이 달라요. 보관함을 새로 확인해 주세요.',SETUP_REQUIRED:'온라인 보관함을 준비 중이에요. 기존 아이템은 이 브라우저에서 사용할 수 있어요.',OFFLINE:'서버에 연결하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.',invalid_import:'이전 보관함을 옮기지 못했어요. 기존 기록은 이 브라우저에 남아 있어요.',PENDING:'처리 결과를 확인 중이에요. 다시 확인을 눌러 주세요.',BUSY:'처리 중이에요. 잠시 기다려 주세요.',insufficient_cash:'소지금이 부족해요.',insufficient_bank:'예금 잔액이 부족해요.',invalid_amount:'1원 이상의 정수를 입력해 주세요.',already_owned:'이미 가지고 있는 옷이에요.',wrong_recycle_bin:'다른 수거함을 골라 주세요.',item_not_owned:'현재 보유한 아이템이 아니에요.',item_in_trade:'거래 중인 아이템이에요.',bite_missed:'입질 시간이 지났어요. 다시 낚시해 보세요.',too_early:'찌가 잠길 때 낚아채세요.',rod_not_equipped:'낚싯대를 먼저 장착해 주세요.',fishing_cooldown:'잠시 뒤에 다시 던져 주세요.',legacy_item_not_tradable:'이전 브라우저에서 가져온 아이템은 거래할 수 없어요.',STORAGE:'저장 기능을 사용할 수 없어요. 브라우저 설정을 확인해 주세요.',ONLINE_CATCH_REQUIRED:'온라인 낚시로 아이템을 획득해 주세요.'};
  function fail(code){const e=new Error(messages[code]||'요청을 완료하지 못했어요. 다시 확인해 주세요.');e.code=code;return e;}
  function errorCode(error){const text=String(error?.message||'');return Object.keys(messages).find(k=>text.includes(k))||error?.code||'OFFLINE';}
  const clone=v=>JSON.parse(JSON.stringify(v));
@@ -5008,10 +5125,11 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   }
   async function rpc(action,args={},id=null){
    let response;
-   try{response=await sb.rpc('sw_economy',{p_action:action,p_args:args,p_request_id:id});}catch(e){throw fail('OFFLINE');}
+   const fishShop=action==='fish_quote'||action==='sell_fish';
+   try{response=await sb.rpc(fishShop?'sw_fish_shop':'sw_economy',{p_action:fishShop?(action==='fish_quote'?'quote':'sell'):action,p_args:args,p_request_id:id});}catch(e){throw fail('OFFLINE');}
    if(!active)throw fail('CANCELLED');
    if(response?.error){
-    if(['PGRST202','42883'].includes(response.error.code))throw fail('SETUP_REQUIRED');
+    if(['PGRST202','42883'].includes(response.error.code)){const e=fail(fishShop?'FISH_SHOP_SETUP':'SETUP_REQUIRED');if(fishShop)e.definite=true;throw e;}
     const e=fail(errorCode(response.error));e.definite=/^[0-9A-Z]{5}$/.test(response.error.code||'')&&!['PGRST000','PGRST001','PGRST002'].includes(response.error.code);throw e;
    }
    return receive(response?.data);
@@ -5070,6 +5188,8 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
    subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn);},
    deposit:amount=>run('deposit',{amount}),withdraw:amount=>run('withdraw',{amount}),buy:itemId=>run('buy',{itemId}),
    equipClothing:instanceId=>run('equip_clothing',{instanceId}),
+   quoteFish:async()=>{if(!active)throw fail('CANCELLED');if(busy)throw fail('BUSY');if(pending)throw fail('PENDING');if(mode!=='online')throw fail(mode==='legacy'?'SETUP_REQUIRED':'OFFLINE');return (await rpc('fish_quote')).result;},
+   sellFish:(instanceIds,expectedTotal)=>run('sell_fish',{instanceIds,expectedTotal}),
    beginFishing:waterId=>run('begin_fishing',{waterId}),finishFishing:castId=>run('finish_fishing',{castId}),cancelFishing:castId=>run('cancel_fishing',{castId}),
    offer:(instanceId,buyerId,price)=>run('offer',{instanceId,buyerId,price}),acceptOffer:offerId=>run('accept_offer',{offerId}),cancelOffer:offerId=>run('cancel_offer',{offerId}),declineOffer:offerId=>run('decline_offer',{offerId}),
    destroy(){active=false;root.clearInterval?.(timer);root.removeEventListener?.('focus',focus);listeners.clear();}
@@ -5695,7 +5815,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     if (pc) pc.scrollTop = 0;
   }
 
-  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정' };
+  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정', achievements: '업적·칭호' };
   var NAV = [['home', 'home', '홈'], ['clubs', 'club', '동아리'], ['missions', 'mission', '미션'], ['contacts', 'chat', '연락처'], ['settings', 'settings', '설정']];
 
   function homeHTML() {
@@ -5708,10 +5828,10 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
         '<p>' + esc(cocoLine) + '</p>' +
         '<button class="action primary" data-coco>코코와 이야기하기 ' + icon('arrow') + '</button></section>' +
       '<div class="stack"><button class="action secondary" data-contact="chief">🎩 마을이장 · 이번 주 모임 보기</button></div>' +
-      '<div class="home-apps">' +
+      '<div class="home-apps four">' +
         '<button data-nav="clubs"><span class="app-icon">' + icon('club') + '</span>동아리</button>' +
         '<button data-nav="missions"><span class="app-icon">' + icon('mission') + '</span>미션</button>' +
-        '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button></div>' +
+        '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button><button data-nav="achievements"><span class="app-icon">★</span>업적·칭호</button></div>' +
       '<button class="action secondary home-map" data-open-map>' + icon('map') + ' 전체 지도 열기 <span>' + codeLabel(settings.bindings.map) + '</span></button>' +
       '<p class="info-note">휴대폰에서 한 동아리 가입·미션 참여도 마을에서 한 것과 똑같이 저장돼요. 대화 내용은 저장하지 않아요.</p>';
   }
@@ -5854,7 +5974,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   function renderPhone() {
     var keepScroll = ui.page === 'settings' ? (($('#phone-content') || {}).scrollTop || 0) : 0;
     var body = ui.page === 'clubs' ? clubsHTML() : ui.page === 'missions' ? missionsHTML()
-      : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML() : homeHTML();
+      : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML() : ui.page === 'achievements' ? '<div id="achievement-mount"></div>' : homeHTML();
     var now = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
     $('#overlay').innerHTML =
       '<section class="phone-dialog" role="dialog" aria-modal="true" aria-labelledby="phone-title">' +
@@ -5890,6 +6010,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     each('[data-start]', function (b) { b.onclick = function () { startMission(Number(b.dataset.start), b); }; });
     each('[data-complete]', function (b) { b.onclick = function () { completeMission(Number(b.dataset.complete), b); }; });
     if (ui.page === 'settings') { bindSettings(); $('#phone-content').scrollTop = keepScroll; }
+    if (ui.page === 'achievements' && window.Achievements) $('#achievement-mount').replaceChildren(window.Achievements.mount());
   }
 
   // ---------------------------------------------------------------- 키보드
@@ -6008,6 +6129,10 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   let host = null, travelling = false, destination = null, service = null, focusBefore = null;
   let chat = null, speech = null, speechUntil = 0, composing = false;
   let chatFrame = null, manipulation = null;
+  let nameplate=null,nameObserver=null,speechObserver=null;
+  let nameSize={w:0,h:24},speechSize={w:0,h:0};
+  function measureName(){if(nameplate)nameSize={w:nameplate.offsetWidth,h:nameplate.offsetHeight};}
+  function measureSpeech(){if(speech)speechSize={w:speech.offsetWidth,h:speech.offsetHeight};}
   const chatHistory = [];
   const marketModes = ['market', 'bank', 'clothing'];
   function chatAvailable() {
@@ -6015,7 +6140,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     return !!e?.isRunning() && marketModes.includes(e.mode()) && !travelling && !service && !host.blocked() && !host.tutorial() && !root.WorldUI?.isOpen();
   }
   function isTyping() { return !!chat && !chat.hidden && document.activeElement === chat.querySelector('input'); }
-  function clearSpeech() { speech?.remove(); speech = null; speechUntil = 0; }
+  function clearSpeech() { speechObserver?.disconnect(); speechObserver=null; speech?.remove(); speech = null; speechUntil = 0; speechSize={w:0,h:0}; }
   function expandChat(expanded, focus = false) {
     if (!chat) return;
     chat.classList.toggle('is-collapsed', !expanded);
@@ -6071,7 +6196,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       chatHistory.push(message); if (chatHistory.length > 30) chatHistory.shift();
       appendChatMessage(message); input.value = ''; input.focus();
       clearSpeech(); speech = document.createElement('div'); speech.id = 'market-chat-bubble'; speech.setAttribute('aria-hidden', 'true');
-      speech.textContent = text; document.body.append(speech);
+      speech.textContent = text; document.body.append(speech); measureSpeech(); speechObserver=new ResizeObserver(measureSpeech); speechObserver.observe(speech);
       speechUntil = performance.now() + Math.max(5000, Math.min(9000, Array.from(text).length * 70 + 2500));
       drawSpeech();
     };
@@ -6175,15 +6300,27 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   root.visualViewport?.addEventListener('resize', placeChatAboveKeyboard);
   root.visualViewport?.addEventListener('scroll', placeChatAboveKeyboard);
   function drawSpeech() {
-    if (!speech) return;
-    if (performance.now() >= speechUntil) { clearSpeech(); return; }
-    const p = host?.engine()?.playerHeadScreen?.();
-    speech.hidden = !chatAvailable() || !p?.visible;
-    if (speech.hidden) return;
-    const half = speech.offsetWidth / 2;
-    const x = Math.max(half + 12, Math.min(root.innerWidth - half - 12, p.x));
-    speech.style.left = x + 'px'; speech.style.top = Math.max(speech.offsetHeight + 20, p.y - 12) + 'px';
-    speech.style.setProperty('--chat-tail-x', Math.max(15, Math.min(speech.offsetWidth - 15, p.x - x + half)) + 'px');
+    const e=host?.engine(), available=chatAvailable(), p=e?.playerHeadScreen?.();
+    const visible=available&&p?.visible;
+    if(visible&&!nameplate){
+      nameplate=document.createElement('div');nameplate.id='market-nameplate';nameplate.innerHTML='<strong hidden></strong><span></span>';document.body.append(nameplate);
+      nameObserver=new ResizeObserver(measureName);nameObserver.observe(nameplate);
+    }
+    if(nameplate){
+      nameplate.hidden=!visible;
+      if(visible){const title=root.Achievements?.title()||'',nick=String(host.nickname?.()||'나'),t=nameplate.querySelector('strong'),n=nameplate.querySelector('span');
+        if(t.textContent!==title){t.textContent=title;t.hidden=!title;measureName();}if(n.textContent!==nick){n.textContent=nick;measureName();}
+        const half=nameSize.w/2,x=Math.max(half+12,Math.min(root.innerWidth-half-12,p.x));
+        nameplate.style.transform='translate3d('+x+'px,'+(p.y-6)+'px,0) translate(-50%,-100%)';nameplate.dataset.frame=String(p.frame);
+      }
+    }
+    if(!speech)return;
+    if(performance.now()>=speechUntil){clearSpeech();return;}
+    speech.hidden=!visible;if(!visible)return;
+    const half=speechSize.w/2,x=Math.max(half+12,Math.min(root.innerWidth-half-12,p.x));
+    const y=Math.max(speechSize.h+20,p.y-14-nameSize.h);
+    speech.style.transform='translate3d('+x+'px,'+y+'px,0) translate(-50%,-100%)';speech.dataset.frame=String(p.frame);
+    speech.style.setProperty('--chat-tail-x',Math.max(15,Math.min(speechSize.w-15,p.x-x+half))+'px');
   }
   const messages = {
     approach: ['버스가 오고 있어요', '정류장에서 잠시 기다려 주세요.'],
@@ -6276,8 +6413,9 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       '<header><div><span class="market-eyebrow">' + (bank ? 'IEUM BANK' : 'TODAY’S WARDROBE') + '</span><h2 id="market-service-title">' + (bank ? '이음 은행' : '오늘의 옷장') + '</h2><p>' + (bank ? '잠시 쉬면서 앞으로의 계획을 그려 보세요.' : '지금 마음에 드는 색을 천천히 둘러보세요.') + '</p></div><button type="button" id="market-service-close" aria-label="안내 닫기">×</button></header>' +
       '<div class="market-wallet"><span>소지금 <strong data-cash>—</strong></span><span>은행 예금 <strong data-bank>—</strong></span></div><div class="market-saving"><p id="market-save-status" role="status">불러오는 중이에요…</p><button type="button" id="market-economy-retry">다시 확인</button></div>' +
       (bank ? '<div class="market-bank-services"><article><h3>입금</h3><p>소지금을 은행에 맡겨요.</p><form data-bank-form="deposit"><label for="bank-deposit">입금할 금액</label><input id="bank-deposit" type="number" inputmode="numeric" min="1" max="9000000000000" step="1" required placeholder="금액 입력"><button type="submit" class="market-primary" data-bank-action="deposit">입금하기</button></form></article><article><h3>출금</h3><p>예금을 소지금으로 꺼내요.</p><form data-bank-form="withdraw"><label for="bank-withdraw">출금할 금액</label><input id="bank-withdraw" type="number" inputmode="numeric" min="1" max="9000000000000" step="1" required placeholder="금액 입력"><button type="submit" class="market-primary" data-bank-action="withdraw">출금하기</button></form></article></div>' : '<div class="market-collection">' + clothes() + '</div><p class="market-collection-note">구매한 옷은 인벤토리에 보관돼요. 여기에서 바로 입어 볼 수도 있어요.</p>') +
-      '<footer><button type="button" class="market-primary" id="market-service-done">계속 둘러보기</button><span>Esc로 닫기</span></footer></section>';
+      '<footer>' + (!bank ? '<button type="button" class="market-primary" id="market-fitting">탈의실에서 입어 보기</button>' : '') + '<button type="button" class="market-primary" id="market-service-done">계속 둘러보기</button><span>Esc로 닫기</span></footer></section>';
     document.body.append(modal);
+    modal.querySelector('#market-fitting')?.addEventListener('click',()=>{closeService();root.Wardrobe?.open('shop');});
     modal.querySelector('#market-service-close').onclick = closeService; modal.querySelector('#market-service-done').onclick = closeService;
     const economy = host.economy?.();
     modal.querySelector('#market-economy-retry').onclick = () => economyAction(() => economy.retry());
@@ -6316,9 +6454,543 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     isTravelling: () => travelling,
     isTyping, isManipulating: () => !!manipulation, sync: syncChat, drawSpeech,
     tick() { syncChat(); if (speech && performance.now() >= speechUntil) clearSpeech(); },
-    reset() { endManipulation(); closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatFrame = null; chatHistory.length = 0; composing = false; document.body.classList.remove('has-market-chat'); },
+    reset() { endManipulation(); closeService(); host?.engine()?.cancelBusRide(); cleanup(); clearSpeech(); chat?.remove(); chat = null; chatFrame = null; chatHistory.length = 0; nameObserver?.disconnect(); nameObserver=null; nameplate?.remove(); nameplate=null; composing = false; document.body.classList.remove('has-market-chat'); },
     state: () => ({ travelling, destination, service, typing: isTyping(), manipulating: !!manipulation, chatVisible: !!chat && !chat.hidden, messages: chatHistory.length, speech: speech?.textContent || null })
   };
+})(window);
+
+</script>
+<!-- fish-shop.js -->
+<script>
+/* Market fish buyer. All prices, item removal and wallet writes come from the DB. */
+(function(root){
+ 'use strict';
+ let host=null,modal=null,economy=null,unsubscribe=null,previousFocus=null,epoch=0;
+ let quote=null,selected=new Set(),loading=false,working=false,message='';
+ const money=n=>Number(n||0).toLocaleString('ko-KR')+'원';
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const reasons={legacy_item_not_sellable:'이전 로컬 보관함에서 가져온 물고기',item_in_trade:'유저 거래 진행 중',fish_not_accepted:'매입 중단',invalid_fish_size:'크기 기록 확인 필요'};
+ const waters={river:'강',park:'공원 연못',lake:'호수',fountain:'분수'};
+ function init(options){host=options;}
+ function total(){return (quote?.items||[]).filter(i=>selected.has(i.id)).reduce((n,i)=>n+i.price,0);}
+ function controls(){
+  if(!modal)return;
+  const status=economy?.status()||{},blocked=loading||working||status.busy||status.pending||status.mode!=='online';
+  const snapshot=economy?.getState();modal.querySelector('#fish-shop-cash').textContent=snapshot?money(snapshot.cash):'확인 필요';
+  modal.querySelector('#fish-shop-count').textContent=selected.size+'마리';
+  modal.querySelector('#fish-shop-total').textContent=money(total());
+  modal.querySelector('#fish-shop-sell').disabled=blocked||!selected.size;
+  modal.querySelector('#fish-shop-sell').textContent=working?'판매 결과 확인 중…':selected.size?selected.size+'마리 팔기':'선택한 물고기 팔기';
+  modal.querySelector('#fish-shop-refresh').disabled=loading||working||status.busy;
+  modal.querySelector('#fish-shop-all').disabled=blocked||!(quote?.items||[]).some(i=>!i.reason);
+  modal.querySelector('#fish-shop-retry').hidden=!status.pending&&status.mode==='online';
+  modal.querySelector('#fish-shop-retry').disabled=loading||working||status.busy;
+  for(const input of modal.querySelectorAll('[data-fish]')){input.disabled=blocked||input.dataset.unavailable==='true';input.checked=selected.has(input.dataset.fish);}
+  modal.querySelector('#fish-shop-message').textContent=message||(status.pending?'판매 처리 결과를 확인해야 해요. 다시 확인을 눌러 주세요.':loading?'매입 가격을 확인하고 있어요.':'');
+ }
+ function renderQuote(){
+  if(!modal)return;
+  const items=quote?.items||[];
+  modal.querySelector('#fish-shop-owned').textContent='보유 물고기 '+items.length+'마리';
+  modal.querySelector('#fish-shop-list').innerHTML=!quote?'<div class="fish-shop-empty"><span aria-hidden="true">🐟</span><strong>보관함을 확인하고 있어요</strong><p>서버에서 물고기와 매입 가격을 가져옵니다.</p></div>':items.length?items.map(i=>'<label class="fish-shop-row'+(i.reason?' is-unavailable':'')+'">'+
+   '<input type="checkbox" data-fish="'+esc(i.id)+'" data-unavailable="'+!!i.reason+'" aria-label="'+esc(i.name)+' '+esc(i.sizeCm)+'cm 선택">'+
+   '<span class="fish-shop-icon" aria-hidden="true">🐟</span><span class="fish-shop-item"><strong>'+esc(i.name)+'</strong><span>'+esc(i.sizeCm??'크기 미상')+(i.sizeCm!=null?' cm':'')+' · '+esc(waters[i.waterId]||'획득 장소 미상')+'</span>'+
+   (i.reason?'<small>'+esc(reasons[i.reason]||'판매할 수 없어요')+'</small>':'')+'</span><b class="fish-shop-price">'+(i.reason?'판매 불가':money(i.price))+'</b></label>').join(''):
+   '<div class="fish-shop-empty"><span aria-hidden="true">🎣</span><strong>판매할 물고기가 없어요</strong><p>마을에서 물고기를 잡은 뒤 가져와 주세요.</p></div>';
+  for(const input of modal.querySelectorAll('[data-fish]'))input.addEventListener('change',()=>{
+   if(input.checked){if(selected.size>=(quote?.maxSelection||100)){input.checked=false;message='한 번에 최대 100마리까지 팔 수 있어요.';}else selected.add(input.dataset.fish);}
+   else selected.delete(input.dataset.fish);controls();
+  });
+  const history=quote?.history||[];
+  modal.querySelector('#fish-shop-history').hidden=!history.length;
+  modal.querySelector('#fish-shop-receipts').innerHTML=history.map(i=>'<li><span>'+esc(i.name)+' '+esc(i.size_cm)+' cm</span><b>+'+money(i.price)+'</b><time>'+esc(new Date(i.sold_at).toLocaleString('ko-KR'))+'</time></li>').join('');
+  controls();
+ }
+ async function load(){
+  if(!modal||loading||working)return;
+  const token=epoch,client=economy;loading=true;controls();
+  try{
+   const next=await client.quoteFish();if(token!==epoch)return;
+   quote=next;selected=new Set([...selected].filter(id=>next.items.some(i=>i.id===id&&!i.reason)));renderQuote();
+  }catch(e){if(token===epoch)message=root.OnlineEconomy.message(e);}
+  finally{if(token===epoch){loading=false;controls();}}
+ }
+ async function sell(){
+  if(!modal||working||loading||!selected.size)return;
+  const token=epoch,client=economy,ids=[...selected],expectedTotal=total();working=true;message='';controls();
+  try{
+   const receipt=await client.sellFish(ids,expectedTotal);
+   if(host.economy()===client)host.toast?.('물고기 '+receipt.soldCount+'마리를 팔아 '+money(receipt.cashGained)+'을 받았어요.');
+   if(token===epoch){selected.clear();message=receipt.soldCount+'마리 판매 완료 · +'+money(receipt.cashGained);}
+  }catch(e){if(token===epoch)message=root.OnlineEconomy.message(e);}
+  finally{if(token===epoch){working=false;await load();controls();}}
+ }
+ async function retry(){
+  if(!modal||working||loading)return;const token=epoch;working=true;message='';controls();
+  try{await economy.retry();if(token===epoch)message='보관함과 소지금을 다시 확인했어요.';}catch(e){if(token===epoch)message=root.OnlineEconomy.message(e);}
+  finally{if(token===epoch){working=false;await load();controls();}}
+ }
+ function keydown(e){
+  if(!modal)return;
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();return;}
+  if(e.key==='Tab'){
+   const nodes=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),summary')].filter(n=>n.getClientRects().length),first=nodes[0],last=nodes[nodes.length-1];
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
+  }
+ }
+ function open(){
+  if(modal||!host||host.engine()?.mode()!=='market')return;
+  economy=host.economy();if(!economy)return;
+  epoch++;previousFocus=document.activeElement;quote=null;selected.clear();loading=false;working=false;message='';
+  modal=document.createElement('div');modal.id='fish-shop-backdrop';modal.className='modal-backdrop';
+  modal.innerHTML='<section id="fish-shop-dialog" role="dialog" aria-modal="true" aria-labelledby="fish-shop-title" aria-describedby="fish-shop-help">'+
+   '<header><div><span class="fish-shop-kicker">이음 시장 · 물고기 매입</span><h2 id="fish-shop-title">이음 수산 매입소</h2></div><button id="fish-shop-close" aria-label="판매창 닫기">×</button></header>'+
+   '<div class="fish-shop-wallet"><span>내 소지금</span><strong id="fish-shop-cash"></strong></div>'+
+   '<p id="fish-shop-help">팔 물고기를 선택해 주세요. 판매 금액은 소지금으로 들어와요.</p>'+
+   '<div class="fish-shop-tools"><strong id="fish-shop-owned">보유 물고기</strong><span><button id="fish-shop-all">판매 가능 전체 선택</button><button id="fish-shop-refresh">새로 확인</button></span></div>'+
+   '<div id="fish-shop-list" class="fish-shop-list"></div>'+
+   '<details id="fish-shop-history" hidden><summary>최근 판매 내역</summary><ul id="fish-shop-receipts"></ul></details>'+
+   '<footer><div class="fish-shop-summary"><span>선택 <b id="fish-shop-count">0마리</b></span><span>받을 금액 <strong id="fish-shop-total">0원</strong></span></div>'+
+   '<p id="fish-shop-message" role="status" aria-live="polite"></p><div class="fish-shop-actions"><button id="fish-shop-retry" hidden>다시 확인</button><button id="fish-shop-sell" disabled>선택한 물고기 팔기</button></div>'+
+   '<small>종류와 크기에 따라 매입 가격이 달라져요. 유저 거래 중인 물고기는 팔 수 없어요.</small></footer></section>';
+  document.body.appendChild(modal);
+  modal.querySelector('#fish-shop-close').addEventListener('click',close);
+  modal.addEventListener('click',e=>{if(e.target===modal)close();});
+  modal.querySelector('#fish-shop-refresh').addEventListener('click',()=>{message='';load();});
+  modal.querySelector('#fish-shop-retry').addEventListener('click',retry);
+  modal.querySelector('#fish-shop-sell').addEventListener('click',sell);
+  modal.querySelector('#fish-shop-all').addEventListener('click',()=>{
+   const eligible=quote?.items.filter(i=>!i.reason)||[];
+   const all=eligible.slice(0,quote?.maxSelection||100);
+   selected=all.every(i=>selected.has(i.id))?new Set():new Set(all.map(i=>i.id));
+   message=eligible.length>100?'한 번에 최대 100마리까지 선택했어요. 판매 후 나머지도 팔 수 있어요.':'';controls();
+  });
+  unsubscribe=economy.subscribe(controls);document.addEventListener('keydown',keydown,true);
+  modal.querySelector('#fish-shop-close').focus();renderQuote();load();
+ }
+ function close(){
+  epoch++;unsubscribe?.();unsubscribe=null;document.removeEventListener('keydown',keydown,true);modal?.remove();modal=null;quote=null;selected.clear();economy=null;
+  if(previousFocus?.isConnected)previousFocus.focus();previousFocus=null;
+ }
+ root.FishShop={init,open,close,isOpen:()=>!!modal};
+})(window);
+
+</script>
+<!-- wardrobe-reflector.js -->
+<script>
+/* Three.js r149 Reflector. Copyright three.js authors. MIT license: https://github.com/mrdoob/three.js/blob/r149/LICENSE */
+(function(root){
+const THREE=root.THREE;
+const {
+	Color,
+	Matrix4,
+	Mesh,
+	PerspectiveCamera,
+	Plane,
+	ShaderMaterial,
+	UniformsUtils,
+	Vector3,
+	Vector4,
+	WebGLRenderTarget,
+	HalfFloatType,
+	NoToneMapping,
+	LinearEncoding
+} = THREE;
+
+class Reflector extends Mesh {
+
+	constructor( geometry, options = {} ) {
+
+		super( geometry );
+
+		this.isReflector = true;
+
+		this.type = 'Reflector';
+		this.camera = new PerspectiveCamera();
+
+		const scope = this;
+
+		const color = ( options.color !== undefined ) ? new Color( options.color ) : new Color( 0x7F7F7F );
+		const textureWidth = options.textureWidth || 512;
+		const textureHeight = options.textureHeight || 512;
+		const clipBias = options.clipBias || 0;
+		const shader = options.shader || Reflector.ReflectorShader;
+		const multisample = ( options.multisample !== undefined ) ? options.multisample : 4;
+
+		//
+
+		const reflectorPlane = new Plane();
+		const normal = new Vector3();
+		const reflectorWorldPosition = new Vector3();
+		const cameraWorldPosition = new Vector3();
+		const rotationMatrix = new Matrix4();
+		const lookAtPosition = new Vector3( 0, 0, - 1 );
+		const clipPlane = new Vector4();
+
+		const view = new Vector3();
+		const target = new Vector3();
+		const q = new Vector4();
+
+		const textureMatrix = new Matrix4();
+		const virtualCamera = this.camera;
+
+		const renderTarget = new WebGLRenderTarget( textureWidth, textureHeight, { samples: multisample, type: HalfFloatType } );
+
+		const material = new ShaderMaterial( {
+			uniforms: UniformsUtils.clone( shader.uniforms ),
+			fragmentShader: shader.fragmentShader,
+			vertexShader: shader.vertexShader
+		} );
+
+		material.uniforms[ 'tDiffuse' ].value = renderTarget.texture;
+		material.uniforms[ 'color' ].value = color;
+		material.uniforms[ 'textureMatrix' ].value = textureMatrix;
+
+		this.material = material;
+
+		this.onBeforeRender = function ( renderer, scene, camera ) {
+
+			reflectorWorldPosition.setFromMatrixPosition( scope.matrixWorld );
+			cameraWorldPosition.setFromMatrixPosition( camera.matrixWorld );
+
+			rotationMatrix.extractRotation( scope.matrixWorld );
+
+			normal.set( 0, 0, 1 );
+			normal.applyMatrix4( rotationMatrix );
+
+			view.subVectors( reflectorWorldPosition, cameraWorldPosition );
+
+			// Avoid rendering when reflector is facing away
+
+			if ( view.dot( normal ) > 0 ) return;
+
+			view.reflect( normal ).negate();
+			view.add( reflectorWorldPosition );
+
+			rotationMatrix.extractRotation( camera.matrixWorld );
+
+			lookAtPosition.set( 0, 0, - 1 );
+			lookAtPosition.applyMatrix4( rotationMatrix );
+			lookAtPosition.add( cameraWorldPosition );
+
+			target.subVectors( reflectorWorldPosition, lookAtPosition );
+			target.reflect( normal ).negate();
+			target.add( reflectorWorldPosition );
+
+			virtualCamera.position.copy( view );
+			virtualCamera.up.set( 0, 1, 0 );
+			virtualCamera.up.applyMatrix4( rotationMatrix );
+			virtualCamera.up.reflect( normal );
+			virtualCamera.lookAt( target );
+
+			virtualCamera.far = camera.far; // Used in WebGLBackground
+
+			virtualCamera.updateMatrixWorld();
+			virtualCamera.projectionMatrix.copy( camera.projectionMatrix );
+
+			// Update the texture matrix
+			textureMatrix.set(
+				0.5, 0.0, 0.0, 0.5,
+				0.0, 0.5, 0.0, 0.5,
+				0.0, 0.0, 0.5, 0.5,
+				0.0, 0.0, 0.0, 1.0
+			);
+			textureMatrix.multiply( virtualCamera.projectionMatrix );
+			textureMatrix.multiply( virtualCamera.matrixWorldInverse );
+			textureMatrix.multiply( scope.matrixWorld );
+
+			// Now update projection matrix with new clip plane, implementing code from: http://www.terathon.com/code/oblique.html
+			// Paper explaining this technique: http://www.terathon.com/lengyel/Lengyel-Oblique.pdf
+			reflectorPlane.setFromNormalAndCoplanarPoint( normal, reflectorWorldPosition );
+			reflectorPlane.applyMatrix4( virtualCamera.matrixWorldInverse );
+
+			clipPlane.set( reflectorPlane.normal.x, reflectorPlane.normal.y, reflectorPlane.normal.z, reflectorPlane.constant );
+
+			const projectionMatrix = virtualCamera.projectionMatrix;
+
+			q.x = ( Math.sign( clipPlane.x ) + projectionMatrix.elements[ 8 ] ) / projectionMatrix.elements[ 0 ];
+			q.y = ( Math.sign( clipPlane.y ) + projectionMatrix.elements[ 9 ] ) / projectionMatrix.elements[ 5 ];
+			q.z = - 1.0;
+			q.w = ( 1.0 + projectionMatrix.elements[ 10 ] ) / projectionMatrix.elements[ 14 ];
+
+			// Calculate the scaled plane vector
+			clipPlane.multiplyScalar( 2.0 / clipPlane.dot( q ) );
+
+			// Replacing the third row of the projection matrix
+			projectionMatrix.elements[ 2 ] = clipPlane.x;
+			projectionMatrix.elements[ 6 ] = clipPlane.y;
+			projectionMatrix.elements[ 10 ] = clipPlane.z + 1.0 - clipBias;
+			projectionMatrix.elements[ 14 ] = clipPlane.w;
+
+			// Render
+			scope.visible = false;
+
+			const currentRenderTarget = renderer.getRenderTarget();
+
+			const currentXrEnabled = renderer.xr.enabled;
+			const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+			const currentOutputEncoding = renderer.outputEncoding;
+			const currentToneMapping = renderer.toneMapping;
+
+			renderer.xr.enabled = false; // Avoid camera modification
+			renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
+			renderer.outputEncoding = LinearEncoding;
+			renderer.toneMapping = NoToneMapping;
+
+			renderer.setRenderTarget( renderTarget );
+
+			renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+
+			if ( renderer.autoClear === false ) renderer.clear();
+			renderer.render( scene, virtualCamera );
+
+			renderer.xr.enabled = currentXrEnabled;
+			renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+			renderer.outputEncoding = currentOutputEncoding;
+			renderer.toneMapping = currentToneMapping;
+
+			renderer.setRenderTarget( currentRenderTarget );
+
+			// Restore viewport
+
+			const viewport = camera.viewport;
+
+			if ( viewport !== undefined ) {
+
+				renderer.state.viewport( viewport );
+
+			}
+
+			scope.visible = true;
+
+		};
+
+		this.getRenderTarget = function () {
+
+			return renderTarget;
+
+		};
+
+		this.dispose = function () {
+
+			renderTarget.dispose();
+			scope.material.dispose();
+
+		};
+
+	}
+
+}
+
+Reflector.ReflectorShader = {
+
+	uniforms: {
+
+		'color': {
+			value: null
+		},
+
+		'tDiffuse': {
+			value: null
+		},
+
+		'textureMatrix': {
+			value: null
+		}
+
+	},
+
+	vertexShader: /* glsl */`
+		uniform mat4 textureMatrix;
+		varying vec4 vUv;
+
+		#include <common>
+		#include <logdepthbuf_pars_vertex>
+
+		void main() {
+
+			vUv = textureMatrix * vec4( position, 1.0 );
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+			#include <logdepthbuf_vertex>
+
+		}`,
+
+	fragmentShader: /* glsl */`
+		uniform vec3 color;
+		uniform sampler2D tDiffuse;
+		varying vec4 vUv;
+
+		#include <logdepthbuf_pars_fragment>
+
+		float blendOverlay( float base, float blend ) {
+
+			return( base < 0.5 ? ( 2.0 * base * blend ) : ( 1.0 - 2.0 * ( 1.0 - base ) * ( 1.0 - blend ) ) );
+
+		}
+
+		vec3 blendOverlay( vec3 base, vec3 blend ) {
+
+			return vec3( blendOverlay( base.r, blend.r ), blendOverlay( base.g, blend.g ), blendOverlay( base.b, blend.b ) );
+
+		}
+
+		void main() {
+
+			#include <logdepthbuf_fragment>
+
+			vec4 base = texture2DProj( tDiffuse, vUv );
+			gl_FragColor = vec4( blendOverlay( base.rgb, color ), 1.0 );
+
+			#include <tonemapping_fragment>
+			#include <encodings_fragment>
+
+		}`
+};
+
+root.WardrobeReflector = Reflector;
+
+})(window);
+
+</script>
+<!-- wardrobe.js -->
+<script>
+/* Shared shop fitting room and home wardrobe. Preview never writes equipment. */
+(function(root){
+ 'use strict';let host=null,session=null;
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function destroyObject(object){const gs=new Set(),ms=new Set();object.traverse(o=>{if(o.geometry)gs.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m)ms.add(m);});gs.forEach(g=>g.dispose());ms.forEach(m=>m.dispose());}
+ function viewer(container){
+  const T=root.THREE,engine=host.engine();let renderer;
+  try{renderer=new T.WebGLRenderer({antialias:true,alpha:false});}catch(e){container.textContent='3D 미리보기를 열지 못했어요. 목록에서 옷을 선택할 수 있어요.';return {setAvatar(){},dispose(){},state:()=>null};}
+  renderer.setPixelRatio(Math.min(root.devicePixelRatio||1,1.5));renderer.outputEncoding=T.sRGBEncoding;renderer.setClearColor('#F1E5D3');
+  const scene=new T.Scene(),cam=new T.PerspectiveCamera(35,1,.1,30),target=new T.Vector3(0,1.05,0);
+  scene.add(new T.HemisphereLight('#FFF8E8','#7A7868',.85));const light=new T.DirectionalLight('#FFF1D7',1.05);light.position.set(2,4,4);scene.add(light);
+  const box=(w,h,d,color,x,y,z)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,d),new T.MeshStandardMaterial({color,roughness:.8}));m.position.set(x,y,z);scene.add(m);return m;};
+  box(7,.1,7,'#C7A581',0,-.08,0);const wall=box(6.5,3.6,.12,'#DDD1BC',0,1.7,-2.55);
+  for(let i=-3;i<=3;i++)box(.025,.01,7,'#A88768',i,.001,0);
+  const mirror=new root.WardrobeReflector(new T.PlaneGeometry(1.65,2.35),{textureWidth:root.innerWidth<600?256:512,textureHeight:512,color:0x7f7f7f,clipBias:.003,multisample:0});
+  mirror.position.set(-1.55,1.22,-1.8);mirror.rotation.y=.60;scene.add(mirror);
+  const frame=new T.Group();frame.position.copy(mirror.position);frame.rotation.copy(mirror.rotation);scene.add(frame);
+  for(const [w,h,x,y] of [[.09,2.5,-.88,0],[.09,2.5,.88,0],[1.85,.09,0,1.225],[1.85,.09,0,-1.225]]){const m=new T.Mesh(new T.BoxGeometry(w,h,.14),new T.MeshStandardMaterial({color:'#9B7556'}));m.position.set(x,y,-.035);frame.add(m);}
+  const defaultDistance=root.innerWidth<600?5.4:4.7;
+  let who=null,key='',yaw=.34,pitch=.2,distance=defaultDistance,raf=0,closed=false,draws=0;const pointers=new Map();let last=null;
+  const canvas=renderer.domElement;canvas.tabIndex=0;canvas.setAttribute('aria-label','캐릭터 시점: 드래그로 회전, 휠로 확대·축소, 방향키로 회전');container.append(canvas);
+  function render(){raf=0;if(closed)return;const w=Math.max(1,container.clientWidth),h=Math.max(1,container.clientHeight);renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();cam.position.set(Math.sin(yaw)*Math.cos(pitch)*distance,1.05+Math.sin(pitch)*distance,Math.cos(yaw)*Math.cos(pitch)*distance);cam.lookAt(target);cam.updateMatrixWorld(true);wall.visible=cam.position.z>0;renderer.render(scene,cam);draws++;}
+  function draw(){if(!closed&&!raf)raf=requestAnimationFrame(render);}
+  function move(dx,dy){yaw-=dx*.008;pitch=Math.max(.06,Math.min(.95,pitch+dy*.006));draw();}
+  const pointState=()=>{const a=[...pointers.values()];return a.length>1?{x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}:a[0];};
+  canvas.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();canvas.focus();canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});last=pointState();};
+  canvas.onpointermove=e=>{if(!pointers.has(e.pointerId))return;e.preventDefault();pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const p=pointState();if(last){move(p.x-last.x,p.y-last.y);if(p.d&&last.d)distance=Math.max(2.7,Math.min(7,distance*last.d/p.d));}last=p;draw();};
+  const end=e=>{pointers.delete(e.pointerId);last=pointState();};canvas.onpointerup=end;canvas.onpointercancel=end;canvas.onlostpointercapture=end;
+  canvas.addEventListener('wheel',e=>{e.preventDefault();distance=Math.max(2.7,Math.min(7,distance+e.deltaY*.003));draw();},{passive:false});
+  canvas.onkeydown=e=>{const d={ArrowLeft:[24,0],ArrowRight:[-24,0],ArrowUp:[0,-15],ArrowDown:[0,15]}[e.key];if(d){e.preventDefault();e.stopPropagation();move(...d);}};
+  const observer=new ResizeObserver(draw);observer.observe(container);draw();
+  function reflectionContainsAvatar(){if(!draws)return false;const normal=new T.Vector3(0,0,1).transformDirection(mirror.matrixWorld),plane=new T.Plane().setFromNormalAndCoplanarPoint(normal,mirror.position),origin=mirror.camera.position,ray=new T.Ray(origin.clone(),target.clone().sub(origin).normalize()),hit=ray.intersectPlane(plane,new T.Vector3());if(!hit)return false;mirror.worldToLocal(hit);return Math.abs(hit.x)<.825&&Math.abs(hit.y)<1.175;}
+  return {setAvatar(av){const next=JSON.stringify(av);if(next===key)return;key=next;if(who){scene.remove(who);destroyObject(who);}who=engine.createWardrobeAvatar(av);scene.add(who);draw();},reset(){yaw=.34;pitch=.2;distance=defaultDistance;draw();},state:()=>({yaw,pitch,distance,draws,reflection:mirror.isReflector,reflectionContainsAvatar:reflectionContainsAvatar(),avatarKey:key}),dispose(){closed=true;cancelAnimationFrame(raf);observer.disconnect();mirror.dispose();scene.remove(mirror);destroyObject(scene);renderer.dispose();renderer.forceContextLoss();canvas.remove();}};
+ }
+ function selectedItem(s){return s.catalog.find(c=>c.id===s.selected);}
+ function ownedItem(s){return s.economy?.getState()?.inventory.instances.find(i=>i.itemId===s.selected);}
+ function refresh(s){
+  if(session!==s)return;
+  const data=s.economy?.getState(),status=s.economy?.status(),ready=status?.mode==='online'&&!status.busy&&!status.pending;
+  s.catalog=data?.catalog||root.OnlineEconomy.wardrobe;
+  const offered=s.mode==='shop'?s.catalog:s.catalog.filter(c=>data?.inventory.instances.some(i=>i.itemId===c.id));
+  if(s.selected&&!offered.some(c=>c.id===s.selected))s.selected=null;
+  const base=host.baseAvatar();s.view.setAvatar({...base,...(selectedItem(s)?{outfit:selectedItem(s).color}:{})});
+  const list=s.modal.querySelector('#wardrobe-list');
+  const choices=[{id:'',name:'기본 옷',color:base.outfit},...offered];
+  list.innerHTML=choices.map(c=>{const owned=!c.id||data?.inventory.instances.some(i=>i.itemId===c.id);return '<button type="button" class="wardrobe-item'+((s.selected||'')===c.id?' is-selected':'')+'" data-clothing="'+esc(c.id)+'" aria-pressed="'+String((s.selected||'')===c.id)+'"><svg viewBox="0 0 80 80" aria-hidden="true"><path d="M26 9 12 19 3 37l15 8 9-13v40h26V32l9 13 15-8-9-18-14-10q-14 17-28 0Z" fill="'+esc(c.color)+'"/></svg><strong>'+esc(c.name)+'</strong><small>'+(!c.id?'처음 입었던 옷':owned?'보유 중':Number(c.price).toLocaleString('ko-KR')+'원')+'</small></button>';}).join('');
+  list.querySelectorAll('[data-clothing]').forEach(b=>b.onclick=()=>{s.selected=b.dataset.clothing||null;refresh(s);});
+  const item=ownedItem(s),def=selectedItem(s),buy=s.modal.querySelector('#wardrobe-buy'),wear=s.modal.querySelector('#wardrobe-wear');
+  buy.hidden=s.mode!=='shop'||!def||!!item;buy.disabled=!ready||data.cash<def?.price;buy.textContent=def?'구매 · '+Number(def.price).toLocaleString('ko-KR')+'원':'구매';
+  const worn=item?item.id===data?.equippedClothing:!s.selected&&!data?.equippedClothing;
+  wear.disabled=!ready||!!item?.listed||!!s.selected&&!item||worn;wear.textContent=worn?'현재 착용 중':'이 옷 착용';
+  s.modal.querySelector('#wardrobe-name').textContent=def?.name||'기본 옷';
+  s.modal.querySelector('#wardrobe-balance').textContent=data?'소지금 '+data.cash.toLocaleString('ko-KR')+'원':'옷을 미리 입어 볼 수 있어요';
+  s.modal.querySelector('#wardrobe-status').textContent=s.error|| (status?.pending?'처리 결과를 다시 확인해 주세요.':status?.busy?'저장하는 중이에요…':status?.mode==='online'?'옷을 선택해 입어 보고, 착용을 눌러 저장하세요.':'온라인 보관함 연결을 준비 중이에요. 미리보기는 사용할 수 있어요.');
+  s.modal.querySelector('#wardrobe-retry').hidden=!!ready;
+ }
+ async function action(s,fn){s.error='';try{await fn();if(session===s)host.toast('저장했어요.');}catch(e){if(session===s)s.error=root.OnlineEconomy.message(e);}refresh(s);}
+ function open(mode='shop'){
+  if(session||!host?.engine()?.isRunning()||host.tutorial())return;
+  root.WorldUI?.close();root.WorldUI?.cancelFishing();
+  const modal=document.createElement('div');modal.id='wardrobe-backdrop';modal.className='modal-backdrop wardrobe-backdrop';
+  modal.innerHTML='<section class="wardrobe-dialog" role="dialog" aria-modal="true" aria-labelledby="wardrobe-title"><header><div><span class="wardrobe-eyebrow">'+(mode==='shop'?'TODAY’S WARDROBE':'MY WARDROBE')+'</span><h2 id="wardrobe-title">'+(mode==='shop'?'오늘의 옷장 · 탈의실':'내 옷장')+'</h2></div><button type="button" id="wardrobe-close" aria-label="옷장 닫기">×</button></header><div class="wardrobe-body"><div class="wardrobe-preview"><div id="wardrobe-scene"></div><div class="wardrobe-view-tools"><span>드래그로 회전 · 휠/두 손가락으로 확대</span><button type="button" id="wardrobe-reset-view">시점 초기화</button></div></div><aside class="wardrobe-options"><div class="wardrobe-list-head"><strong>'+(mode==='shop'?'입어 볼 옷':'보유한 옷')+'</strong><span id="wardrobe-balance"></span></div><div id="wardrobe-list"></div><div class="wardrobe-selected"><strong id="wardrobe-name"></strong><p id="wardrobe-status" role="status"></p><div><button type="button" id="wardrobe-buy">구매</button><button type="button" id="wardrobe-wear">이 옷 착용</button><button type="button" id="wardrobe-retry">다시 확인</button></div></div></aside></div><footer>선택한 옷은 미리보기예요. 착용을 확정하지 않고 닫으면 현재 옷이 유지돼요.<button type="button" id="wardrobe-done">나가기</button></footer></section>';
+  document.body.append(modal);const economy=host.economy(),data=economy?.getState(),item=data?.inventory.instances.find(i=>i.id===data.equippedClothing);
+  const s=session={mode,modal,economy,selected:item?.itemId||null,catalog:[],view:viewer(modal.querySelector('#wardrobe-scene')),error:'',previous:document.activeElement};
+  s.unsubscribe=economy?.subscribe(()=>refresh(s));
+  modal.querySelector('#wardrobe-close').onclick=close;modal.querySelector('#wardrobe-done').onclick=close;modal.onclick=e=>{if(e.target===modal)close();};
+  modal.querySelector('#wardrobe-reset-view').onclick=()=>s.view.reset();
+  modal.querySelector('#wardrobe-buy').onclick=()=>action(s,()=>economy.buy(s.selected));
+  modal.querySelector('#wardrobe-wear').onclick=()=>action(s,()=>economy.equipClothing(ownedItem(s)?.id||null));
+  modal.querySelector('#wardrobe-retry').onclick=()=>action(s,()=>economy.retry());
+  refresh(s);economy?.refresh();host.engine().pauseInput();root.MarketUI?.sync();root.MarketUI?.drawSpeech();modal.querySelector('#wardrobe-close').focus();
+ }
+ function close(){const s=session;if(!s)return;session=null;s.unsubscribe?.();s.view.dispose();s.modal.remove();host?.engine()?.pauseInput();root.MarketUI?.sync();if(s.previous?.isConnected)s.previous.focus();}
+ document.addEventListener('keydown',e=>{if(!session)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();return;}if(e.key==='Tab'){const all=[...session.modal.querySelectorAll('button:not(:disabled):not([hidden]),canvas')].filter(e=>e.offsetParent!==null),first=all[0],last=all.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}if(!['Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))e.stopPropagation();},true);
+ root.Wardrobe={init:h=>host=h,open,close,isOpen:()=>!!session,state:()=>session?{mode:session.mode,selected:session.selected,...session.view.state()}:null};
+})(window);
+
+</script>
+<!-- achievements.js -->
+<script>
+/* Account-scoped, server-verified achievements and one equipped title. */
+(function(root){
+ 'use strict';
+ const defaults=[{id:'big-catch',title:'큼직한 손맛',description:'60cm 이상 물고기를 직접 낚기',metric:'fish_size',target:60},{id:'master-angler',title:'대물 낚시꾼',description:'80cm 이상 물고기를 직접 낚기',metric:'fish_size',target:80},{id:'recycling-starter',title:'분리수거 입문자',description:'올바른 분리수거 10회',metric:'recycling',target:10},{id:'village-guardian',title:'마을 환경 지킴이',description:'올바른 분리수거 50회',metric:'recycling',target:50}];
+ let account=null;
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function attach({sb,userId,economy,toast}){
+  if(account?.userId===userId)return;
+  reset();const a=account={sb,userId,economy,toast,data:null,busy:false,missing:false,listeners:new Set(),active:true,queue:null};
+  a.unsubscribe=economy.subscribe(()=>{if(economy.status().hasOnlineState&&!economy.status().busy)refresh();});
+  a.focus=()=>refresh();root.addEventListener('focus',a.focus);refresh();
+ }
+ function emit(a){if(a===account&&a.active)for(const fn of [...a.listeners])fn();}
+ async function refresh(){
+  const a=account;if(!a||a.busy||!a.active)return;
+  a.busy=true;
+  try{
+   const response=await a.sb.rpc('sw_achievements',{p_action:'state',p_title_id:null});
+   if(a!==account||!a.active)return;
+   if(response.error||response.data?.userId!==a.userId){a.missing=true;return;}
+   const previous=a.data&&new Set(a.data.earned.map(e=>e.id));a.data=response.data;a.missing=false;
+   const fresh=previous&&a.data.earned.filter(e=>!previous.has(e.id));
+   if(fresh?.length)a.toast('업적 달성! '+fresh.map(e=>a.data.catalog.find(c=>c.id===e.id)?.title).filter(Boolean).join(' · '));
+  }catch(e){if(a===account)a.missing=true;}
+  finally{a.busy=false;emit(a);}
+ }
+ async function equip(id){
+  const a=account;if(!a||a.busy||!a.data||a.missing)return;
+  a.busy=true;emit(a);
+  try{
+   const r=await a.sb.rpc('sw_achievements',{p_action:'equip',p_title_id:id});
+   if(a!==account||!a.active)return;
+   if(r.error||r.data?.userId!==a.userId)throw Error('칭호를 저장하지 못했어요. 다시 확인해 주세요.');
+   a.data=r.data;a.toast(id?'칭호를 장착했어요.':'칭호를 해제했어요.');
+  }catch(e){if(a===account)a.toast(e.message);}
+  finally{a.busy=false;emit(a);}
+ }
+ function title(){const a=account;return a?.data?.catalog.find(c=>c.id===a.data.equippedTitle)?.title||'';}
+ function mount(){
+  const box=document.createElement('div');box.id='achievement-view';box.setAttribute('aria-live','polite');
+  const a=account;
+  function render(){
+   const s=a===account?a?.data:null,earned=new Map((s?.earned||[]).map(e=>[e.id,e]));
+   box.innerHTML='<p class="achievement-intro">달성한 업적을 칭호로 장착해 보세요. 시장에서 이름 위에 표시돼요.</p><div class="achievement-equipped">현재 칭호 <strong>'+esc(title()||'없음')+'</strong><button type="button" data-title=""'+(!s||a.busy?' disabled':'')+'>칭호 해제</button></div>'+
+    (!s||a.missing?'<p class="achievement-status">'+(a?.busy?'업적을 확인하는 중이에요…':'온라인 업적 연결을 준비 중이에요. 로컬 시험판에서 먼저 확인할 수 있어요.')+'</p>':'')+
+    '<div class="achievement-list">'+(s?.catalog||defaults).map(c=>{
+     const e=earned.get(c.id),value=c.metric==='fish_size'?(s?.progress.bestFishCm||0):(s?.progress.recycledCount||0),selected=s?.equippedTitle===c.id;
+     return '<article class="achievement-card'+(e?' is-earned':'')+'"><span class="achievement-medal" aria-hidden="true">'+(e?'★':'☆')+'</span><div><strong>'+esc(c.title)+'</strong><p>'+esc(c.description)+'</p><progress max="'+c.target+'" value="'+Math.min(value,c.target)+'" aria-label="'+esc(c.title)+' 진행도"></progress><small>'+Number(value).toLocaleString('ko-KR')+(c.metric==='fish_size'?' cm':'회')+' / '+c.target+(c.metric==='fish_size'?' cm':'회')+(e?' · '+new Date(e.unlockedAt).toLocaleDateString('ko-KR')+' 달성':'')+'</small></div><button type="button" data-title="'+c.id+'"'+(!e||a?.busy||selected?' disabled':'')+'>'+(selected?'장착 중':e?'칭호 장착':'미달성')+'</button></article>';
+    }).join('')+'</div>';
+   box.querySelectorAll('[data-title]').forEach(b=>b.onclick=()=>equip(b.dataset.title||null));
+  }
+  render();if(a){const update=()=>{if(!box.isConnected){a.listeners.delete(update);return;}render();};a.listeners.add(update);}refresh();return box;
+ }
+ function reset(){if(!account)return;account.active=false;account.unsubscribe?.();root.removeEventListener('focus',account.focus);account.listeners.clear();account=null;}
+ root.Achievements={attach,refresh,equip,title,mount,reset,getState:()=>account?.data||null};
 })(window);
 
 </script>
@@ -6661,10 +7333,10 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
   }
 
   function avatarKey(){ return "sw_avatar_" + (state.session ? state.session.user.id : "guest"); }
-  function currentAvatar(){
+  function currentAvatar(baseOnly){
     var av = state.profile && state.profile.avatar;
     if(!av) try { var raw = localStorage.getItem(avatarKey()); if(raw) av = JSON.parse(raw); } catch(e){}
-    var data = economy && economy.getState();
+    var data = !baseOnly && economy && economy.getState();
     var worn = data && data.inventory.instances.find(function(i){ return i.id === data.equippedClothing; });
     var definition = worn && window.FishingData.items[worn.itemId];
     if(definition && definition.kind === 'clothing') av = Object.assign({}, av || presetAvatar('calm','#4caf6e',nick()), {outfit:definition.color});
@@ -6950,7 +7622,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     if(state.tour || busyRoom || travelling || !t){ act.hidden = true; }
     else {
       act.hidden = false;
-      act.textContent = t.type === "bus" || t.type === "service" || t.type === "exit" ? t.label + " (" + key("interact") + ")"
+      act.textContent = t.type === "bus" || t.type === "service" || t.type === "exit" || t.type === "wardrobe" || t.type === "fish-shop" ? t.label + " (" + key("interact") + ")"
         : t.type === "fishing" ? t.label + " (" + key("interact") + ")"
         : t.type === "npc" ? npcName(t.id) + " — 대화하기 (" + key("interact") + ")"
         : t.id === "room-door" ? "🚪 밖으로 나가기 (" + key("interact") + ")" : t.label + " 들어가기 (" + key("interact") + ")";
@@ -6973,6 +7645,8 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     if(!t) return;
     if(t.type === "fishing"){ if(window.WorldUI) window.WorldUI.interactFishing(); return; }
     if(t.type === "bus"){ if(window.MarketUI) window.MarketUI.ride(); return; }
+    if(t.type === "wardrobe"){ window.Wardrobe?.open(t.id === "home-wardrobe" ? "home" : "shop"); return; }
+    if(t.type === "fish-shop"){ window.FishShop?.open(); return; }
     if(t.type === "service"){ if(window.MarketUI) window.MarketUI.openService(ENGINE.mode()); return; }
     if(t.type === "npc") openNpc(t.id);
     else doorAction(t.id);
@@ -7113,7 +7787,12 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     updateHud();
   }
 
+  var fittingInside = false;
   function onWorldTick(){
+    if(ENGINE) { var fp=ENGINE.places().fittingRoom, pos=ENGINE.playerPos();
+      var inside=ENGINE.mode()==='clothing'&&fp&&Math.abs(pos.x-fp.x)<.66&&pos.z>fp.z-.62&&pos.z<fp.z+.7;
+      if(inside&&!fittingInside&&!worldBlocked())window.Wardrobe?.open('shop'); fittingInside=!!inside;
+    }
     var t = state.tour;
     if(!t || t.arrived || t.intro || !ENGINE) return;
     var g = ENGINE.guidePos(), p = ENGINE.playerPos();
@@ -7234,10 +7913,13 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
       economy = window.OnlineEconomy.create({sb:sb,userId:uid});
       var lastAppearance = null;
       economy.subscribe(function(){ var av = currentAvatar() || presetAvatar('calm','#4caf6e',nick()); var signature = JSON.stringify(av); if(ENGINE && ENGINE.isRunning() && signature !== lastAppearance){ lastAppearance = signature; ENGINE.setAvatar(av); } });
+      if(window.Achievements) window.Achievements.attach({sb:sb,userId:uid,economy:economy,toast:showToast});
       economy.initialize();
     }
     return economy;
   }
+  if(window.Wardrobe) window.Wardrobe.init({engine:function(){return ENGINE;},economy:getEconomy,baseAvatar:function(){return currentAvatar(true)||presetAvatar('calm','#4caf6e',nick());},tutorial:function(){return !!state.tour||(state.view==='room'&&state.room&&state.room.phase!=='free');},toast:showToast});
+  window.FishShop?.init({engine:function(){return ENGINE;},economy:getEconomy,toast:showToast});
   var CONTACT_ORDER = ["psych","coco","chief","policy","job"];
   if(window.WorldUI) window.WorldUI.init({
     sb: sb,
@@ -7382,6 +8064,7 @@ body.in-transit #market-chat, body.in-transit #market-chat-bubble { display: non
     });
   }
   function logout(){
+    window.FishShop?.close(); window.Wardrobe?.close(); window.Achievements?.reset(); fittingInside=false;
     if(economy) economy.destroy(); economy = null;
     if(window.MarketUI) window.MarketUI.reset();
     state.worldReturn = null; state.spawn = null; state.spawnFacing = null;

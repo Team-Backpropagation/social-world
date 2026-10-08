@@ -37,7 +37,7 @@ DB 적용 후 계정의 온라인 보관함이 처음 열리면, 그 브라우�
 
 ## DB에 추가되는 구조
 
-기존 01~05 SQL 및 그 테이블은 변경하지 않았다. 새 파일 `database/06_economy.sql`은 Supabase의 `auth.users`와 `auth.uid()`를 사용한다.
+기존 01~05 SQL 및 그 테이블은 변경하지 않았다. 새 파일 `database/08_economy.sql`은 Supabase의 `auth.users`와 `auth.uid()`를 사용한다.
 
 | 테이블 | 역할 |
 |---|---|
@@ -71,7 +71,7 @@ DB 적용 후 계정의 온라인 보관함이 처음 열리면, 그 브라우�
 ## 팀 DB 적용 방법
 
 1. 현재 앱이 사용하는 **기존 팀 Supabase 프로젝트**에 관리 권한이 있는 계정으로 접속한다.
-2. SQL Editor에서 `database/06_economy.sql`의 전체 내용을 실행한다. `begin`부터 `commit`까지 한 번에 실행해야 한다.
+2. SQL Editor에서 `database/08_economy.sql`의 전체 내용을 실행한다. `begin`부터 `commit`까지 한 번에 실행해야 한다.
 3. 실행 성공 후 데모를 새로고침하고, 기존 진행 상황이 있는 계정·브라우저로 접속한다.
 4. 인벤토리에서 ‘온라인 보관함’ 표시와 기존 아이템을 확인한다. 은행에서 100원 입금·출금 후 소지금+예금 합이 유지되는지 확인한다.
 5. 옷가게에서 한 벌을 구매하고, 재접속 후 잔액·보유 여부·착용 상태가 유지되는지 확인한다.
@@ -113,7 +113,7 @@ update public.sw_item_catalog set price = 1500 where id = 'sage-shirt';
 | `social_world/app/app.js`, `ui.js`, `index.html` | 로그인 계정·캐릭터·화면과 경제 모듈 연결 |
 | `social_world/app/README.md` | 온라인 기능 사용·검증 안내 |
 | `social_world/socialworld-demo.html` | 원본으로 다시 생성한 실행용 데모 |
-| `database/06_economy.sql`, `database/README.md` | DB 변경 및 적용 안내 |
+| `database/08_economy.sql`, `database/README.md` | DB 변경 및 적용 안내 |
 | `database/tests/economy_test.cjs` | DB 권한·중복 방지·거래·실패 시 취소 검증 |
 | `social_world/app/tests/economy_client_test.cjs` | 통신 실패·재접속·늦은 응답·로그아웃 검증 |
 | `social_world/app/tests/economy_browser_test.cjs` | PC·모바일·배포용 데모에서 화면과 DB 연결 검증 |
@@ -139,3 +139,5 @@ node social_world/app/tests/market_test.cjs
 ```
 
 테스트용 `database/tests/01_auth_stub.sql`은 독립된 테스트 DB에서만 사용한다. 팀 Supabase의 기존 Auth를 대신하도록 실행하면 안 된다.
+
+2026-10-08 파일 번호 정리: main의 하루(06)·의견함(07)과 번호가 겹치지 않도록 `06_economy.sql`을 `08_economy.sql`로 이름만 변경했다. DB 테이블·함수·기존 데이터는 변경하지 않는다.

@@ -420,7 +420,7 @@
     if (pc) pc.scrollTop = 0;
   }
 
-  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정' };
+  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정', achievements: '업적·칭호' };
   var NAV = [['home', 'home', '홈'], ['clubs', 'club', '동아리'], ['missions', 'mission', '미션'], ['contacts', 'chat', '연락처'], ['settings', 'settings', '설정']];
 
   function homeHTML() {
@@ -433,10 +433,10 @@
         '<p>' + esc(cocoLine) + '</p>' +
         '<button class="action primary" data-coco>코코와 이야기하기 ' + icon('arrow') + '</button></section>' +
       '<div class="stack"><button class="action secondary" data-contact="chief">🎩 마을이장 · 이번 주 모임 보기</button></div>' +
-      '<div class="home-apps">' +
+      '<div class="home-apps four">' +
         '<button data-nav="clubs"><span class="app-icon">' + icon('club') + '</span>동아리</button>' +
         '<button data-nav="missions"><span class="app-icon">' + icon('mission') + '</span>미션</button>' +
-        '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button></div>' +
+        '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button><button data-nav="achievements"><span class="app-icon">★</span>업적·칭호</button></div>' +
       '<button class="action secondary home-map" data-open-map>' + icon('map') + ' 전체 지도 열기 <span>' + codeLabel(settings.bindings.map) + '</span></button>' +
       '<p class="info-note">휴대폰에서 한 동아리 가입·미션 참여도 마을에서 한 것과 똑같이 저장돼요. 대화 내용은 저장하지 않아요.</p>';
   }
@@ -579,7 +579,7 @@
   function renderPhone() {
     var keepScroll = ui.page === 'settings' ? (($('#phone-content') || {}).scrollTop || 0) : 0;
     var body = ui.page === 'clubs' ? clubsHTML() : ui.page === 'missions' ? missionsHTML()
-      : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML() : homeHTML();
+      : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML() : ui.page === 'achievements' ? '<div id="achievement-mount"></div>' : homeHTML();
     var now = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
     $('#overlay').innerHTML =
       '<section class="phone-dialog" role="dialog" aria-modal="true" aria-labelledby="phone-title">' +
@@ -615,6 +615,7 @@
     each('[data-start]', function (b) { b.onclick = function () { startMission(Number(b.dataset.start), b); }; });
     each('[data-complete]', function (b) { b.onclick = function () { completeMission(Number(b.dataset.complete), b); }; });
     if (ui.page === 'settings') { bindSettings(); $('#phone-content').scrollTop = keepScroll; }
+    if (ui.page === 'achievements' && window.Achievements) $('#achievement-mount').replaceChildren(window.Achievements.mount());
   }
 
   // ---------------------------------------------------------------- 키보드

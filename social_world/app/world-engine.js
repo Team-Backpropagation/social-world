@@ -33,6 +33,7 @@
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(new THREE.Color('#A6D4F2').convertSRGBToLinear(), 110, 300);   // 맑은 날: 먼 곳만 옅은 하늘색
     const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 400);
+    let headViewport = null, projectionFrame = 0;
 
     // ---------------- 공통: 둥근 지평선 + 바람 (원본 그대로)
     const U = { center: { value: new THREE.Vector3() }, k: { value: 0.0045 }, time: { value: 0 }, yaw: { value: 0 } };
@@ -257,7 +258,7 @@
       if (acc === 'headphones') { const band = mesh(new THREE.TorusGeometry(0.55, 0.045, 8, 24, Math.PI), M('#3B3B3B'), 0, 0.02, 0, head); band.rotation.z = 0; for (const sx of [-0.53, 0.53]) mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.12, 16), M('#3B3B3B'), sx, -0.02, 0, head).rotation.z = Math.PI / 2; }
       if (acc === 'flower' || o.flower) { const f = new THREE.Group(); for (let i = 0; i < 5; i++) { const a = i / 5 * 6.28; mesh(new THREE.SphereGeometry(0.06, 8, 6), M('#F4A6C0'), Math.cos(a) * 0.07, Math.sin(a) * 0.07, 0, f); } mesh(new THREE.SphereGeometry(0.04, 8, 6), M('#F6D06A'), 0, 0, 0.03, f); f.position.set(0.3, 0.28, 0.3); f.rotation.y = 0.6; head.add(f); }
       g.scale.setScalar(s);
-      g.userData = { legs, arms, head, phase: rnd() * 6.28, baseY: 0 };
+      g.userData = { legs, arms, head, phase: o.staticPreview ? 0 : rnd() * 6.28, baseY: 0 };
       parent.add(shade(g));
       if (parent === scene) g.userData.blob = blob(0, 0, 1.1 * s, 0.4);
       return g;
@@ -763,6 +764,13 @@
         const shelf = new THREE.Group(); shelf.position.set(-4.75, 0, 1.4); g.add(shelf);
         mesh(rbox(0.6, 2.3, 1.8, 0.06), M('#A57852'), 0, 1.15, 0, shelf);
         for (let r = 0; r < 3; r++) for (let i = 0; i < 6; i++) mesh(rbox(0.36, 0.5, 0.18, 0.02), M(['#E0654A', '#3F8C86', '#F2C14E', '#5B7DB1', '#C9A4E0', '#FFFDF7'][(i + r) % 6]), 0.12, 0.45 + r * 0.7, -0.62 + i * 0.25, shelf);
+        // 내 옷장 — 출입문·침대·책상 동선과 떨어진 앞쪽 벽.
+        const closet = new THREE.Group(); closet.position.set(-2.7,0,2.1); g.add(closet);
+        mesh(rbox(1.7,2.35,.65,.08),M('#A8805D'),0,1.175,0,closet);
+        for (const x of [-.41,.41]) { mesh(rbox(.78,2.18,.06,.04),M('#D0AB82'),x,1.16,.35,closet); mesh(new THREE.SphereGeometry(.05,8,8),M('#786345'),x<0?-.08:.08,1.12,.41,closet); }
+        places.homeWardrobe = { x:RX-2.7,z:RZ+3.15 };
+        doors.push({ id:'home-wardrobe',label:'옷장 열기',...places.homeWardrobe,r:1.15,area:'room',type:'wardrobe' });
+        colliders.push({seg:[RX-3.55,RZ+2.1,RX-1.85,RZ+2.1],r:.38,area:'room'});
         // 러그·화분
         const rug = mesh(new THREE.CylinderGeometry(2.1, 2.1, 0.04, 40), M('#E9C46A'), 0.3, 0.03, 0.6, g); rug.scale.z = 0.75; rug.receiveShadow = true;
         const pot = new THREE.Group(); pot.position.set(4.4, 0, 0.4); g.add(pot);
@@ -1265,6 +1273,7 @@
     function resize() {
       W = window.innerWidth; Hh = window.innerHeight;
       renderer.setPixelRatio(DPR); renderer.setSize(W, Hh, false);
+      headViewport = null;
       camera.aspect = W / Hh; camera.fov = W < 640 ? 50 : 36; camera.updateProjectionMatrix();
       buildRTs();
     }
@@ -1286,6 +1295,7 @@
     }
     function tick() {
       if (!running) return;
+      if (window.Wardrobe?.isOpen()) { clock.getDelta(); requestAnimationFrame(tick); return; }
       const dt = Math.min(clock.getDelta(), 0.05) * (window.__SW_TIMESCALE || 1), t = clock.elapsedTime;
       U.time.value = reduceMotion ? 0 : t;
       let mx = 0, mz = 0, stepCap = Infinity;
@@ -1389,6 +1399,7 @@
       { const b = base(), D = b.dist * view.zoom, sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), ah = isIndoor() ? 1.6 : 3;
         camera.position.set(camFocus.x + sy * Math.cos(view.pitch) * D, camFocus.y + Math.sin(view.pitch) * D, camFocus.z + cy * Math.cos(view.pitch) * D);
         camera.lookAt(camFocus.x - sy * ah, 0.9, camFocus.z - cy * ah); }
+      camera.updateMatrixWorld(true); projectionFrame++;
       if (skyDeco) { skyDeco.visible = !isIndoor(); skyDeco.position.set(camFocus.x, 0, camFocus.z); if (!reduceMotion) cloudRing.rotation.y += dt * 0.004; sunDisc.lookAt(camera.position); }
       sun.position.copy(camFocus).addScaledVector(SUN_DIR, 50); sun.target.position.copy(camFocus); sun.target.updateMatrixWorld();
       if (mm && (mm.frame++ % 2 === 0)) drawMinimap();
@@ -1511,8 +1522,8 @@
       playerHeadScreen() {
         if (!running || !['market', 'bank', 'clothing'].includes(mode) || !player?.visible) return null;
         const p = new THREE.Vector3(player.position.x, 2.6 - bendY(player.position.x, player.position.z), player.position.z).project(camera);
-        const b = renderer.domElement.getBoundingClientRect();
-        return { x: b.left + (p.x / 2 + .5) * b.width, y: b.top + (.5 - p.y / 2) * b.height, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2 };
+        const b = headViewport || (headViewport = renderer.domElement.getBoundingClientRect());
+        return { frame: projectionFrame, x: b.left + (p.x / 2 + .5) * b.width, y: b.top + (.5 - p.y / 2) * b.height, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2 };
       },
       enter(m, opt = {}) {
         hooks.teleport?.();fishingVisual=null;
@@ -1546,7 +1557,7 @@
         camFocus.copy(isIndoor() ? indoorFocus() : player.position);
         if (mm) { mm.base = null; mm.frame = 0; }
         nearTarget = undefined;
-        document.body.classList.add('in-world');
+        document.body.classList.add('in-world'); headViewport = null;
         if (!running) { running = true; setGfx(gfxHigh); clock.getDelta(); requestAnimationFrame(tick); }
       },
       leave() { marketWorld?.cancel(); hooks.teleport?.();fishingVisual=null;updateFishingModels(0); running = false; keys.clear(); document.body.classList.remove('in-world'); },
@@ -1555,6 +1566,15 @@
       wake() { player.userData.sleeping = false; setSeated(player, false); player.position.x += 0.6; player.rotation.y = Math.PI / 4; },
       playerPos: () => ({ x: player.position.x, z: player.position.z }),
       avatarPortrait,
+      createWardrobeAvatar(av) {
+        const group = new THREE.Group(), avatar = person({ ...lookFromAvatar(av), staticPreview: true, scale: 1.12 }, group);
+        const materials = new Map();
+        avatar.traverse(o => { if (!o.isMesh) return;
+          const flat = m => { if (!materials.has(m)) { const n = m.clone(); n.onBeforeCompile = () => {}; n.customProgramCacheKey = () => 'wardrobe-flat'; materials.set(m,n); } return materials.get(m); };
+          o.material = Array.isArray(o.material) ? o.material.map(flat) : flat(o.material); o.customDepthMaterial = undefined;
+        });
+        return group;
+      },
       setAvatar,
       setNpcVisible(id, on) { const n = npcObjs.find(x => x.id === id); if (!n) return; n.visible = on; n.obj.visible = on; n.obj.userData.blob.visible = on; n.col.off = !on; },
       guideShow(x, z, facing) { ensureGuide(); guide.visible = true; guide.userData.blob.visible = true; guide.position.set(x, 0, z); if (facing != null) guide.rotation.y = facing; guideState = { path: null }; },
