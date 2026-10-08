@@ -18,7 +18,8 @@
  *   recommend  화면에 보인 카드마다          view          [자세히]를 열었을 때
  *   apply_click 복지로·홈페이지 링크를 열 때   self_reported [신청했어요]
  *   ineligible 나이·지역이 안 맞아 빠진 정책이 있을 때 메뉴마다 1줄(item_id = 'count:N')
- *   특정 대상 정책(장애인·저소득 등)은 펼쳤는지, 무엇을 눌렀는지 기록하지 않는다.
+ *   특정 대상 정책(장애인·보훈대상자 등)은 펼쳤는지, 무엇을 눌렀는지 기록하지 않는다.
+ *   소득 기준(저소득)만 있는 사업은 기본 카드에 나오지만(09_haru_rules.sql) 어느 사업인지는 남기지 않는다(item_id 없이 메뉴만).
  * 기록이 실패해도 화면은 멈추지 않는다(콘솔 경고만).
  */
 (function (global) {
@@ -137,6 +138,9 @@
     (children || []).forEach(function (c) { if (c) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
     return n;
   }
+
+  // 소득 기준이 있는 사업은 어느 사업을 눌렀는지 남기지 않는다 — 메뉴 단위 수만 남김
+  function itemIdOf(it) { return it.target_groups && it.target_groups.length ? null : it.serv_id; }
 
   function menuOf(key) { return MENUS.filter(function (m) { return m.key === key; })[0]; }
 
@@ -280,12 +284,12 @@
       var list = el('ul', { class: 'haru-list', 'aria-label': m.label + ' 정책' });
       if (items.length) {
         say(LINES.result(m.label));
-        items.slice(0, SHOW).forEach(function (it) { list.appendChild(card(it, menu, false)); log({ menu: menu, action: 'recommend', itemId: it.serv_id }); });
+        items.slice(0, SHOW).forEach(function (it) { list.appendChild(card(it, menu, false)); log({ menu: menu, action: 'recommend', itemId: itemIdOf(it) }); });
         nodes.push(list);
         if (items.length > SHOW) {
           var rest = items.slice(SHOW);
           var more = el('button', { class: 'haru-btn haru-more', type: 'button', text: '더 보기 (' + rest.length + '개)', onclick: function () {
-            rest.forEach(function (it) { list.appendChild(card(it, menu, false)); log({ menu: menu, action: 'recommend', itemId: it.serv_id }); });
+            rest.forEach(function (it) { list.appendChild(card(it, menu, false)); log({ menu: menu, action: 'recommend', itemId: itemIdOf(it) }); });
             more.remove();
             var next = list.children[SHOW] && list.children[SHOW].querySelector('button');
             if (next) next.focus();
@@ -306,11 +310,11 @@
       if (counts.special > 0) {
         var holder = el('div');
         var btn = el('button', { class: 'haru-btn haru-special-btn', type: 'button', 'aria-expanded': 'false',
-          text: '▸ 특정 대상 정책 ' + counts.special + '개 보기 (장애인·저소득 등)',
+          text: '▸ 특정 대상 정책 ' + counts.special + '개 보기 (장애인·보훈 등)',
           onclick: async function () {
             if (btn.getAttribute('aria-expanded') === 'true') {
               holder.innerHTML = ''; btn.setAttribute('aria-expanded', 'false');
-              btn.textContent = '▸ 특정 대상 정책 ' + counts.special + '개 보기 (장애인·저소득 등)';
+              btn.textContent = '▸ 특정 대상 정책 ' + counts.special + '개 보기 (장애인·보훈 등)';
               return;
             }
             btn.disabled = true;
@@ -337,7 +341,7 @@
 
     // special=true면 기록하지 않고, 신고 버튼도 두지 않는다(무엇을 펼쳤는지 남지 않게)
     function card(it, menu, special) {
-      var track = special ? function () {} : function (action) { log({ menu: menu, action: action, itemId: it.serv_id }); };
+      var track = special ? function () {} : function (action) { log({ menu: menu, action: action, itemId: itemIdOf(it) }); };
       var tags = el('p', { class: 'haru-tags' }, [
         el('span', { class: 'haru-tag' + (it.is_local ? ' local' : ''), text: it.is_local ? ((it.region_label || '').split(' ').pop() || '우리 동네') : '전국' }),
         it.online_apply ? el('span', { class: 'haru-tag', text: '온라인 신청' }) : null,

@@ -10,6 +10,8 @@ $PSQL -f database/tests/01_auth_stub.sql
 for f in 01_socialworld_base 02_loop_schema 03_world_update 04_coco 05_chief 06_haru; do $PSQL -f database/$f.sql >/dev/null 2>&1; done
 if ! $PSQL -f database/06_haru.sql >/tmp/rerun06.log 2>&1; then echo "FAIL  06 두 번째 실행 오류"; tail -3 /tmp/rerun06.log; exit 1; fi
 echo "PASS  01→06 적용, 06 재실행 오류 없음"
+for i in 1 2; do if ! $PSQL -f database/09_haru_rules.sql >/tmp/run09.log 2>&1; then echo "FAIL  09 실행 오류($i)"; tail -3 /tmp/run09.log; exit 1; fi; done
+echo "PASS  09(규칙 보정) 적용, 재실행 오류 없음"
 $PSQL -f database/tests/30_haru_test.sql >/dev/null
 
 GN=00000000-0000-0000-0000-0000000000a1; CC=00000000-0000-0000-0000-0000000000a2; OT=00000000-0000-0000-0000-0000000000a3; NP=00000000-0000-0000-0000-0000000000a4
@@ -38,6 +40,16 @@ check "$(q $GN "select contact from recommend_programs('housing', 5) where serv_
 check "$(q $GN "select eligible||'/'||special||'/'||ineligible from program_counts('job');")" "^1/0/1$" "일·취업: 맞음 1 · 특정 대상 0 · 자격 미달 1(노년)"
 check "$(q $GN "select eligible||'/'||special||'/'||ineligible from program_counts('living');")" "^1/1/0$" "생활비: 맞음 1 · 특정 대상 1"
 check "$(q $CC "select ineligible from program_counts('living');")" "^0$" "다른 시군구 사업은 자격 미달로 세지 않음"
+
+# 09 — 저소득만 붙은 사업은 기본 카드(소득 기준 안내), 다른 대상이 같이 있으면 특정 대상
+admin "insert into welfare_programs (serv_id, source, name, region_label, life_stages, themes, menus, target_groups, online_apply, age_min, age_max, popularity, contacts, is_active)
+       values ('C_LOWINC', 'central', '청년 월세 한시 지원', '전국', '{청년}', '{주거}', '{housing}', '{저소득}', true, 19, 34, 5, '[]', true)" >/dev/null
+check "$(q $GN "select string_agg(serv_id, ',') from recommend_programs('housing', 5);")" "^L_GN_HOUSE,C_HOUSE,C_LOWINC,C_HOUSE2$" "09: 저소득만 있는 사업은 기본 카드에 나옴(같은 점수면 조회수 순)"
+check "$(q $GN "select reason from recommend_programs('housing', 5) where serv_id='C_LOWINC';")" "소득 기준이 있어요" "09: 추천 이유에 '소득 기준이 있어요'"
+check "$(q $GN "select count(*) from recommend_programs('housing', 10, true) where serv_id='C_LOWINC';")" "^0$" "09: 특정 대상 목록에는 없음"
+check "$(q $GN "select eligible||'/'||special from program_counts('housing');")" "^4/0$" "09: 개수도 같은 기준(맞음 4 · 특정 대상 0)"
+check "$(q $GN "select eligible||'/'||special from program_counts('living');")" "^1/1$" "09: 장애인·저소득은 여전히 특정 대상"
+admin "delete from welfare_programs where serv_id='C_LOWINC'" >/dev/null
 
 # 권한
 check "$(q $GN 'select count(*) from welfare_programs;')" "permission denied\|^0$" "정책 표는 브라우저가 직접 못 읽음"

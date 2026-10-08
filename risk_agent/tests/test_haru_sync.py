@@ -106,6 +106,14 @@ class Age(unittest.TestCase):
             ("가구 소득이 기준 중위소득 50% 이하", (None, None)),
             ("영유아(0~5세), 아동(6~12세)", (None, None)),        # 서로 다른 범위 — 누구 것인지 모름
             ("", (None, None)),
+            # 2026-10-08 검수에서 나온 문장
+            ("만 19세 미만의 청소년을 대상으로 합니다.", (None, 18)),
+            ("사업시행년도 기준 만 40세 미만 직전학기 이수학점 12학점 이상", (None, 39)),
+            ("만 18세 이하 자녀를 양육하고 있는 양육비 채권자", (None, None)),      # 자녀 나이 — 신청자 나이 아님
+            ("만 18세 미만(취학 시 만 22세 미만)의 아동을 양육하는 한부모가족", (None, None)),
+            ("만 15&sim;87세로 영농에 종사하는 농업인", (15, 87)),                 # HTML 표기
+            ("만 15～87세(단, 일부상품은 84세)", (15, 87)),                        # 전각 물결
+            ("아동에게 지원합니다. ※ 만 18세 이상이더라도 고등학교 재학 중인 경우", (None, None)),
         ]
         for text, want in cases:
             self.assertEqual(HS.extract_age(text), want, text)
@@ -167,6 +175,26 @@ class Normalize(unittest.TestCase):
         it = next(i for i in items if i["servId"] == "WLF00005414")
         row = HS.normalize_local(it, HS.parse_detail(fx("local_detail.xml")) | {"servNm": ""}, NOW, "11680")
         self.assertEqual(row["menus"], ["housing", "living"])
+
+    def test_exclude_and_groups_from_name(self):
+        self.assertEqual(HS.menus_of(["교육", "서민금융"], "취업 후 상환 학자금대출"), ["living"])          # 대출이지 취업 지원 아님
+        self.assertEqual(HS.menus_of(["일자리"], "고교 취업연계 장려금"), [])                             # 고등학생 대상
+        self.assertEqual(HS.menus_of(["일자리"], "고졸자 후속관리 지원모델 개발사업"), [])
+        self.assertEqual(HS.groups_of([], "의사상자지원"), ["의사상자"])
+        self.assertEqual(HS.groups_of(["저소득"], "자립준비청년 자립수당 지급"), ["저소득", "자립준비청년"])
+        self.assertEqual(HS.groups_of([], "입양·가정위탁아동 심리치료 지원"), ["입양·위탁가정"])
+        self.assertEqual(HS.groups_of(["장애인", "장애인"], "청년 월세"), ["장애인"])
+
+    def test_refresh_groups_and_age(self):
+        sb = FakeSb([{"serv_id": "A", "name": "의사상자지원", "themes": ["생활지원"], "menus": ["living"], "target_groups": []},
+                     {"serv_id": "B", "name": "청소년 회복 지원", "themes": ["정신건강"], "menus": ["mind"], "target_groups": [],
+                      "target_text": "만 19세 미만의 청소년", "age_min": None, "age_max": None},
+                     {"serv_id": "C", "name": "청년 월세", "themes": ["주거"], "menus": ["housing"], "target_groups": ["저소득"],
+                      "target_text": None, "age_min": 19, "age_max": 34}])                       # 문장 없으면 나이 그대로
+        self.assertEqual(HS.refresh_menus(sb, log=lambda *_: None), 2)
+        upd = sorted(c[2:] for c in sb.calls if c[0] == "update")
+        self.assertEqual(upd, [("serv_id=in.(A)", {"target_groups": ["의사상자"]}),
+                               ("serv_id=in.(B)", {"age_max": 18})])
 
     def test_refresh_menus(self):
         sb = FakeSb([{"serv_id": "A", "name": "청년 전월세 이자 지원", "themes": ["서민금융"], "menus": ["living"]},

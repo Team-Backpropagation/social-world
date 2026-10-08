@@ -6,6 +6,7 @@ Supabase 연결 — 위험 탐지 에이전트 ↔ 소셜 월드 순환의 DB �
   1) aggregate_npc_sessions() 호출 → 개인 대화 세션이 코호트×월 집계로 바뀜(DB 안에서, user_id 없이)
   2) npc_chat_metrics(psych) 읽기 → ① 미시 신호 입력
   3) ⑩ 환류 결과를 cohort_feedback에 upsert → 소셜 월드가 본인 코호트 행만 읽어 개인화
+  4) aggregate_npc_demand() 호출 → 하루·코코 수요(npc_demand_metrics) 최근 4주 요약 → 대시보드 (위험 점수에는 안 씀)
 
 필요한 설정: risk_agent/.env
   SUPABASE_URL=https://xxxx.supabase.co
@@ -15,6 +16,7 @@ Supabase 연결 — 위험 탐지 에이전트 ↔ 소셜 월드 순환의 DB �
 단독 실행
   python supabase_sync.py check    연결·테이블 확인
   python supabase_sync.py seed     시연용 합성 배경 세션 적재(source='synthetic', 기존 합성분은 교체)
+  python supabase_sync.py seed-demand  시연용 하루 수요 합성 배경(최근 4주, source='synthetic', 기존 합성분은 교체)
   python supabase_sync.py status   코호트별 최근 세션 수(합성/실제 구분)
 """
 import json
@@ -291,6 +293,111 @@ def push_feedback(sb, persona_table, feedback_payload):
 
 
 # ------------------------------------------------------------------
+# 하루·코코 수요 (03 npc_demand_metrics) — 대시보드 "소셜 월드에서 찾은 지원"
+#   위험 신호가 아니라 수요 신호다. 위험 점수에는 쓰지 않고, 대시보드에 보여 주기만 한다.
+#   자격 미달(ineligible) = 나이·지역 조건이 안 맞아 빠진 정책 수 → 제도 사각지대 근거
+# ------------------------------------------------------------------
+HARU_CATEGORIES = ["주거비", "생활비", "마음건강", "사람 만나기", "일·취업"]
+DEMAND_FIELDS = ["views", "recommends", "apply_clicks", "self_reported", "ineligible"]
+# 합성 배경(시연용) — 코호트·주마다 메뉴를 연 사람 수 평균과 행동 비율. 생성 규칙은 가상데이터_생성방식_설명자료.md
+DEMAND_BACKGROUND = {
+    "주거비":     {"users": 3.0, "view": 0.45, "apply": 0.16, "done": 0.35, "inel": 1.2},
+    "생활비":     {"users": 2.6, "view": 0.40, "apply": 0.14, "done": 0.30, "inel": 0.6},
+    "마음건강":   {"users": 1.6, "view": 0.35, "apply": 0.10, "done": 0.30, "inel": 0.3},
+    "사람 만나기": {"users": 1.2, "view": 0.30, "apply": 0.08, "done": 0.25, "inel": 0.2},
+    "일·취업":    {"users": 2.4, "view": 0.45, "apply": 0.18, "done": 0.30, "inel": 1.0},
+}
+
+
+def recent_weeks(n=4, today=None):
+    """최근 n주의 월요일(오래된 것부터) — DB date_trunc('week')와 같은 기준"""
+    today = today or date.today()
+    monday = pd.Timestamp(today) - pd.Timedelta(days=pd.Timestamp(today).weekday())
+    return [(monday - pd.Timedelta(weeks=i)).date().isoformat() for i in range(n - 1, -1, -1)]
+
+
+def build_demand_background(persona_table, weeks):
+    rows = []
+    for p in persona_table:
+        if p["age_group"] not in C.MICRO_ELIGIBLE_AGE_GROUPS:
+            continue
+        rng = np.random.default_rng(C.stable_seed("demand", p["cohort_id"]))
+        for wk in weeks:
+            for cat, b in DEMAND_BACKGROUND.items():
+                users = int(rng.poisson(b["users"]))
+                if users == 0:
+                    continue
+                rec = int(users * 3 + rng.integers(0, users + 1))        # 메뉴 한 번 열면 카드 3장(+더 보기)
+                apply_ = int(rng.binomial(rec, b["apply"]))
+                rows.append({
+                    "week_start": wk, "sgg_code": p["sgg_code"], "age_group": p["age_group"], "gender": p["gender"],
+                    "npc_type": "job" if cat == "일·취업" else "policy", "category": cat, "source": "synthetic",
+                    "user_count": users, "recommends": rec, "views": int(rng.binomial(rec, b["view"])),
+                    "apply_clicks": apply_, "self_reported": int(rng.binomial(apply_, b["done"])),
+                    "ineligible": int(rng.poisson(b["inel"] * users)),
+                })
+    return rows
+
+
+def seed_demand(sb, persona_table, weeks=None):
+    rows = build_demand_background(persona_table, weeks or recent_weeks(4))
+    sb.delete("npc_demand_metrics", "source=eq.synthetic")
+    for i in range(0, len(rows), 500):
+        sb.insert("npc_demand_metrics", rows[i:i + 500])
+    return rows
+
+
+def demand_summary(rows, persona_table, k=None):
+    """대시보드용 — 하루 메뉴별 전체 합계 + 코호트별(사람 수 k명 미만이면 가림) + 코코 합계"""
+    k = C.K_ANONYMITY_MIN if k is None else k
+    known = {p["cohort_id"] for p in persona_table}
+    empty = lambda: {f: 0 for f in DEMAND_FIELDS} | {"live_recommends": 0}
+    overall = {c: empty() for c in HARU_CATEGORIES}
+    coco = empty()
+    by = {}                    # cohort -> cat -> sums, weekly users
+    for r in rows or []:
+        cid = f"{r['sgg_code']}-{r['gender']}-{r['age_group']}"
+        live = r.get("source") == "live"
+        if r.get("npc_type") == "coco":
+            tgt = coco
+        elif r.get("category") in overall:
+            tgt = overall[r["category"]]
+            if cid in known:
+                d = by.setdefault(cid, {}).setdefault(r["category"], empty() | {"weeks": {}})
+                for f in DEMAND_FIELDS:
+                    d[f] += int(r.get(f) or 0)
+                d["live_recommends"] += int(r.get("recommends") or 0) if live else 0
+                d["weeks"][r["week_start"]] = d["weeks"].get(r["week_start"], 0) + int(r.get("user_count") or 0)
+        else:
+            continue
+        for f in DEMAND_FIELDS:
+            tgt[f] += int(r.get(f) or 0)
+        tgt["live_recommends"] += int(r.get("recommends") or 0) if live else 0
+    by_cohort = {}
+    for cid, cats in by.items():
+        users = max((max(d["weeks"].values()) for d in cats.values()), default=0)   # 한 주에 메뉴를 연 최대 인원
+        hidden = users < k
+        by_cohort[cid] = {"users": users, "k_hidden": hidden,
+                          "cats": None if hidden else [{"category": c, **{f: cats[c][f] for f in DEMAND_FIELDS}}
+                                                       for c in HARU_CATEGORIES if c in cats]}
+    return {"haru": [{"category": c, **overall[c]} for c in HARU_CATEGORIES],
+            "coco": coco, "by_cohort": by_cohort,
+            "live_total": sum(o["live_recommends"] for o in overall.values()) + coco["live_recommends"]}
+
+
+def fetch_demand(sb, persona_table, weeks=4, aggregate_first=True):
+    """하루·코코 수요 로그 → 이장의 장부(npc_demand_metrics) 갱신 → 최근 n주 요약"""
+    n = sb.rpc("aggregate_npc_demand") if aggregate_first else None
+    wk = recent_weeks(weeks)
+    rows = sb.select("npc_demand_metrics",
+                     "select=week_start,sgg_code,age_group,gender,npc_type,category,source,user_count,"
+                     + ",".join(DEMAND_FIELDS) + f"&week_start=gte.{wk[0]}")
+    out = demand_summary(rows, persona_table)
+    out.update({"since": wk[0], "weeks": weeks})
+    return out, n
+
+
+# ------------------------------------------------------------------
 # CLI
 # ------------------------------------------------------------------
 def _youth_personas():
@@ -312,6 +419,9 @@ def main():
         rows = seed_synthetic(sb, _youth_personas())
         months = sorted({r["measured_on"][:7] for r in rows})
         print(f"합성 배경 {len(rows)}행 적재 (코호트 {len(rows)//len(months)}개 × {months[0]}~{months[-1]})")
+    elif cmd == "seed-demand":
+        rows = seed_demand(sb, _youth_personas())
+        print(f"하루 수요 합성 배경 {len(rows)}행 적재 (청년 코호트 × 최근 4주 × 메뉴, source='synthetic')")
     elif cmd == "status":
         personas = _youth_personas()
         df, n = fetch_psych_metrics(sb, personas)
@@ -319,7 +429,7 @@ def main():
         last = sorted(df["measured_month"].unique())[-1:] if len(df) else []
         print(df[df["measured_month"].isin(last)].to_string(index=False))
     else:
-        raise SystemExit("사용법: python supabase_sync.py [check|seed|status]")
+        raise SystemExit("사용법: python supabase_sync.py [check|seed|seed-demand|status]")
 
 
 if __name__ == "__main__":
