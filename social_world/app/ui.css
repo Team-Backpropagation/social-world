@@ -661,6 +661,45 @@ body {
   color: #3b785b
 }
 
+.home-apps.four {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px
+}
+
+.home-apps.four .app-icon {
+  width: 56px;
+  height: 56px
+}
+
+.home-apps button:nth-child(4) .app-icon {
+  background: #dfe9f1;
+  color: #2f6f8f
+}
+
+.home-apps .app-icon {
+  position: relative
+}
+
+.app-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center
+}
+
+.app-badge[hidden] {
+  display: none
+}
+
 .app-icon .icon {
   width: 27px;
   height: 27px
@@ -1644,3 +1683,9 @@ body.in-world:has(#fishing-status:not([hidden])) .sw-toast {
   font-size:11px
 }
 
+
+/* Five phone apps: retain achievements and main feedback in a compact grid. */
+.home-apps.five{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:18px 0}
+.home-apps.five button{min-width:0}
+.home-apps.five .app-icon{width:45px;height:45px}
+.home-apps button:nth-child(5) .app-icon{background:#e7eff5;color:#4a7382}

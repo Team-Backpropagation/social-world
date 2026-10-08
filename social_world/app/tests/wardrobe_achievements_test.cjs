@@ -7,7 +7,7 @@ const three=process.env.SW_THREE_PATH?fs.readFileSync(process.env.SW_THREE_PATH,
 fs.mkdirSync(shots,{recursive:true});let count=0;
 function check(ok,name){assert(ok,name);console.log('PASS '+name);count++;}
 (async()=>{
- const {db,user,rpc}=await setup(),users=new Set();await db.exec(fs.readFileSync(path.resolve(__dirname,'../../../database/09_achievements.sql'),'utf8'));let drop=null;
+ const {db,user,rpc}=await setup(),users=new Set();await db.exec(fs.readFileSync(path.resolve(__dirname,'../../../database/10_achievements.sql'),'utf8'));let drop=null;
  const server=http.createServer(async(req,res)=>{
   if(req.url==='/__economy_rpc'||req.url==='/__achievements_rpc'){
    try{

@@ -584,6 +584,7 @@
         colliders.push({ x, z, r: 5.2 }, { x: -3, z: z + 1.5, r: 3.4 }, { x: 3, z: z + 1.5, r: 3.4 }); blob(x, z + 1, 13, 0.3);
         signpost(-2.6, -11.4, '지원센터', 0.25);
         places.support = { x: 0, z: -10.6 };
+        places.haru = { x: 4.2, z: -11.0 };
       }
       // 미션방
       {
@@ -786,8 +787,8 @@
       }
       // NPC
       const NPC_LOOK = {
-        policy: { x: -5, z: -3.2, color: '#5B7DB1', look: { shirt: '#FFFDF7', bottom: '#5B7DB1', hair: '#3B2E2A', skin: SKIN[1], style: 'short' } },
-        job:    { x: 5.2, z: -3.6, color: '#E08A4A', look: { shirt: '#F6E3C4', bottom: '#E08A4A', hair: '#2E2622', skin: SKIN[3], hat: '#8E6242', style: 'short' } },
+        // 하루 — 지원센터 문 오른쪽(문 판정점과 4.2 떨어져 E키 대상이 겹치지 않음). 정책추천·취업상담 창구를 합쳤다(10/7)
+        haru:   { x: places.haru.x, z: places.haru.z, color: '#22706B', look: { shirt: '#FFFDF7', bottom: '#22706B', hair: '#3B2E2A', skin: SKIN[1], style: 'short' } },
         psych:  { x: places.lumi.x, z: places.lumi.z, color: '#B56CC0', look: LUMI_LOOK },
         chief:  { x: -4.2, z: 4.6, color: '#B08A3E', look: { shirt: '#B08A3E', bottom: '#5A4A3C', hair: '#B9B4AA', skin: SKIN[0], hat: '#6B4A36', style: 'short' } },
         coco:   { x: places.coco.x, z: places.coco.z, color: '#2E6B4F', look: { shirt: '#F4B942', bottom: '#2E6B4F', hair: '#3B2E2A', skin: SKIN[2], hat: '#2E6B4F', style: 'short' } }
@@ -795,8 +796,7 @@
       npcObjs = Object.keys(NPC_LOOK).map(id => {
         const n = NPC_LOOK[id], p = person({ ...n.look, scale: 1.1 }); p.position.set(n.x, 0, n.z); p.rotation.y = Math.atan2(-n.x, -n.z);
         const mk = mesh(new THREE.OctahedronGeometry(0.17, 0), M(n.color, { em: n.color, ei: 0.5, r: 0.4 }), 0, 2.15, 0, p); mk.scale.set(1, 1.35, 1);
-        if (id === 'policy') mesh(rbox(0.3, 0.38, 0.05, 0.03), M('#FFF8EC'), 0.32, 0.55, 0.22, p);
-        if (id === 'job') mesh(rbox(0.42, 0.3, 0.14, 0.05), M('#6B4A36'), 0.38, 0.36, 0.05, p);
+        if (id === 'haru') mesh(rbox(0.3, 0.38, 0.05, 0.03), M('#FFF8EC'), 0.32, 0.55, 0.22, p);   // 안내 서류판
         if (id === 'psych') mesh(rbox(0.26, 0.3, 0.26, 0.06), M('#FCE3A6', { em: '#F7C66A', ei: 1.2 }), 0.4, 0.42, 0.1, p);
         if (id === 'coco') mesh(new THREE.SphereGeometry(0.16, 14, 10), M('#E0654A'), 0.36, 0.5, 0.14, p);  // 공 — 활동 담당
         const col = { x: n.x, z: n.z, r: 0.7, npc: true }; colliders.push(col);
@@ -1209,7 +1209,7 @@
       { n: '카페', x: -11.8, z: -10.6, w: 6, d: 5, c: '#FF8FB3' }, { n: '내 집', x: 22, z: 12, w: 5.6, d: 5, c: '#6FB6F2' }
     ];
     const MAP_AREA = [{ n: '시장행 버스', ...window.MarketWorldData.villageStop }, { n: '광장', x: 0, z: 5.5 }, { n: '공원', x: -14, z: 16.5 }, { n: '호수', x: 10, z: 36.8 }, { n: '숲길', x: -38, z: 22 }, { n: '꽃 언덕', x: 36, z: 38 }, { n: '들판', x: 42, z: 6 }];
-    const NPC_DOT = { psych: '#B56CC0', policy: '#3F7FD6', job: '#2F9E8F', chief: '#E0A020', coco: '#2E6B4F' };
+    const NPC_DOT = { psych: '#B56CC0', haru: '#22706B', chief: '#E0A020', coco: '#2E6B4F' };
     let mm = null;
     function mmBase() {
       const W = (MAP_B.x1 - MAP_B.x0) * MAP_S, H = (MAP_B.z1 - MAP_B.z0) * MAP_S, c = document.createElement('canvas'); c.width = W; c.height = H;

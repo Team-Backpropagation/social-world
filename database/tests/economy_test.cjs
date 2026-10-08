@@ -5,9 +5,9 @@ const A='00000000-0000-0000-0000-000000000101',B='00000000-0000-0000-0000-000000
 async function setup({fishSales=false}={}){
  const db=new PGlite();await db.waitReady;
  await db.exec(fs.readFileSync(path.join(__dirname,'01_auth_stub.sql'),'utf8'));
- for(const file of ['01_socialworld_base','02_loop_schema','03_world_update','04_coco','05_chief','08_economy'])await db.exec(fs.readFileSync(path.join(__dirname,'../'+file+'.sql'),'utf8'));
+ for(const file of ['01_socialworld_base','02_loop_schema','03_world_update','04_coco','05_chief','06_haru','07_feedback_chat','08_economy','09_haru_rules'])await db.exec(fs.readFileSync(path.join(__dirname,'../'+file+'.sql'),'utf8'));
  await db.exec(fs.readFileSync(path.join(__dirname,'../08_economy.sql'),'utf8'));
- if(fishSales)for(const file of ['09_achievements','10_fish_sales'])await db.exec(fs.readFileSync(path.join(__dirname,'../'+file+'.sql'),'utf8'));
+ if(fishSales)for(const file of ['10_achievements','11_fish_sales'])await db.exec(fs.readFileSync(path.join(__dirname,'../'+file+'.sql'),'utf8'));
  async function user(id){await db.query('insert into auth.users(id) values($1) on conflict do nothing',[id]);}
  async function rpc(id,action='state',args={},requestId=action==='state'?null:crypto.randomUUID()){
   return db.transaction(async tx=>{

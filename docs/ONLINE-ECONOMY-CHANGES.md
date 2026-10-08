@@ -37,7 +37,7 @@ DB 적용 후 계정의 온라인 보관함이 처음 열리면, 그 브라우�
 
 ## DB에 추가되는 구조
 
-기존 01~05 SQL 및 그 테이블은 변경하지 않았다. 새 파일 `database/08_economy.sql`은 Supabase의 `auth.users`와 `auth.uid()`를 사용한다.
+기존 01~07 SQL 및 그 테이블은 변경하지 않았다. 새 파일 `database/08_economy.sql`(처음 이름 `06_economy.sql`, 10/8 병합 때 번호 변경)은 Supabase의 `auth.users`와 `auth.uid()`를 사용한다.
 
 | 테이블 | 역할 |
 |---|---|

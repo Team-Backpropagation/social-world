@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const {setup}=require('./economy_test.cjs');
 async function setupSales(){
  const env=await setup();
- for(const f of ['09_achievements','10_fish_sales'])await env.db.exec(fs.readFileSync(path.join(__dirname,'../'+f+'.sql'),'utf8'));
+ for(const f of ['10_achievements','11_fish_sales'])await env.db.exec(fs.readFileSync(path.join(__dirname,'../'+f+'.sql'),'utf8'));
  const sales=(id,action='quote',args={},requestId=action==='quote'?null:crypto.randomUUID())=>env.db.transaction(async t=>{
   await t.exec('set local role authenticated');await t.query("select set_config('request.jwt.claim.sub',$1,true)",[id]);
   return (await t.query('select sw_fish_shop($1,$2::jsonb,$3::uuid) as d',[action,JSON.stringify(args),requestId])).rows[0].d;
@@ -70,7 +70,7 @@ async function main(){
   const changed=await item(A,'carp',30);await db.exec("update sw_fish_prices set per_cm=11 where item_id='carp'");
   await rejects(()=>sell(A,[changed],420),'fish_price_changed','stale quote rejects without deleting item');
   check((await quote(A)).items.find(i=>i.id===changed).price===450,'refresh exposes current server price');
-  await db.exec(fs.readFileSync(path.join(__dirname,'../10_fish_sales.sql'),'utf8'));
+  await db.exec(fs.readFileSync(path.join(__dirname,'../11_fish_sales.sql'),'utf8'));
   check((await quote(A)).items.find(i=>i.id===changed).price===450,'rerunning migration preserves admin prices');
   check((await db.query('select count(*)::int n from sw_fish_sales')).rows[0].n===5,'rerunning migration preserves receipts');
   await db.exec("create function sw_test_sale_failure() returns trigger language plpgsql as $$ begin raise exception 'forced_sale_failure'; end $$; create trigger sw_test_sale_failure before update on sw_wallets for each row execute function sw_test_sale_failure();");

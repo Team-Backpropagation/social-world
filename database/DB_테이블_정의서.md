@@ -398,6 +398,34 @@ RLS: `profiles`의 본인 지역·연령대·성별과 같은 행만 select.
 
 검증: `database/tests/run_chief.sh` — 실제 01→02→03→04→05를 로컬 PostgreSQL 16에 올리고(05 재실행·03→05 재적용 포함) 시민 노출·참여 차단·집계·k=5 등 27항목.
 
+## 14. 하루 v1 · 마을 의견함 (2026-10-07)
+
+실행 파일은 `06_haru.sql` → `07_feedback_chat.sql`(01·02·03 다음, 여러 번 실행해도 안전). 사용법은 `social_world/haru/README.md`.
+
+### 14-1. 정책 (06)
+
+| 대상 | 종류 | 설명 |
+|---|---|---|
+| `welfare_programs` | 테이블(브라우저 차단) | 복지로 중앙부처·지자체 복지서비스를 `risk_agent/haru_sync.py`가 주 1회 받아 정리. 메뉴(`menus`)·대상 특성(`target_groups`)·나이 범위(`age_min/max`, 확실할 때만)·문의처·복지로 링크. 끝난 사업은 지우지 않고 `is_active=false` |
+| `recommend_programs(p_menu, p_limit, p_special)` | 함수(authenticated) | 내 지역·나이대로 거른 정책 카드. 특정 대상 정책은 `p_special=true`일 때만. 정렬: 온라인+청년전용 → 지자체 먼저 → 조회수 |
+| `program_counts(p_menu)` | 함수(authenticated) | 맞음·특정 대상·자격 미달 수. 자격 미달은 내 지역·전국 사업 중 나이·생애주기가 안 맞는 것 |
+
+### 14-2. 마을 의견함 (06 → 07)
+
+| 대상 | 종류 | 설명 |
+|---|---|---|
+| `world_feedback` | 테이블(본인 조회만) | 07에서 `channel`(chief 이장·haru 하루), `serv_id`(하루 [정보가 달라요]의 정책), `updated_at`, `citizen_read_at` 추가. 종류에 `info`(정책 정보, 하루 창구만) 추가 |
+| `feedback_messages` | 테이블(브라우저 차단) | 의견 하나에 달리는 메시지. `author` citizen/staff, `staff_id`는 운영 기록용(시민에게 안 보임) |
+| `staff_members` | 테이블(브라우저 차단) | 운영팀 명단. SQL Editor에서 직접 넣는다 |
+| `feedback_rate` | 테이블(브라우저 차단) | 하루 횟수(한국 날짜). 새 의견 5·답장 20. 지운 의견도 그날 횟수에서 빠지지 않음 |
+| `submit_feedback(창구, 종류, 장소, 글, 정책id)` | 함수(authenticated) | 위기 표현이면 저장하지 않고 `report_crisis('civil')` → 'crisis'. 전화번호·이메일 가림. 06의 `submit_world_feedback`은 이장 창구로 남김 |
+| `my_feedback()` · `my_feedback_unread()` · `read_my_feedback(id)` · `reply_my_feedback(id, 글)` · `delete_my_feedback(id)` | 함수(authenticated) | 시민 '내 의견함'. 본인 것만 |
+| `am_i_staff()` · `staff_feedback_list()` · `staff_reply(id, 글)` · `staff_set_status(id, 상태)` | 함수(authenticated, 운영팀 명단 확인) | 운영팀 화면. 시민은 가명 번호(`주민 #7F3A`)로만 보이고 user_id는 돌려주지 않음. 명단에 없으면 `staff_only` |
+| `purge_world_feedback(p_days)` | 함수(service_role) | 보낸 지 90일 지난 의견과 그 대화 삭제 |
+| `missions` | 데이터 | '정책추천/취업상담 NPC와 대화하기'를 끄고 '지원센터 하루 만나기'(1단계) 추가 |
+
+검증: `database/tests/run_haru.sh`(38항목), `database/tests/run_feedback.sh`(59항목 — 06에서 07로 옮겨 가기, 위기·가리기·횟수, 운영팀 권한·가명, 읽음·답장·지우기, 90일 삭제, 미션 교체).
+
 ## 부록. 테이블 전체 목록
 
 | 모듈 | 테이블 | 용도 |

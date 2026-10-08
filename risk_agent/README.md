@@ -66,7 +66,9 @@ python run_pipeline.py --only youth
    ```bash
    python supabase_sync.py check    # 테이블 4개에 ✓가 뜨면 정상
    python supabase_sync.py seed     # 청년 8개 코호트 × 최근 6개월 합성 배경(코호트당 월 10건 내외)
+   python supabase_sync.py seed-demand   # 하루 수요 합성 배경(최근 4주) — 대시보드 "소셜 월드에서 찾은 지원"
    ```
+   `run_pipeline.py --supabase`는 하루·코코 수요를 `outputs_youth/demand.json`으로 받아 대시보드에 넣는다(위험 점수에는 안 씀).
 
 ### 시연 순서
 

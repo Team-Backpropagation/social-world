@@ -28,6 +28,9 @@
  *   keyLabel(action)      'interact' → 'E' 같은 현재 키 이름
  *   close() / reset()     화면 닫기 / 로그아웃 때 알림 상태 초기화
  *
+ * 내 의견함(2026-10-07): ../feedback/feedback.js가 있으면 휴대폰에 '내 의견함' 앱이 생긴다(07_feedback_chat.sql).
+ *   휴대폰을 열 때·마을에 들어올 때 운영팀 새 답 수를 확인해 배지로 보여 준다.
+ *
  * 저장: 설정(미니맵 방향·화질·키·효과음)과 사용자 ID별 인벤토리를
  *       별도 localStorage 키에 남긴다. 인벤토리 저장은 inventory.js가 맡는다.
  *       대화 내용·알림 내용은 어디에도 저장하지 않는다.
@@ -56,6 +59,7 @@
     chat: 'M21 11a9 8 0 0 1-9 8H6l-4 3 1-7a8 8 0 0 1 9-12 9 8 0 0 1 9 8ZM8 10h8M8 14h5',
     club: 'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87M12 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
     mission: 'M9 4h6v4H9zM9 6H5v15h14V6h-4M8 14l3 3 5-6',
+    mail: 'M3 6h18v12H3zM3 7l9 7 9-7',
     home: 'm3 10 9-7 9 7M5 9v12h14V9M10 21v-7h4v7',
     close: 'm6 6 12 12M6 18 18 6',
     back: 'm15 5-7 7 7 7',
@@ -81,8 +85,7 @@
   // 연락처에 보이는 역할 설명 (이름·이모지·색은 앱의 NPC 목록을 따른다)
   var NPC_ROLE = {
     psych: '이야기 친구 · 카페 앞',
-    policy: '정책·생활 정보 · 분수 옆',
-    job: '취업·진로 상담 · 분수 옆',
+    haru: '정책·취업 지원 안내 · 지원센터 앞',
     chief: '마을 소식·모임 · 광장',
     coco: '활동·모임 추천 · 동아리센터 앞'
   };
@@ -132,7 +135,10 @@
     noticeUser: null,
     noticeTimer: null,
     hideTimer: null,
-    data: { clubs: null, myClubs: {}, missions: null, progress: {}, error: null }
+    data: { clubs: null, myClubs: {}, missions: null, progress: {}, error: null },
+    fbUnread: 0,          // 운영팀 새 답이 달린 내 의견 수
+    fbUser: null,
+    fbCompose: false      // 내 의견함 화면에서 '새 의견' 폼을 보여 주는 중
   };
 
   Object.defineProperty(ui, 'bindings', { get: function(){ return settings.bindings; } });
@@ -285,7 +291,7 @@
   }
 
   // ---------------------------------------------------------------- 코코 알림
-  function unread() { return ui.notice && !ui.notice.read ? 1 : 0; }
+  function unread() { return (ui.notice && !ui.notice.read ? 1 : 0) + (ui.fbUnread || 0); }
   function updateBadge() {
     var b = $('#unread-badge'), n = unread();
     b.hidden = !n;
@@ -331,6 +337,27 @@
     ui.hideTimer = setTimeout(hideNotice, COCO_NOTICE.showMs);
     updateBadge();
     play('cocoNotification');
+  }
+
+  // ---------------------------------------------------------------- 내 의견함 (운영팀 답 확인)
+  function hasFeedback() { return !!(window.Feedback && host && host.sb); }
+  function setFbUnread(n) {
+    var before = ui.fbUnread || 0;
+    ui.fbUnread = Math.max(0, n || 0);
+    updateBadge();
+    if (ui.panel === 'phone' && ui.page === 'home') {
+      var b = $('#fb-app-badge'); if (b) { b.hidden = !ui.fbUnread; b.textContent = ui.fbUnread; }
+    }
+    return ui.fbUnread > before;
+  }
+  function checkFeedback(announce) {
+    if (!hasFeedback() || !host.userId()) return;
+    var uid = host.userId();
+    if (ui.fbUser !== uid) { ui.fbUser = uid; ui.fbUnread = 0; }
+    window.Feedback.unread(host.sb).then(function (n) {
+      if (ui.fbUser !== uid) return;
+      if (setFbUnread(n) && announce) toast('보낸 의견에 운영팀 답이 왔어요 — 휴대폰 → 내 의견함');
+    });
   }
 
   // ---------------------------------------------------------------- DB (동아리·미션)
@@ -407,10 +434,12 @@
     openPanel('phone');
     phoneNavigate(page || 'home');
     focusFirst();
+    checkFeedback(false);
   }
-  function phoneNavigate(page) {
+  function phoneNavigate(page, opt) {
     ui.bindingTarget = null;
     ui.page = page;
+    ui.fbCompose = page === 'feedback' && !!(opt && opt.compose);
     if (page === 'clubs' || page === 'missions') {
       if (page === 'clubs') ui.data.clubs = null; else ui.data.missions = null;
       refresh(page);
@@ -420,7 +449,7 @@
     if (pc) pc.scrollTop = 0;
   }
 
-  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정', achievements: '업적·칭호' };
+  var TITLES = { home: '나의 휴대폰', clubs: '동아리', missions: '미션', contacts: '주민 연락처', settings: '설정', achievements: '업적·칭호', feedback: '내 의견함' };
   var NAV = [['home', 'home', '홈'], ['clubs', 'club', '동아리'], ['missions', 'mission', '미션'], ['contacts', 'chat', '연락처'], ['settings', 'settings', '설정']];
 
   function homeHTML() {
@@ -432,11 +461,16 @@
         '<div><strong>코코의 활동 편지</strong><small>' + (unread() ? '새 메시지 1개' : '함께 해볼 만한 활동을 찾아요') + '</small></div></div>' +
         '<p>' + esc(cocoLine) + '</p>' +
         '<button class="action primary" data-coco>코코와 이야기하기 ' + icon('arrow') + '</button></section>' +
-      '<div class="stack"><button class="action secondary" data-contact="chief">🎩 마을이장 · 이번 주 모임 보기</button></div>' +
-      '<div class="home-apps four">' +
+      '<div class="stack"><button class="action secondary" data-contact="chief">🎩 마을이장 · 이번 주 모임 보기</button>' +
+        (hasFeedback() ? '<button class="action secondary" data-fb-compose>✉️ 마을에 건의하기</button>' : '') + '</div>' +
+      '<div class="home-apps' + (hasFeedback() ? ' five' : ' four') + '">' +
         '<button data-nav="clubs"><span class="app-icon">' + icon('club') + '</span>동아리</button>' +
         '<button data-nav="missions"><span class="app-icon">' + icon('mission') + '</span>미션</button>' +
-        '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button><button data-nav="achievements"><span class="app-icon">★</span>업적·칭호</button></div>' +
+        '<button data-nav="contacts"><span class="app-icon">' + icon('chat') + '</span>주민 연락처</button>' +
+        '<button data-nav="achievements"><span class="app-icon">★</span>업적·칭호</button>' +
+        (hasFeedback() ? '<button data-nav="feedback" aria-label="내 의견함' + (ui.fbUnread ? ', 새 답 ' + ui.fbUnread + '개' : '') + '"><span class="app-icon">' + icon('mail') +
+          '<span class="app-badge" id="fb-app-badge"' + (ui.fbUnread ? '' : ' hidden') + '>' + ui.fbUnread + '</span></span>내 의견함</button>' : '') +
+      '</div>' +
       '<button class="action secondary home-map" data-open-map>' + icon('map') + ' 전체 지도 열기 <span>' + codeLabel(settings.bindings.map) + '</span></button>' +
       '<p class="info-note">휴대폰에서 한 동아리 가입·미션 참여도 마을에서 한 것과 똑같이 저장돼요. 대화 내용은 저장하지 않아요.</p>';
   }
@@ -579,7 +613,9 @@
   function renderPhone() {
     var keepScroll = ui.page === 'settings' ? (($('#phone-content') || {}).scrollTop || 0) : 0;
     var body = ui.page === 'clubs' ? clubsHTML() : ui.page === 'missions' ? missionsHTML()
-      : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML() : ui.page === 'achievements' ? '<div id="achievement-mount"></div>' : homeHTML();
+      : ui.page === 'contacts' ? contactsHTML() : ui.page === 'settings' ? settingsHTML()
+      : ui.page === 'achievements' ? '<div id="achievement-mount"></div>'
+      : ui.page === 'feedback' ? '<div id="fb-mount"></div>' : homeHTML();
     var now = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
     $('#overlay').innerHTML =
       '<section class="phone-dialog" role="dialog" aria-modal="true" aria-labelledby="phone-title">' +
@@ -614,8 +650,30 @@
     each('[data-join-club]', function (b) { b.onclick = function () { joinClub(Number(b.dataset.joinClub), b); }; });
     each('[data-start]', function (b) { b.onclick = function () { startMission(Number(b.dataset.start), b); }; });
     each('[data-complete]', function (b) { b.onclick = function () { completeMission(Number(b.dataset.complete), b); }; });
+    each('[data-fb-compose]', function (b) { b.onclick = function () { phoneNavigate('feedback', { compose: true }); focusFirst(); }; });
     if (ui.page === 'settings') { bindSettings(); $('#phone-content').scrollTop = keepScroll; }
     if (ui.page === 'achievements' && window.Achievements) $('#achievement-mount').replaceChildren(window.Achievements.mount());
+    if (ui.page === 'feedback') mountFeedback();
+  }
+
+  // 내 의견함 화면 — 목록·대화·새 의견은 feedback.js가 그린다
+  function mountFeedback() {
+    var m = $('#fb-mount');
+    if (!m) return;
+    if (!hasFeedback()) { m.innerHTML = '<p class="record-empty">지금은 의견함을 열 수 없어요.</p>'; return; }
+    var title = $('#phone-title');
+    if (ui.fbCompose) {
+      if (title) title.textContent = '마을에 건의하기';
+      m.replaceChildren(window.Feedback.compose({
+        sb: host.sb, channel: 'chief', place: null,
+        onCancel: function () { phoneNavigate('feedback'); focusFirst(); }
+      }));
+    } else {
+      m.replaceChildren(window.Feedback.inbox({
+        sb: host.sb, onChange: setFbUnread,
+        onCompose: function () { phoneNavigate('feedback', { compose: true }); focusFirst(); }
+      }));
+    }
   }
 
   // ---------------------------------------------------------------- 키보드
@@ -693,6 +751,7 @@
     if (ui.ctx.tour) hideNotice();
     if (fishingFeature) { if (!allowed()) fishingFeature.cancel(); fishingFeature.updateHud(); }
     scheduleNotice();
+    if (ui.ctx.inVillage && !ui.ctx.tour && ui.fbUser !== host.userId()) checkFeedback(true);   // 로그인마다 한 번
   }
   function reset() {
     closePanel();
@@ -701,6 +760,7 @@
     hideNotice();
     clearTimeout(ui.noticeTimer); ui.noticeTimer = null;
     ui.notice = null; ui.noticeUser = null;
+    ui.fbUnread = 0; ui.fbUser = null;
     updateBadge();
   }
 

@@ -352,8 +352,8 @@ def build_action_suggestions(priority_df: pd.DataFrame, recommend_df: pd.DataFra
 # ------------------------------------------------------------------
 NPC_EMPHASIS_FROM_FACTOR = {
     "event_response": "psych",      # 관계망 신호가 약하므로 심리상담 NPC로 먼저 유도
-    "trigger_z": "job",             # 선택적 소비 위축 → 취업상담 NPC(경제적 트리거 가능성)
-    "baseline_z": "policy",         # 구조적 저활동 → 정책추천 NPC(복지 자원 우선 안내)
+    "trigger_z": "job",             # 선택적 소비 위축 → 하루 일·취업 안내(경제적 트리거 가능성). 월드에선 하루가 받음
+    "baseline_z": "policy",         # 구조적 저활동 → 하루 정책 안내(복지 자원 우선). 월드에선 하루가 받음
     "micro_signal": "psych",
 }
 # 마을이장이 받는 환류 — 이벤트 "주제"만 넘긴다(등급·점수 없음). 코드 → 뜻은 chief.THEMES
@@ -365,8 +365,8 @@ EVENT_THEME_FROM_FACTOR = {
 }
 MISSION_SUGGESTIONS = {
     "psych": ["심리상담 NPC와 대화하기", "일주일 연속 출석하기"],
-    "job": ["취업상담 NPC와 대화하기", "첫 동아리 가입하기"],
-    "policy": ["정책추천 NPC와 대화하기", "광장 한 바퀴 돌아보기"],
+    "job": ["지원센터 하루 만나기", "첫 동아리 가입하기"],        # 정책추천·취업상담 창구는 하루로 합침(07_feedback_chat.sql G)
+    "policy": ["지원센터 하루 만나기", "광장 한 바퀴 돌아보기"],
 }
 
 

@@ -28,13 +28,15 @@
 | `fishing.js` | 인벤토리 화면·낚시 상태·입질 효과음·중단 처리 | 최신 main에 연결 |
 | `ui.js` | 나의 휴대폰·전체 지도·설정·코코 알림 (`window.WorldUI`) | PR #13을 앱에 붙게 다시 정리 |
 | `app.js` | 로그인·설문·튜토리얼·투어·NPC 대화·미션방·동아리방, DB | 원래 데모 앱 로직 그대로 + 연결부 |
-| `bundle.py` | 위 파일 + `../coco/coco.js` + `../chief/chief.js`를 한 파일로 → `../socialworld-demo.html` | PR #13 bundle.py 기반 |
+| `bundle.py` | 위 파일 + `../coco/coco.js` + `../chief/chief.js` + `../haru/haru.js` + `../feedback/feedback.js`를 한 파일로 → `../socialworld-demo.html` | PR #13 bundle.py 기반 |
 | `tests/fishing_test.cjs` | 낚시·인벤토리·안내 종료·계정별 저장·기존 UI 연결 검증 | 낚시 수정본 |
 | `tests/ui_test.py` | 휴대폰·지도·설정·알림 흐름 40항목 × 데스크톱·모바일 | 새로 |
 
-스크립트 순서: three(CDN) → `world-engine.js` → `market-world.js` → `../coco/coco.js` → `../chief/chief.js` → `sounds.js` → `fishing-data.js` → `economy.js` → `inventory.js` → `fishing.js` → `ui.js` → `market.js` → `app.js`.
+스크립트 순서: Three.js(CDN) → 엔진·시장 → 코코·이장·하루·의견함 → 효과음·낚시 데이터·경제·인벤토리·낚시 → 휴대폰·시장·판매창 → 거울·옷장·업적 → app.js. 정확한 목록과 순서는 `index.html`을 기준으로 한다.
 
 2026-10-06 `(7)` 기준 낚시 병합: I로 인벤토리 → 기본 낚싯대 장착 → 물가에서 상호작용 → 찌가 흔들리며 잠기면 상호작용. 인벤토리는 사용자 ID별로 현재 브라우저에 저장하며, 새 DB 테이블은 추가하지 않았다. 자세한 파일 분석·설정·확률은 `FISHING-GUIDE.md`.
+
+2026-10-07: 분수 옆 정책추천·취업상담 NPC를 빼고 지원센터 문 앞 **하루**(`../haru/README.md`)로 합쳤다. 휴대폰에 '내 의견함', 이장 대화창에 '마을에 건의하기'가 생겼다(07_feedback_chat.sql).
 
 ## 2. 만들기·확인
 
@@ -47,6 +49,7 @@ node social_world/app/tests/market_social_test.cjs # 시계·벤치·시장 채�
 node social_world/app/tests/market_chat_window_test.cjs # 창 이동·크기 조절·프로필
 python social_world/coco/tests/demo_test.py       # 코코 연결
 python social_world/chief/tests/demo_test.py      # 마을이장 연결
+python social_world/haru/tests/demo_test.py       # 하루·내 의견함·이장 건의 연결
 ```
 
 테스트는 Playwright(크로미움)로 돌고 팀 DB 대신 가짜 supabase를 쓴다. three.js CDN이 막힌 곳이면 `SW_THREE_PATH=경로/three.min.js`.
@@ -127,6 +130,7 @@ python social_world/app/bundle.py
 python social_world/app/tests/ui_test.py      # 휴대폰·지도·설정 80항목
 python social_world/coco/tests/demo_test.py
 python social_world/chief/tests/demo_test.py
+python social_world/haru/tests/demo_test.py
 ```
 
 bundle 없이 바로 보려면 `social_world` 폴더에서 `python -m http.server` → `http://localhost:8000/app/`.
@@ -228,13 +232,20 @@ bundle 없이 바로 보려면 `social_world` 폴더에서 `python -m http.serve
 - 내 방 앞쪽의 옷장에 E키로 상호작용하면 같은 화면에 보유한 옷과 기본 옷을 표시한다. 옷 6종의 현재 구현은 상의 색상 변경이다.
 - 휴대폰 '업적·칭호': 60cm/80cm 직접 낚기, 올바른 분리수거 10/50회. 서버가 달성 여부를 기록하고, 달성한 칭호 중 한 개를 장착하거나 해제한다.
 - 시장 광장·은행·옷가게에서는 칭호가 닉네임 위에 표시된다. 말풍선은 그 위에 배치한다. 카메라 행렬 갱신과 위치 추적을 같은 프레임에 맞추고, 크기는 변경 시에만 측정하며 transform으로 이동한다.
-- DB는 `08_economy.sql` 다음에 `09_achievements.sql`을 적용한다. 현재 변경은 팀 DB에 자동 적용하지 않는다. 기존 온라인 낚시·분리수거 기록은 반영하며, 브라우저에서 이전한 물고기/분리수거 누계는 업적에 포함하지 않는다. 거래한 큰 물고기의 업적은 원래 잡은 사람이 유지한다.
+- DB는 `08_economy.sql` 다음에 `10_achievements.sql`을 적용한다. 현재 변경은 팀 DB에 자동 적용하지 않는다. 기존 온라인 낚시·분리수거 기록은 반영하며, 브라우저에서 이전한 물고기/분리수거 누계는 업적에 포함하지 않는다. 거래한 큰 물고기의 업적은 원래 잡은 사람이 유지한다.
 - 새 파일: `wardrobe.js`, `wardrobe.css`, `wardrobe-reflector.js`(Three.js r149 MIT), `achievements.js`. 기존 게임과 다른 장면의 재질을 공유하지 않으며, 닫을 때 미리보기 자원을 해제한다.
 
 ## 물고기 판매점 (2026-10-08)
 
 시장 서쪽 **이음 수산 매입소** 앞에서 E 또는 화면 버튼으로 판매창을 엽니다. `fish-shop.js/css`가 화면을 담당하고, `economy.js`가 `sw_fish_shop` RPC를 호출합니다. 서버에서 가격을 계산하여 아이템 회수·소지금 지급·영수증 저장을 함께 처리합니다. 기존 로컬 import 물고기와 거래 중인 물고기는 판매하지 않습니다.
 
-팀 DB 적용 파일: `database/10_fish_sales.sql` (08 경제 → 09 업적 이후). 자세한 안내: [수산 매입소·DB 연계 안내](../../docs/FISH-SHOP-DB-GUIDE.md).
+팀 DB 적용 파일: `database/11_fish_sales.sql` (08 경제 → 10 업적 이후). 자세한 안내: [수산 매입소·DB 연계 안내](../../docs/FISH-SHOP-DB-GUIDE.md).
 
 배포용 단일 HTML은 `python social_world/app/bundle.py`로 재생성하세요.
+
+
+## main 통합 (2026-10-08)
+
+하루·의견함과 시장·은행·옷가게·낚시·옷장·업적·판매점을 함께 사용할 수 있다. 휴대폰 홈에는 동아리·미션·주민 연락처·업적·칭호·내 의견함 5개 앱이 있다. 업적과 의견함은 각각 독립적인 DB/RPC를 사용하고 시장 채팅은 현재 페이지 메모리 UI다.
+
+DB 순서: 01~09(main) → `10_achievements.sql` → `11_fish_sales.sql`. 상세 분석과 검증: [main 통합 안내](../../docs/MAIN-INTEGRATION-2026-10-08.md).

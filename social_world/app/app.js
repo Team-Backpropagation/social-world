@@ -29,37 +29,8 @@
   // 대화 원문은 저장하지 않는다. 저장되는 것은 NPC 종류·태그 수·심각도뿐이다.
   // ---------------------------------------------------------------
   var NPCS = [
-    { id:"policy", name:"정책추천 NPC", emoji:"📋", color:"#5b8def",
-      tree:{
-        root:{text:"안녕하세요! 저는 정책추천 도우미예요. 무엇을 도와드릴까요?",
-          options:[{label:"청년 주거 지원 정책이 궁금해요", next:"housing"},
-                   {label:"생활비 지원 제도를 알고 싶어요", next:"living", signal:{tags:["생계부담"], severity:0.3}},
-                   {label:"그냥 둘러볼게요", next:"bye"}]},
-        housing:{text:"청년 월세 지원, 전세보증금 대출이자 지원 같은 제도가 있어요. 거주 지역 기준으로 더 정확히 안내해 드릴 수 있어요 (실제 서비스에서는 복지자원 DB와 연동됩니다).",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        living:{text:"청년 생활안정자금, 자립수당 등이 대표적이에요. 자격 요건은 소득·나이 기준에 따라 달라져요.",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        bye:{text:"언제든 다시 찾아주세요! 👋", options:[]}
-      }},
-    { id:"job", name:"취업상담 NPC", emoji:"💼", color:"#2fa86b",
-      tree:{
-        root:{text:"어떤 취업 준비 단계에 계신가요?",
-          options:[{label:"이제 막 구직을 시작했어요", next:"start"},
-                   {label:"면접까지 왔는데 막막해요", next:"interview"},
-                   {label:"오래 준비했는데 계속 떨어져서 지쳤어요", next:"longterm", signal:{tags:["장기구직","무기력"], severity:0.6}},
-                   {label:"그냥 둘러볼게요", next:"bye"}]},
-        start:{text:"좋아요, 시작이 반이에요. 관심 직무 분야를 정하고 청년 취업지원 프로그램부터 알아보는 걸 추천해요.",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        interview:{text:"면접 전 모의면접 프로그램이나 취업 상담 센터를 연계해 드릴 수 있어요 (실제 서비스에서는 복지자원 DB와 연동됩니다).",
-          options:[{label:"다른 것도 궁금해요", next:"root"},{label:"고마워요", next:"bye"}]},
-        longterm:{text:"그동안 정말 애쓰셨어요. 결과가 안 나오면 나 자신을 탓하게 되기 쉬운데, 그건 노력이 부족해서가 아니에요. 구직을 오래 쉬었던 청년을 위한 도전지원사업도 있고, 마음이 많이 지쳤다면 루미와 먼저 이야기해 보는 것도 좋아요.",
-          options:[{label:"요즘은 아예 아무것도 하기 싫어요", next:"giveup", signal:{tags:["구직단념","사회적회피"], severity:0.7}},
-                   {label:"지원사업 알려주세요", next:"interview"},
-                   {label:"고마워요", next:"bye"}]},
-        giveup:{text:"그럴 수 있어요. 당분간 취업 이야기는 잠시 내려놓아도 괜찮아요. 카페 앞에 있는 루미가 이야기를 들어줄 거예요.",
-          options:[{label:"알겠어요", next:"bye"}]},
-        bye:{text:"응원할게요, 다음에 또 봐요! 💪", options:[]}
-      }},
+    // 정책추천·취업상담 창구는 2026-10-07 지원센터 하루(haru/haru.js)로 합쳤다. 취업 준비로 지친 마음을 말하는
+    // 선택지(장기구직·무기력·구직단념 태그)는 루미 대본(tired → jobtired)으로 옮겼다 — 위험 탐지는 루미(psych)만 읽는다
     // 루미 — 튜토리얼과 같은 친구 말투(반말)로 통일. 선택지는 유저가 루미에게 하는 말이라 역시 반말
     { id:"psych", name:"루미", emoji:"🌱", color:"#B56CC0",
       disclaimer:"AI 친구 · 사람 상담사는 아니야",
@@ -71,7 +42,14 @@
         tired:{text:"그랬구나, 많이 힘들었겠다. 요즘 사람들이랑은 어떻게 지내?",
           options:[{label:"가끔 친구들 만나", next:"social", signal:{tags:[], severity:0.2}},
                    {label:"속얘기할 사람이 별로 없어", next:"duration", signal:{tags:["대화상대없음","소외감"], severity:0.6}},
-                   {label:"다 귀찮고 혼자 있는 게 편해", next:"duration", signal:{tags:["사회적회피"], severity:0.6}}]},
+                   {label:"다 귀찮고 혼자 있는 게 편해", next:"duration", signal:{tags:["사회적회피"], severity:0.6}},
+                   {label:"취업 준비가 길어져서 지쳤어", next:"jobtired", signal:{tags:["장기구직","무기력"], severity:0.6}}]},
+        jobtired:{text:"오래 버티느라 정말 애썼다. 결과가 안 나오면 나를 탓하기 쉬운데, 그건 노력이 부족해서가 아니야. 요즘은 어때?",
+          options:[{label:"요즘은 아예 아무것도 하기 싫어", next:"duration", signal:{tags:["구직단념","사회적회피"], severity:0.7}},
+                   {label:"받을 수 있는 지원이 있을까?", next:"jobhelp"},
+                   {label:"고마워", next:"bye"}]},
+        jobhelp:{text:"지원센터에 있는 하루가 일·취업 지원을 찾아 줄 거야. 신청은 네가 직접 하고, 하루는 어디서 어떻게 하는지 알려 줘. 힘들면 언제든 다시 카페로 와.",
+          options:[{label:"고마워", next:"bye"}]},
         social:{text:"다행이다! 가까운 사람들이랑 보내는 시간이 힘이 될 거야. 지친 마음은 가벼운 활동으로 풀어 보는 것도 좋아. 미션방에 작은 퀘스트들이 있어.",
           options:[{label:"고마워", next:"bye"}]},
         duration:{text:"그런 시간이 길어지면 마음이 더 무겁게 느껴질 수 있어. 이런 상태가 얼마나 됐어?",
@@ -82,7 +60,7 @@
           options:[{label:"상담은 어디서 받을 수 있어?", next:"counsel"},
                    {label:"동아리센터 한번 가 볼게", next:"bye"},
                    {label:"고마워", next:"bye"}]},
-        counsel:{text:"청년 마음건강 바우처로 전문 심리상담을 받을 수 있고, 가까운 정신건강복지센터(정신건강 상담전화 1577-0199)에서도 상담받을 수 있어. 신청 방법은 지원센터 쪽 창구에서 알려 줄 거야.",
+        counsel:{text:"청년 마음건강 바우처로 전문 심리상담을 받을 수 있고, 가까운 정신건강복지센터(정신건강 상담전화 1577-0199)에서도 상담받을 수 있어. 신청 방법은 지원센터의 하루가 알려 줄 거야.",
           options:[{label:"고마워", next:"bye"}]},
         crisis:{crisis:true,
           text:"그런 마음까지 들었구나. 지금 많이 힘든 상태일 수 있어. 혼자 견디지 말고 지금 바로 전문 상담사랑 이야기해 줘. 24시간 언제든 연결돼. 나도 여기 있을게.",
@@ -103,7 +81,10 @@
       }},
     // 코코 — 활동 추천. 대본 트리 대신 coco/coco.js 대화창을 연다(openNpc 참고).
     // 위험 신호가 아니라 수요 신호라 npc_sessions에 남기지 않고, coco.js가 npc_demand_logs에 기록한다
-    { id:"coco", name:"코코", emoji:"🎈", color:"#2E6B4F", noSignal:true, external:true }
+    { id:"coco", name:"코코", emoji:"🎈", color:"#2E6B4F", noSignal:true, external:true },
+    // 하루 — 지원센터 정책 안내. 대본 트리 대신 haru/haru.js 대화창을 연다(openNpc 참고).
+    // 위험 신호가 아니라 수요 신호라 npc_sessions에 남기지 않고, haru.js가 npc_demand_logs에 기록한다
+    { id:"haru", name:"하루", emoji:"🏛️", color:"#22706B", noSignal:true, external:true }
   ];
 
   var state = {
@@ -553,14 +534,14 @@
   // 3D 마을 ↔ 앱 연결 — 광장·내 방·루미와 걷는 투어 (2026-09-29)
   // ================================================================
   var STUB_MSG = {
-    support: "🏛️ 지원센터는 준비 중이에요. 하루가 곧 이사 와요 — 지금은 분수 옆 정책추천·취업상담 창구를 이용해 주세요.",
+    support: "🏛️ 지원센터 안은 준비 중이에요. 문 앞의 하루에게 말을 걸면 받을 수 있는 지원을 찾아 줘요.",
     park: "🌳 공원 산책로·러닝 챌린지는 준비 중이에요. 연못가 벤치에서 쉬어 가도 돼요.",
     game: "🎮 게임방은 준비 중이에요. 곧 같이 하는 미니게임이 열려요.",
     cafe: "☕ 카페 안은 준비 중이에요. 루미는 카페 앞에 있어요!"
   };
   function npcName(id){ var n = NPCS.filter(function(x){ return x.id === id; })[0]; return n ? n.name : ""; }
   // 앱 대화창(NPC·튜토리얼·코코·이장)이 열려 있는가 — 휴대폰(ui.js)이 알림을 미룰 때도 쓴다
-  function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop"); }
+  function dialogOpen(){ return !!document.querySelector(".modal-backdrop, .coco-backdrop, .chief-backdrop, .haru-backdrop"); }
   // 3D 입력을 멈춰야 하는가 — 대화창 또는 휴대폰·지도(ui.js)가 열려 있을 때
   function worldBlocked(){ return !!(window.MarketUI && (window.MarketUI.isTravelling() || window.MarketUI.isTyping() || window.MarketUI.isManipulating())) || dialogOpen() || !!(window.WorldUI && window.WorldUI.isOpen()); }
   // 현재 키 이름 — 휴대폰 설정에서 바꿀 수 있다(ui.js). ui.js가 없으면 기본 키
@@ -582,7 +563,8 @@
     E.hooks.view = function(changed){ var b = document.getElementById("hud-view"); if(b) b.hidden = !changed; };
     var mmc = document.getElementById("hud-minimap"); if(mmc && E.attachMinimap && !mmc.__on){ mmc.__on = true; mmc.hidden = false; E.attachMinimap(mmc); }
     if(window.WorldUI) window.WorldUI.attach(E);
-    E.bubbleNpc = (state.feedback && state.feedback.npc_emphasis) || "psych";
+    var emph = (state.feedback && state.feedback.npc_emphasis) || "psych";
+    E.bubbleNpc = (emph === "policy" || emph === "job") ? "haru" : emph;   // 정책·취업 강조는 하루가 받는다
     opt = opt || {};
     opt.avatar = currentAvatar() || presetAvatar("calm", "#4caf6e", nick());
     E.enter(mode, opt);
@@ -734,7 +716,7 @@
     park:   { label:"공원", go:"연못 있는 공원으로 가자!",
               text:function(c){ return "🌳 공원! 연못가 벤치에서 쉬거나 산책·러닝 챌린지를 할 수 있어. 이장님이 가끔 같이 걷기 모임도 여셔." + (c.goal === "rest" ? " 쉬고 싶을 때 딱이야." : ""); } },
     support:{ label:"지원센터", go:"저 위 지원센터로 가자!",
-              text:function(){ return "🏛️ 지원센터야. 하루가 청년 정책·취업·주거 지원을 찾아 줘. 신청은 네가 직접 하고, 하루는 어디서 어떻게 하는지 알려 줘. 하루가 이사 오기 전까지는 분수 옆 정책추천·취업상담 창구를 쓰면 돼."; } },
+              text:function(){ return "🏛️ 지원센터야. 하루가 청년 정책·취업·주거 지원을 찾아 줘. 신청은 네가 직접 하고, 하루는 어디서 어떻게 하는지 알려 줘. 하루는 문 앞에 있어."; } },
     game:   { label:"게임방", go:"줄무늬 천막, 게임방으로 가자!",
               text:function(){ return "🎮 게임방! 다른 주민들이랑 가볍게 게임하는 곳이야. 말 안 하고 같이 있기만 해도 괜찮아."; } },
     cafe:   { label:"카페", go:"지원센터 왼쪽, 카페로 가자! 내 자리야.",
@@ -922,7 +904,7 @@
   }
   if(window.Wardrobe) window.Wardrobe.init({engine:function(){return ENGINE;},economy:getEconomy,baseAvatar:function(){return currentAvatar(true)||presetAvatar('calm','#4caf6e',nick());},tutorial:function(){return !!state.tour||(state.view==='room'&&state.room&&state.room.phase!=='free');},toast:showToast});
   window.FishShop?.init({engine:function(){return ENGINE;},economy:getEconomy,toast:showToast});
-  var CONTACT_ORDER = ["psych","coco","chief","policy","job"];
+  var CONTACT_ORDER = ["psych","coco","chief","haru"];
   if(window.WorldUI) window.WorldUI.init({
     sb: sb,
     userId: function(){ return state.session ? state.session.user.id : null; },
@@ -1080,12 +1062,26 @@
   function openNpc(id){
     if(state.tour){ showToast("투어 중이에요 — 루미를 따라가 보세요"); return; }
     if(id === "coco"){ openCoco(); return; }
+    if(id === "haru"){ openHaru(); return; }
     if(id === "chief" && window.Chief){ openChief(); return; }
     state.near = null;
     state.activeNpc = NPCS.filter(function(n){ return n.id===id; })[0];
     state.npcNode = "root";
     state.npcSession = { npc_type: id, started_at: new Date().toISOString(), tags: {}, maxSev: 0, turns: 0, crisisReported: false };
     renderNpcModal();
+  }
+
+  // 하루 — 정책 고르기는 DB(recommend_programs·program_counts, 06), 화면은 haru/haru.js. LLM 없음
+  var haruDialog = null;
+  function openHaru(){
+    if(haruDialog) return;
+    if(!window.Haru){ showToast("하루가 잠깐 자리를 비웠어요 (haru/haru.js를 불러오지 못함)"); return; }
+    state.near = null;
+    haruDialog = window.Haru.open({
+      sb: sb,
+      profile: state.profile,
+      onClose: function(){ haruDialog = null; }
+    });
   }
 
   // 코코 — 추천 계산은 DB(recommend_activities), 화면은 coco/coco.js. 자유 입력·LLM 없음

@@ -44,6 +44,7 @@ def main():
             return json.load(f)
     micro = _load_json("micro_detail.json", {})       # 코호트별 이번 달 대화 현황 (Supabase 모드)
     escalations = _load_json("escalations.json", [])  # 최근 30일 위기 발화 (지역·시각만)
+    demand = _load_json("demand.json", {})            # 하루·코코 수요 최근 4주 (Supabase 모드)
 
     cohorts = []
     m = scores.merge(factors, on="cohort_id")
@@ -63,6 +64,7 @@ def main():
                        if (acts["cohort_id"] == cid).any() else None),
             "feedback": feedback.get(cid),
             "micro": micro.get(cid),
+            "demand": (demand.get("by_cohort") or {}).get(cid),
             "series": series[cid],
         })
 
@@ -76,6 +78,7 @@ def main():
         "priority": pri["cohort_id"].tolist(),
         "cohorts": cohorts,
         "escalations": escalations,
+        "demand": {k: v for k, v in demand.items() if k != "by_cohort"} or None,
         "k_min": C.K_ANONYMITY_MIN,
         "region_names": C.REGION_NAMES,
         "weights": {"with_micro": C.WEIGHTS_WITH_MICRO, "macro_only": C.WEIGHTS_MACRO_ONLY},

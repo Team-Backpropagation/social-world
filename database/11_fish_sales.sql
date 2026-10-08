@@ -1,4 +1,4 @@
--- Apply after 08_economy.sql and 09_achievements.sql. Safe to re-run.
+-- Apply after 08_economy.sql and 10_achievements.sql. Safe to re-run.
 -- Existing bank/clothing/trade RPC stays intact; fish buying uses its own RPC.
 begin;
 create table if not exists public.sw_fish_prices (

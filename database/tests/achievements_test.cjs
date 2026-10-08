@@ -2,7 +2,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const {setup}=require('./economy_test.cjs');
 const A='00000000-0000-0000-0000-000000000201',B='00000000-0000-0000-0000-000000000202';
 (async()=>{const {db,user,rpc}=await setup();let n=0;const check=(x,label)=>{assert(x,label);n++;console.log('PASS '+label);};
-const file=fs.readFileSync(path.join(__dirname,'../09_achievements.sql'),'utf8');
+const file=fs.readFileSync(path.join(__dirname,'../10_achievements.sql'),'utf8');
 const achievement=(id,action='state',title=null)=>db.transaction(async t=>{await t.exec('set local role authenticated');await t.query("select set_config('request.jwt.claim.sub',$1,true)",[id]);return (await t.query('select sw_achievements($1,$2) d',[action,title])).rows[0].d;});
 try{await user(A);await user(B);await rpc(A);await rpc(B);await db.exec(file);
  let a=await achievement(A);check(a.earned.length===0,'new user starts with zero achievements');
