@@ -67,7 +67,7 @@ def generate_flow_cohort_monthly(persona_table):
             level = base
             if p["archetype"] == "structurally_low":
                 # 6개월간 완만히 더 낮아짐 — "급격한 단절이 아니라 구조적 저활동" 시그니처
-                level *= (1 - 0.028) ** i
+                level *= (1 - C.SYNTH_EFFECTS["structural_monthly_decline"]) ** i
             # 그 외 원형은 통신 데이터에 뚜렷한 트렌드를 남기지 않음(발견 5: 통신=배경지표, 거의 평탄)
             noise = rng.normal(0, FLOW_CV)
             value = max(0.0, level * (1 + noise))
@@ -92,7 +92,7 @@ def generate_card_cohort_daily(persona_table):
         rng = np.random.default_rng(C.stable_seed("card", p["cohort_id"]))
         dow_mult = C.DOW_MULTIPLIER[p["sgg_code"]]
 
-        essential_decline_end = 0.65 if p["archetype"] == "essential_only" else 1.0
+        essential_decline_end = C.SYNTH_EFFECTS["essential_decline_end"] if p["archetype"] == "essential_only" else 1.0
         n_days = len(dates)
 
         for i, d in enumerate(dates):
@@ -105,14 +105,14 @@ def generate_card_cohort_daily(persona_table):
                 level *= (1 - frac) * 1.0 + frac * essential_decline_end
 
             if p["archetype"] == "structurally_low":
-                level *= 0.85  # 원래부터 낮은 평탄선
+                level *= C.SYNTH_EFFECTS["structural_card_level"]  # 원래부터 낮은 평탄선
 
             ev_name, intensity = _event_intensity_for_date(d)
             if ev_name is not None:
                 region_mult = _region_event_multiplier(p["sgg_code"], intensity)
                 if p["archetype"] == "event_unresponsive":
                     # H-A 핵심 시그니처: 지역 전체는 크게 흔들리지만 이 코호트는 거의 반응하지 않음
-                    dampened = 1.0 + (region_mult - 1.0) * 0.12
+                    dampened = 1.0 + (region_mult - 1.0) * C.SYNTH_EFFECTS["event_dampening"]
                     level *= dampened
                 else:
                     level *= region_mult

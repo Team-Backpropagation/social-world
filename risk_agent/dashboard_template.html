@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>고립 위험 코호트 관제</title>
+<title>집단 활동 변화 관제</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
@@ -74,7 +74,7 @@ header h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
 /* 등급 읽는 법 */
 .levels{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:12px}
 .levels h2{font-size:15px}
-.lvrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.lvrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 @media (max-width:820px){.lvrow{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .lv{border-radius:8px;padding:10px 12px;display:grid;gap:2px}
 .lv b{font-size:15px}
@@ -190,9 +190,9 @@ footer{font-size:13px;color:var(--muted);display:grid;gap:6px}
 <div class="wrap">
   <header>
     <div class="eyebrow">관리자 화면 · 위험 탐지 에이전트</div>
-    <h1>고립 위험 코호트 현황</h1>
-    <p class="lede">카드 결제·유동인구 변화와 소셜 월드 상담 대화를 합쳐서, 지역·연령대·성별로 나눈 집단마다
-      <b>지금 얼마나 먼저 살펴봐야 하는지</b> 보여줍니다. 개인이 아니라 집단 단위 결과예요.</p>
+    <h1>집단 생활 활동 변화 현황</h1>
+    <p class="lede">카드 결제·유동인구 변화와 소셜 월드 상담 대화를 보고, 지역·연령대·성별로 나눈 집단마다
+      <b>자기 평소보다 달라졌는지, 담당자가 확인할 필요가 있는지</b> 보여줍니다. 개인이 아니라 집단 단위 결과예요.</p>
     <div class="chips" id="chips"></div>
   </header>
 
@@ -200,8 +200,8 @@ footer{font-size:13px;color:var(--muted);display:grid;gap:6px}
 
   <section class="summary" id="summary" aria-label="요약"></section>
 
-  <section class="levels" aria-label="등급 읽는 법">
-    <h2>등급 읽는 법</h2>
+  <section class="levels" aria-label="상태 읽는 법">
+    <h2>상태 읽는 법</h2>
     <div class="lvrow" id="lvrow"></div>
     <p class="caveat" id="caveat"></p>
   </section>
@@ -220,10 +220,10 @@ footer{font-size:13px;color:var(--muted);display:grid;gap:6px}
   <section class="panel">
     <div>
       <h2>먼저 살펴볼 집단</h2>
-      <div class="sub">'주의' 이상인 집단을 점수 순으로 모았어요. 줄을 누르면 위 설명이 바뀝니다.</div>
+      <div class="sub">'확인권장'을 먼저, 그다음 '변화관찰'을 신호 세기 순으로 모았어요. 줄을 누르면 위 설명이 바뀝니다.</div>
     </div>
     <div class="tbl"><table>
-      <thead><tr><th>순서</th><th>집단</th><th>등급</th><th>가장 큰 이유</th><th style="text-align:right">이번 달 상담 대화</th></tr></thead>
+      <thead><tr><th>순서</th><th>집단</th><th>상태</th><th>가장 큰 이유</th><th style="text-align:right">이번 달 상담 대화</th></tr></thead>
       <tbody id="ptable"></tbody>
     </table></div>
   </section>
@@ -281,15 +281,20 @@ if (!D) {
 }
 
 // ---------------- 공통 ----------------
-const LV = {1:"안심",2:"관찰",3:"주의",4:"경계",5:"위험"};
-const LV_MEAN = {1:"평소와 같아요",2:"조금 달라졌어요. 지켜보기",3:"확인이 필요해요",4:"빨리 확인해 주세요",5:"가장 먼저 확인해 주세요"};
+// 4단계 상태 — 집단끼리 줄 세운 등급이 아니라, 각 집단을 자기 평소와 비교한 결과
+const ST_ORDER = ["check","watch","normal","hold"];
+const ST = {check:"확인권장", watch:"변화관찰", normal:"평소범위", hold:"판단보류"};
+const ST_MEAN = {check:"담당자가 확인해 주세요", watch:"달라졌지만 아직 판단은 일러요. 지켜보기", normal:"평소와 다르지 않아요", hold:"자료가 부족해 판단하지 않았어요"};
+const ST_STYLE = {check:"background:var(--l4);color:var(--l4-ink)", watch:"background:var(--l2);color:var(--l2-ink)",
+                  normal:"background:var(--l1);color:var(--l1-ink)", hold:"background:var(--band);color:var(--muted)"};
 const GL = {M:"남성",F:"여성"};
 const AGE_ORDER = ["10대","20대","30대","40대","50대","60대이상"];
 const AGES = AGE_ORDER.filter(a => D.cohorts.some(c => c.age === a));
 const NPC = {psych:"루미(심리상담)",job:"하루(일·취업 안내)",policy:"하루(정책 안내)",civil:"하루(의견함)",coco:"코코(활동 추천)",haru:"하루(지원센터)"};
 const byId = Object.fromEntries(D.cohorts.map(c=>[c.id,c]));
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
-const lvStyle = l => `background:var(--l${l});color:var(--l${l}-ink)`;
+const stStyle = s => ST_STYLE[s] || ST_STYLE.hold;
+const fmtScore = c => c.score == null ? "—" : c.score.toFixed(0);
 const cname = c => `${c.region} ${c.age} ${GL[c.gender]}`;
 const hasMicro = D.cohorts.some(c => c.micro);
 const synthetic = D.source.includes("합성") && !D.source.includes("실제");
@@ -297,31 +302,33 @@ let selected = D.priority[0] || D.cohorts[0].id;
 
 // 신호 4종 — 전문 용어 대신 "무엇을 봤는지"를 질문으로
 const SIGNALS = [
-  {k:"micro_signal", ic:"💬", q:"상담 대화에서 힘든 이야기가 많이 나왔나요?", sub:"소셜 월드 심리상담 대화의 위험 주제·심각도를 다른 집단과 비교"},
-  {k:"trigger_z", ic:"💳", q:"최근 카드 결제가 평소보다 줄었나요?", sub:"11~12월 결제 건수를 7~10월 평소 수준과 비교(요일 효과 제거)"},
-  {k:"event_response", ic:"🎉", q:"명절·연휴에 평소처럼 움직이지 않았나요?", sub:"다른 집단은 명절에 소비가 크게 바뀌는데 이 집단은 거의 그대로면 높게 나와요"},
-  {k:"baseline_z", ic:"🚶", q:"이 집단의 유동인구가 줄고 있나요?", sub:"6개월 동안의 통신 유동인구 흐름"}
+  {k:"micro_severity", ic:"💬", q:"상담 대화에서 힘든 이야기가 많이 나왔나요?", sub:"소셜 월드 심리상담 대화의 평균 심각도(0~1). 루미와 같은 기준으로 0.45를 넘으면 관찰"},
+  {k:"trigger_z", ic:"💳", q:"최근 카드 결제가 평소보다 줄었나요?", sub:"11~12월 결제 수준을 이 집단의 7~10월 평소와 비교(요일 효과·같은 지역 공통 변화를 뺌)"},
+  {k:"event_beta", ic:"🎉", q:"명절·연휴에 평소처럼 움직이지 않았나요?", sub:"명절에 지역이 움직인 만큼 이 집단도 움직였는지(1=같이 움직임, 0=무반응)"},
+  {k:"baseline_z", ic:"🚶", q:"이 집단의 유동인구가 줄고 있나요?", sub:"통신 유동인구(월별)를 평소 달과 비교. 배경 신호라 혼자서는 확인권장이 되지 않아요"}
 ];
-// z값(클수록 위험 방향) → 쉬운 판정
-function verdict(z){
-  if (z === null || z === undefined) return {t:"자료 없음", c:"vna", step:-1};
-  if (z < 0.5) return {t:"평소 수준", c:"v0", step:0};
-  if (z < 1.5) return {t:"약간 높음", c:"v1", step:1};
-  if (z < 2.5) return {t:"높음", c:"v2", step:2};
-  return {t:"매우 높음", c:"v3", step:3};
+// 신호별 판정 — 세기 1.0 = 확인 기준선. 기준을 넘었는지는 판정기가 준 목록(alert/observe)을 그대로 쓴다
+function verdict(c, k){
+  if (c.v[k] === null || c.v[k] === undefined) return {t:"자료 없음", c:"vna", step:-1};
+  if (c.alert.includes(k)) return {t:"확인 기준 넘음", c:"v3", step:3};
+  if (c.observe.includes(k)) return {t:"관찰 기준 넘음", c:"v2", step:2};
+  if ((c.strength[k] || 0) >= 0.5) return {t:"조금 다름", c:"v1", step:1};
+  return {t:"평소 수준", c:"v0", step:0};
 }
 const CAUSE_PLAIN = {
-  micro_signal: "소셜 월드 상담 대화에서 외로움·무기력 같은 힘든 이야기가 다른 집단보다 많이 나왔어요.",
-  trigger_z: "최근 카드 결제가 평소보다 줄어든 상태가 이어지고 있어요. 밖에서 쓰는 소비가 줄었다는 뜻일 수 있어요.",
-  event_response: "명절·연휴에도 소비가 거의 달라지지 않았어요. 만나거나 찾아갈 사람이 적을 수 있다는 신호예요.",
-  baseline_z: "이 집단의 유동인구가 몇 달째 조금씩 줄고 있어요."
+  micro_severity: "소셜 월드 상담 대화의 심각도가 기준을 넘었어요. 외로움·무기력 같은 힘든 이야기가 이어지고 있어요.",
+  trigger_z: "최근 카드 결제가 이 집단의 평소보다 낮은 상태가 여러 주 이어지고 있어요. 밖에서 쓰는 소비가 줄었다는 뜻일 수 있어요.",
+  event_beta: "명절·연휴에 지역 전체는 크게 움직였는데 이 집단은 거의 따라 움직이지 않았어요. 만나거나 찾아갈 사람이 적을 수 있다는 신호예요.",
+  baseline_z: "이 집단의 유동인구가 평소 달보다 낮아졌어요."
 };
 function causeText(c){
-  if (c.level <= 2) return "특별히 눈에 띄는 변화가 없어요.";
-  if (!c.dominant) return "한 가지 뚜렷한 이유 없이 여러 지표가 조금씩 높아요. 우연일 수 있으니 다음 달 결과로 한 번 더 확인해 주세요.";
-  return CAUSE_PLAIN[c.dominant] || c.cause;
+  if (c.status === "hold") return "자료가 부족해서 판단하지 않았어요.";
+  if (c.status === "normal") return "평소와 다르지 않아요. 다만 원래부터 활동이 낮은 집단은 이 방식으로 찾지 못하니, '문제없음'으로 읽지는 말아 주세요.";
+  if (!c.dominant) return "한 가지 뚜렷한 이유 없이 여러 지표가 조금씩 달라요. 다음 달 결과로 한 번 더 확인해 주세요.";
+  const t = CAUSE_PLAIN[c.dominant] || c.cause;
+  return c.status === "watch" ? t + " 아직 확인 기준(지속 조건 포함)은 넘지 않아 지켜보는 단계예요." : t;
 }
-const CAUSE_SHORT = {micro_signal:"상담 대화에 힘든 이야기가 많음", trigger_z:"카드 결제 감소", event_response:"명절에도 움직임 없음", baseline_z:"유동인구 감소"};
+const CAUSE_SHORT = {micro_severity:"상담 대화 심각도 높음", trigger_z:"카드 결제 감소", event_beta:"명절에도 움직임 없음", baseline_z:"유동인구 감소"};
 
 // 대본 태그 → 사람이 읽는 말
 const TAG_LABEL = {
@@ -365,28 +372,29 @@ document.getElementById("version").textContent = `모델 ${D.model_version} · �
 
 // ---------------- 요약 타일 ----------------
 (function(){
-  const flagged = D.cohorts.filter(c => c.level >= 3);
+  const flagged = D.cohorts.filter(c => c.status === "check");
+  const watching = D.cohorts.filter(c => c.status === "watch");
   const top = byId[D.priority[0]];
   const tot = D.cohorts.reduce((a,c)=>a+(c.micro?.sessions||0),0);
   const live = D.cohorts.reduce((a,c)=>a+(c.micro?.live_sessions||0),0);
   document.getElementById("summary").innerHTML = `
-    <div class="tile"><span class="k">확인이 필요한 집단 ('주의' 이상)</span>
+    <div class="tile"><span class="k">확인이 필요한 집단 ('확인권장')</span>
       <span class="v">${flagged.length}<small> / ${D.cohorts.length}곳</small></span>
-      <span class="s">그중 '위험' ${D.cohorts.filter(c=>c.level===5).length}곳</span></div>
+      <span class="s">${flagged.length ? "" : "기준을 넘은 집단이 없어요 · "}지켜볼 집단('변화관찰') ${watching.length}곳</span></div>
     <div class="tile"><span class="k">가장 먼저 볼 집단</span>
       <span class="v" style="font-size:21px">${top ? esc(cname(top)) : "없음"}</span>
-      <span class="s">${top ? esc(CAUSE_SHORT[top.dominant] || "여러 지표가 조금씩 높음") : ""}</span></div>
+      <span class="s">${top ? esc(ST[top.status] + " · " + (CAUSE_SHORT[top.dominant] || "여러 지표가 조금씩 다름")) : "확인권장·변화관찰 집단이 없어요"}</span></div>
     <div class="tile"><span class="k">이번 달 상담 대화</span>
       ${hasMicro ? `<span class="v">${tot}<small> 건</small></span><span class="s">실제 대화 ${live}건 · 시연용 배경 ${tot-live}건</span>`
                  : `<span class="v" style="font-size:21px">연결 안 됨</span><span class="s">카드·통신만으로 판단했어요</span>`}</div>`;
 })();
 
-// ---------------- 등급 읽는 법 ----------------
-document.getElementById("lvrow").innerHTML = [1,2,3,4,5].map(l =>
-  `<div class="lv" style="${lvStyle(l)}"><b>${LV[l]}</b><span>${LV_MEAN[l]}</span><span class="cnt">${D.cohorts.filter(c=>c.level===l).length}곳</span></div>`).join("");
+// ---------------- 상태 읽는 법 ----------------
+document.getElementById("lvrow").innerHTML = ST_ORDER.map(s =>
+  `<div class="lv" style="${stStyle(s)}"><b>${ST[s]}</b><span>${ST_MEAN[s]}</span><span class="cnt">${D.cohorts.filter(c=>c.status===s).length}곳</span></div>`).join("");
 document.getElementById("caveat").textContent =
-  `등급은 이 화면의 ${D.cohorts.length}개 집단끼리 비교한 순서예요. 그래서 실제로 큰 문제가 없어도 가장 높은 몇 곳은 '위험'으로 표시돼요. ` +
-  `오른쪽 '왜 이렇게 판단했나요'에서 '높음' 이상이 있는지 함께 봐 주세요.`;
+  `상태는 집단끼리 줄 세운 순서가 아니라, 각 집단을 자기 평소(7~10월)와 비교한 결과예요. 그래서 모두 평소와 같으면 '확인권장'이 하나도 없을 수 있어요. ` +
+  `원래부터 활동이 낮고 최근 변화가 없는 집단은 이 방식으로 찾지 못하니, '평소범위'를 '문제없음'으로 읽지는 말아 주세요.`;
 
 // ---------------- 집단 지도 ----------------
 function renderGrid(){
@@ -399,8 +407,8 @@ function renderGrid(){
         const c = byId[`${sgg}-${g}-${a}`];
         if (!c) { h += `<span></span>`; continue; }
         const talk = c.micro && c.micro.live_sessions ? `<span class="talk">💬 ${c.micro.live_sessions}</span>` : "";
-        h += `<button class="cell" style="${lvStyle(c.level)}" aria-pressed="${c.id===selected}" data-id="${c.id}" aria-label="${esc(cname(c))} ${LV[c.level]}">` +
-             `<span class="lvname">${LV[c.level]}</span><span class="s">${c.score.toFixed(0)}점</span>${talk}</button>`;
+        h += `<button class="cell" style="${stStyle(c.status)}" aria-pressed="${c.id===selected}" data-id="${c.id}" aria-label="${esc(cname(c))} ${ST[c.status]}">` +
+             `<span class="lvname">${ST[c.status]}</span><span class="s">세기 ${fmtScore(c)}</span>${talk}</button>`;
       }
     }
     return h + `</div></div>`;
@@ -452,7 +460,7 @@ function bindChart(host, ch){
 // ---------------- 상세 ----------------
 function signalRows(c){
   return SIGNALS.map(sg => {
-    const z = c.z[sg.k], v = verdict(z), dom = c.dominant === sg.k && c.level >= 3;
+    const v = verdict(c, sg.k), dom = c.dominant === sg.k && (c.status === "check" || c.status === "watch");
     const meter = [0,1,2,3].map(i => `<i style="${v.step>=i ? `background:var(--l${i+2})` : ""}"></i>`).join("");
     return `<div class="sig${dom?" dom":""}"><span class="ic" aria-hidden="true">${sg.ic}</span>` +
       `<span class="q">${sg.q}${dom?'<span class="domtag">가장 큰 이유</span>':""}<small>${sg.sub}</small></span>` +
@@ -461,13 +469,15 @@ function signalRows(c){
 }
 function rawTable(c){
   const rows = SIGNALS.map(sg => {
-    const z = c.z[sg.k], ex = c.excess[sg.k];
-    return `<tr><td>${sg.ic} ${sg.q}</td><td class="num">${z===null?"—":z.toFixed(2)}</td><td class="num">${ex===undefined?"—":(ex>=0?"+":"")+ex.toFixed(1)}</td></tr>`;
+    const val = c.v[sg.k], st = c.strength[sg.k];
+    return `<tr><td>${sg.ic} ${sg.q}</td><td class="num">${val===null?"—":val.toFixed(2)}</td><td class="num">${st===undefined?"—":st.toFixed(2)}</td></tr>`;
   }).join("");
   return `<details class="raw"><summary>숫자로 자세히 보기</summary><table>
-    <thead><tr><th>지표</th><th style="text-align:right">표준점수(z)</th><th style="text-align:right">종합점수 기여(점)</th></tr></thead>
+    <thead><tr><th>지표</th><th style="text-align:right">값</th><th style="text-align:right">세기(확인 기준=1)</th></tr></thead>
     <tbody>${rows}</tbody></table>
-    <p class="sub" style="margin-top:6px">표준점수 0은 평소·다른 집단과 같은 수준, +1은 보통 흔들리는 폭만큼 위험 쪽으로 벗어났다는 뜻이에요. 종합점수 ${c.score.toFixed(1)}점(0~100).</p></details>`;
+    <p class="sub" style="margin-top:6px">카드·유동인구 값은 '평소 흔들림의 몇 배만큼 낮아졌나', 명절 동조도는 1이면 지역과 같이 움직임·0이면 무반응, 대화 심각도는 0~1이에요.
+      세기 ${fmtScore(c)}는 가장 강한 신호가 확인 기준선의 몇 배인지(기준선=50)로, 확인 순서를 정할 때만 써요.</p>
+    ${c.reason ? `<p class="sub" style="margin-top:6px">${esc(c.reason)}</p>` : ""}</details>`;
 }
 function talkSection(c){
   const m = c.micro;
@@ -521,12 +531,12 @@ function renderDetail(){
   const c = byId[selected];
   const res = c.resources.length
     ? `<ul class="res">${c.resources.map(r=>`<li><span class="cat">${esc(r.category)}</span>${esc(r.resource_name)}<span class="prov">${esc(r.provider)}</span></li>`).join("")}</ul>`
-    : `<div class="empty">${c.level>=3 ? "이유가 뚜렷하지 않아 자원을 바로 연결하지 않았어요. 먼저 다음 달 결과로 다시 확인해 주세요." : "지금은 따로 연결할 자원이 없어요."}</div>`;
+    : `<div class="empty">${c.status==="check" ? "이유가 뚜렷하지 않아 자원을 바로 연결하지 않았어요. 먼저 다음 달 결과로 다시 확인해 주세요." : "확인권장 집단에만 자원을 연결해요."}</div>`;
   const fb = c.feedback
-    ? `<div class="sec"><h3>소셜 월드에 반영된 것</h3><div class="fb">이 집단 사용자에게 <b>${NPC[c.feedback.npc_emphasis]}</b>를 먼저 보여주고(말풍선), 미션 <b>${c.feedback.priority_missions.map(esc).join(", ")}</b>를 맨 위에 추천해요. 사용자 화면에 등급은 보이지 않아요.</div></div>` : "";
+    ? `<div class="sec"><h3>소셜 월드에 반영된 것</h3><div class="fb">이 집단 사용자에게 <b>${NPC[c.feedback.npc_emphasis]}</b>를 먼저 보여주고(말풍선), 미션 <b>${c.feedback.priority_missions.map(esc).join(", ")}</b>를 맨 위에 추천해요. 사용자 화면에 상태는 보이지 않아요.</div></div>` : "";
   const ch = chart(c);
   document.getElementById("detail").innerHTML = `
-    <div class="dhead"><h2>${esc(cname(c))}</h2><span class="pill" style="${lvStyle(c.level)}">${LV[c.level]}</span></div>
+    <div class="dhead"><h2>${esc(cname(c))}</h2><span class="pill" style="${stStyle(c.status)}">${ST[c.status]}</span></div>
     <p class="why-main">${esc(causeText(c))}</p>
     <div class="sec"><h3>왜 이렇게 판단했나요?</h3>${signalRows(c)}${rawTable(c)}</div>
     ${talkSection(c)}
@@ -534,7 +544,7 @@ function renderDetail(){
     <div class="sec"><h3>카드 결제 흐름 <span class="sub" style="font-weight:400">— 평소(7~10월) 수준 = 100</span></h3>
       <div class="chart">${ch.svg}<div class="tip" hidden></div></div>
       <div class="legend"><span><span class="sw" style="background:var(--band)"></span>명절·연휴</span><span><span class="sw" style="background:var(--evalband)"></span>최근 비교 구간(11/1~12/23)</span><span>점선 = 평소 수준</span></div></div>
-    <div class="sec"><h3>권장 조치</h3>${c.action ? `<p class="action">${esc(c.action)}</p>` : `<div class="empty">'주의' 미만이라 따로 권하는 조치가 없어요.</div>`}${res}</div>
+    <div class="sec"><h3>권장 조치</h3>${c.action ? `<p class="action">${esc(c.action)}</p>` : `<div class="empty">확인권장·변화관찰이 아니라 따로 권하는 조치가 없어요.</div>`}${res}</div>
     ${fb}`;
   bindChart(document.querySelector("#detail .chart"), ch);
 }
@@ -545,9 +555,9 @@ function renderTable(){
     const c = byId[id];
     const talk = c.micro ? `${c.micro.sessions}건${c.micro.live_sessions?` (실제 ${c.micro.live_sessions})`:""}` : "—";
     return `<tr class="row" data-id="${id}" aria-selected="${id===selected}" tabindex="0"><td class="num">${i+1}</td><td>${esc(cname(c))}</td>` +
-      `<td><span class="pill" style="${lvStyle(c.level)};font-size:12px;padding:2px 10px">${LV[c.level]}</span></td>` +
+      `<td><span class="pill" style="${stStyle(c.status)};font-size:12px;padding:2px 10px">${ST[c.status]}</span></td>` +
       `<td>${esc(CAUSE_SHORT[c.dominant] || "뚜렷한 이유 없음 — 다음 달 재확인")}</td><td class="num">${talk}</td></tr>`;
-  }).join("") || `<tr><td colspan="5" class="sub">'주의' 이상인 집단이 없어요.</td></tr>`;
+  }).join("") || `<tr><td colspan="5" class="sub">'확인권장'·'변화관찰'인 집단이 없어요. 기준을 넘은 변화가 없다는 뜻이에요.</td></tr>`;
   document.querySelectorAll("tr.row").forEach(r=>{
     r.onclick=()=>select(r.dataset.id);
     r.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); select(r.dataset.id);} };
@@ -558,14 +568,14 @@ function renderTable(){
 document.getElementById("howlist").innerHTML = [
   ["모으기","카드 결제(일별)·유동인구(월별)"+(hasMicro?"·소셜 월드 상담 대화(월별)":"")+"를 집단별로 모아요."],
   ["맞추기","명절·연휴 기간과 평소 기간을 나누고, 집단 이름표를 통일해요."],
-  ["평소와 비교하기","요일 차이를 빼고, 평소보다 얼마나 벗어났는지 계산해요."],
-  ["등급 매기기","네 가지 신호를 합쳐 0~100점을 내고, 집단끼리 비교해 5단계로 나눠요. 상담 대화 신호가 매우 뚜렷하면 최소 '주의'로 올려요."],
-  ["이유 찾기","점수를 가장 많이 끌어올린 신호를 '가장 큰 이유'로 표시해요."],
-  ["자원 추천","이유와 지역·연령 자격에 맞는 복지자원을 골라요."],
-  ["우선순위","'주의' 이상 집단을 점수 순으로 줄 세워요."],
+  ["평소와 비교하기","요일 차이와 같은 지역의 공통 변화(계절·날씨)를 빼고, 이 집단의 평소(7~10월)보다 얼마나 벗어났는지 계산해요."],
+  ["상태 정하기","신호마다 관찰 기준·확인 기준을 넘었는지 봐요. 확인 기준을 넘고 여러 주 이어진 신호가 있으면 '확인권장', 관찰 기준만 넘으면 '변화관찰'. 집단끼리 줄 세우지 않아요. 유동인구는 배경 신호라 혼자서는 확인권장이 되지 않아요."],
+  ["이유 찾기","기준을 넘은 신호 중 가장 강한 것을 '가장 큰 이유'로 표시해요."],
+  ["자원 추천","확인권장 집단에만, 이유와 지역·연령 자격에 맞는 복지자원을 골라요."],
+  ["확인 순서","'확인권장'을 먼저, 그다음 '변화관찰'을 신호 세기 순으로 줄 세워요."],
   ["조치 제안","담당자가 할 일을 문장으로 제안해요."],
   ["보고서 초안","같은 내용을 보고서(report_draft.md)로 정리해요."],
-  ["소셜 월드 반영","집단별 추천 NPC·미션을 소셜 월드로 돌려보내요. 등급은 보내지 않아요."]
+  ["소셜 월드 반영","확인권장 집단의 추천 NPC·미션을 소셜 월드로 돌려보내요. 상태는 보내지 않아요."]
 ].map(([t,d])=>`<li><b>${t}</b> <span>— ${d}</span></li>`).join("");
 
 function select(id){ selected=id; renderGrid(); renderDetail(); renderTable(); }

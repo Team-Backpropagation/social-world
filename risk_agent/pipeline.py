@@ -7,6 +7,8 @@
 
 각 함수의 docstring에 대응하는 통합기획서 6-6절 단계 번호와, 방법론의 출처 문서를 명시한다.
 """
+from __future__ import annotations
+
 from datetime import date
 import numpy as np
 import pandas as pd
@@ -39,12 +41,23 @@ def add_date_split_label(card_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+
+
 # ------------------------------------------------------------------
-# ③ 탐지 — 평상시 대비 이탈·급변 (요일보정 → 추세제거 → robust z-score)
-#    출처: 데이터_분석근거_정리.md 12-1절 방법을 코호트 단위로 그대로 적용
+# ③ 탐지 — 요일 보정 + (참고용) 급변 robust z-score
+#    출처: 데이터_분석근거_정리.md 12-1절. 판정(④)은 여기서 만든 요일 보정값(dow_corrected)만 쓴다.
 # ------------------------------------------------------------------
-def detect_card_anomalies(card_df: pd.DataFrame) -> pd.DataFrame:
+def detect_card_anomalies(card_df: pd.DataFrame, mode: str = "prospective") -> pd.DataFrame:
+    """요일 보정값과 급변 z를 붙인다.
+
+    mode="prospective"(기본, 운영): 추세선을 **그날까지의** 29일로만 만든다(뒤쪽 창). 미래 날짜를 보지 않는다.
+    mode="retrospective"(보고서): 앞뒤 14일씩 보는 중심 창. 기간이 끝난 뒤 되돌아보는 사후 분석에만 쓴다.
+    급변 z(robust_z)는 로그·대시보드 참고용이며 ④ 판정에는 들어가지 않는다.
+    """
+    if mode not in ("prospective", "retrospective"):
+        raise ValueError(f"mode는 prospective 또는 retrospective: {mode}")
     df = card_df.sort_values(["cohort_id", "ta_ymd"]).copy()
+    df["ta_ymd"] = pd.to_datetime(df["ta_ymd"]).dt.date
     df["dow"] = pd.to_datetime(df["ta_ymd"]).dt.weekday
 
     out_frames = []
@@ -52,232 +65,368 @@ def detect_card_anomalies(card_df: pd.DataFrame) -> pd.DataFrame:
         g = g.sort_values("ta_ymd").reset_index(drop=True)
         base = g[g["split"] == "baseline"]
 
-        # 1) 요일 효과 제거 — 요일별 중앙값 배율(중앙값 사용 이유: 명절이 섞여도 안 끌려감, 12-1절)
-        overall_median = base["use_cnt"].median() if len(base) else g["use_cnt"].median()
-        dow_median = base.groupby("dow")["use_cnt"].median() if len(base) else g.groupby("dow")["use_cnt"].median()
-        dow_mult = (dow_median / overall_median).reindex(range(7)).fillna(1.0)
+        # 1) 요일 효과 제거 — baseline 구간의 요일별 중앙값 배율(명절이 섞여도 안 끌려감, 12-1절)
+        overall_median = base["use_cnt"].median() if len(base) else np.nan
+        dow_median = base.groupby("dow")["use_cnt"].median() if len(base) else pd.Series(dtype=float)
+        dow_mult = (dow_median / overall_median).reindex(range(7)).fillna(1.0) if overall_median else \
+            pd.Series(1.0, index=range(7))
         g["dow_mult"] = g["dow"].map(dow_mult)
         g["dow_corrected"] = g["use_cnt"] / g["dow_mult"].replace(0, np.nan)
 
-        # 2) 추세 제거 — 29일 이동 중앙값(평균이 아니라 중앙값: 창 안 명절이 기준선을 안 휘게 함)
-        g["trend"] = g["dow_corrected"].rolling(
-            window=C.TREND_WINDOW_DAYS, center=True, min_periods=10
-        ).median()
-        g["trend"] = g["trend"].bfill().ffill()
+        # 2) 추세 — 29일 이동 중앙값. prospective는 뒤쪽 창이라 첫 며칠은 비워 둔다(앞 날짜로 채우지 않음)
+        centered = mode == "retrospective"
+        g["trend"] = g["dow_corrected"].rolling(window=C.TREND_WINDOW_DAYS, center=centered, min_periods=10).median()
+        g["trend"] = g["trend"].bfill().ffill() if centered else g["trend"].ffill()
         g["resid_ratio"] = g["dow_corrected"] / g["trend"] - 1.0
 
-        # 3) MAD 기반 robust z-score — baseline 구간의 분포만으로 기준(median, MAD) 산정
-        base_resid = g.loc[g["split"] == "baseline", "resid_ratio"]
+        # 3) robust z — baseline 구간 잔차의 중앙값·MAD로 표준화
+        base_resid = g.loc[g["split"] == "baseline", "resid_ratio"].dropna()
         med_b = base_resid.median()
         mad_b = (base_resid - med_b).abs().median()
-        mad_b_safe = mad_b if mad_b > 1e-9 else 1e-9
-        g["robust_z"] = (g["resid_ratio"] - med_b) / (C.MAD_SCALE * mad_b_safe)
-
+        g["robust_z"] = (g["resid_ratio"] - med_b) / (C.MAD_SCALE * mad_b) if mad_b and mad_b > 0 else np.nan
         out_frames.append(g)
 
     return pd.concat(out_frames, ignore_index=True)
 
 
-def compute_event_response(detected_df: pd.DataFrame, persona_table) -> pd.DataFrame:
-    """이벤트 구간 반응도 — 12-4·12-5절의 "지역 간 격차" 아이디어를 코호트 단위로 확장.
-    같은 지역 내 동료 코호트 평균 반응 크기 대비 얼마나 "무반응"했는지를 계산한다(H-A 시그니처).
-    부호 규약: 값이 클수록(=동료보다 덜 반응할수록) 위험 방향(+).
-    """
-    ev = detected_df[detected_df["split"] == "event"].copy()
-    magnitude = ev.groupby("cohort_id")["robust_z"].apply(lambda s: s.abs().mean()).rename("event_magnitude")
-    magnitude = magnitude.reset_index()
-    magnitude = magnitude.merge(
-        pd.DataFrame(persona_table)[["cohort_id", "sgg_code"]], on="cohort_id", how="left"
-    )
+def _loo_median(values: pd.Series, groups: pd.Series) -> pd.Series:
+    """같은 그룹(지역) 안에서 **나를 뺀** 나머지의 중앙값 = 지역 공통 변화. 나머지가 2개 미만이면 0."""
+    out = pd.Series(0.0, index=values.index)
+    for _, idx in values.groupby(groups).groups.items():
+        for i in idx:
+            others = values.loc[[j for j in idx if j != i]].dropna()
+            out.loc[i] = others.median() if len(others) >= 2 else 0.0
+    return out
 
+
+def _until(df, col, as_of):
+    return df if as_of is None else df[df[col] <= as_of]
+
+
+def compute_card_signal(detected: pd.DataFrame, as_of: date | None = None) -> pd.DataFrame:
+    """카드 결제 수준 신호 — 평소(baseline) 대비 최근(eval) 수준이 **평소 하루 흔들림의 몇 배** 낮아졌나.
+
+    - 혼자 기준선: 기준은 그 집단의 baseline 평균·표준편차뿐이다(다른 집단과 줄 세우지 않음)
+    - 지역 공통 변화 차감: 같은 지역 다른 집단들의 변화율 중앙값을 빼서 계절·날씨처럼 다 같이 겪은 감소를 걸러낸다
+    - 지속: eval을 1주 단위로 나눠, 기준(observe)을 넘은 주가 몇 주인지 센다
+    부호: 낮아질수록 +(위험 방향).
+    """
+    J = C.JUDGMENT
+    d = _until(detected, "ta_ymd", as_of)
     rows = []
-    for sgg, g in magnitude.groupby("sgg_code"):
-        region_mean = g["event_magnitude"].mean()
-        region_std = g["event_magnitude"].std(ddof=0)
-        region_std_safe = region_std if region_std > 1e-9 else 1e-9
-        for _, r in g.iterrows():
-            event_response = (region_mean - r["event_magnitude"]) / region_std_safe
-            rows.append({"cohort_id": r["cohort_id"], "event_response": event_response,
-                          "event_magnitude": r["event_magnitude"]})
-    return pd.DataFrame(rows)
+    for cid, g in d.groupby("cohort_id"):
+        base = g.loc[g["split"] == "baseline", "dow_corrected"].dropna()
+        ev = g[g["split"] == "eval"].dropna(subset=["dow_corrected"])
+        # 평소 하루 흔들림 = baseline 안에서 '그 무렵 수준(29일 중앙값)'에서 하루하루 벗어난 정도.
+        # baseline 전체 평균에서 벗어난 정도로 재면 baseline 안의 완만한 추세까지 흔들림으로 잡혀 기준이 부풀려진다.
+        # baseline은 eval보다 모두 과거이므로 baseline 안에서는 중심 창을 써도 미래 정보가 eval 판정에 섞이지 않는다.
+        local = base.rolling(C.TREND_WINDOW_DAYS, center=True, min_periods=10).median()
+        mean_b = base.mean()
+        std_b = (base / local - 1).std(ddof=0) * mean_b
+        ok = len(base) >= J["min_baseline_days"] and len(ev) >= J["min_eval_days"] and std_b > 0
+        week = ((pd.to_datetime(ev["ta_ymd"]) - pd.Timestamp(C.EVAL_START)).dt.days // 7)
+        wk = ev.groupby(week.values)["dow_corrected"].agg(["mean", "size"])
+        wk = wk[wk["size"] >= 4]
+        rows.append({"cohort_id": cid, "sgg_code": g["sgg_code"].iloc[0], "card_ok": bool(ok),
+                     "mean_b": mean_b, "std_b": std_b,
+                     "card_pct": (ev["dow_corrected"].mean() / mean_b - 1) if ok else np.nan,
+                     "weeks_d": {int(k): v / mean_b - 1 for k, v in wk["mean"].items()} if ok else {}})
+    s = pd.DataFrame(rows)
+    s["card_region_pct"] = _loo_median(s["card_pct"], s["sgg_code"])
+    s["trigger_z"] = -(s["card_pct"] - s["card_region_pct"]) * s["mean_b"] / s["std_b"]
+
+    # 주별로도 같은 계산(주마다 지역 공통 변화를 따로 뺀다) → 기준을 넘은 주 수
+    wk_rows = [{"cohort_id": r.cohort_id, "sgg_code": r.sgg_code, "week": w, "pct": p, "scale": r.mean_b / r.std_b}
+               for r in s.itertuples() for w, p in r.weeks_d.items()]
+    if wk_rows:
+        w = pd.DataFrame(wk_rows)
+        w["common"] = 0.0
+        for _, idx in w.groupby("week").groups.items():
+            sub = w.loc[idx]
+            w.loc[idx, "common"] = _loo_median(sub["pct"], sub["sgg_code"]).values
+        w["z"] = -(w["pct"] - w["common"]) * w["scale"]
+        persist = (w["z"] >= J["card"]["observe"]).groupby(w["cohort_id"]).sum()
+        s["card_persist_weeks"] = s["cohort_id"].map(persist).fillna(0).astype(int)
+        s["card_weeks"] = s["cohort_id"].map(w.groupby("cohort_id").size()).fillna(0).astype(int)
+    else:
+        s["card_persist_weeks"], s["card_weeks"] = 0, 0
+    s.loc[~s["card_ok"], ["trigger_z"]] = np.nan
+    return s[["cohort_id", "card_ok", "trigger_z", "card_pct", "card_region_pct", "card_persist_weeks", "card_weeks", "std_b", "mean_b"]]
 
 
-def compute_trigger_z(detected_df: pd.DataFrame) -> pd.DataFrame:
-    """카드 트리거 신호 — baseline 구간 대비 eval 구간의 **평균 수준(level) 변화**를 표준화한다.
+def compute_flow_signal(flow_df: pd.DataFrame, as_of: date | None = None) -> pd.DataFrame:
+    """통신 유동인구 신호(월별) — baseline 달(7~10월) 평균 대비 이후 달 평균이 **평소 월 흔들림의 몇 배** 낮아졌나.
 
-    주의: 29일 이동중앙값 추세제거는 "하루 이틀의 급변"은 잘 잡아내지만, 몇 달에 걸친 완만한
-    우하향(선택적 소비 위축형·H-B의 시그니처)은 추세 자체에 흡수되어 잔차(resid_ratio)에는
-    거의 남지 않는다. 그래서 트리거 신호는 잔차의 평균이 아니라, 요일보정된 값의 baseline 평균과
-    eval 평균을 직접 비교하는 수준비교(level comparison) 방식으로 계산한다 — 급변은 ③의 robust_z로,
-    완만한 추세 하락은 여기서 함께 잡아내는 이중 구조다.
-    부호 규약: eval 평균이 baseline 평균보다 낮을수록 양(+)의 값(위험 방향).
+    월별 6개 점뿐이라 집단 하나의 4개 달로는 흔들림을 믿을 만하게 잴 수 없다. 그래서 흔들림(변동계수)만
+    같은 지역 집단들의 중앙값으로 잡는다(줄 세우기가 아니라 '보통 흔들리는 폭'을 안정적으로 재기 위한 것).
+    평가 기간 달은 흔들림 계산에 넣지 않는다(미래 정보가 기준에 섞이지 않게).
     """
+    J = C.JUDGMENT["flow"]
+    f = flow_df.copy()
+    f["month_end"] = (pd.to_datetime(f["std_ym"] + "-01") + pd.offsets.MonthEnd(0)).dt.date
+    f = _until(f, "month_end", as_of)
+    base_m = f["month_end"] <= C.BASELINE_END
     rows = []
-    for cohort_id, g in detected_df.groupby("cohort_id"):
-        base_vals = g.loc[g["split"] == "baseline", "dow_corrected"]
-        eval_vals = g.loc[g["split"] == "eval", "dow_corrected"]
-        mean_b, std_b = base_vals.mean(), base_vals.std(ddof=0)
-        std_b_safe = std_b if std_b > 1e-9 else 1e-9
-        mean_e = eval_vals.mean()
-        trigger_z = (mean_b - mean_e) / std_b_safe
-        rows.append({"cohort_id": cohort_id, "trigger_z": trigger_z})
-    return pd.DataFrame(rows)
+    for cid, g in f.groupby("cohort_id"):
+        b = g.loc[base_m.loc[g.index], "flow_pop"].astype(float)
+        late = g.loc[~base_m.loc[g.index]].sort_values("std_ym")
+        mb = b.mean()
+        rows.append({"cohort_id": cid, "sgg_code": g["sgg_code"].iloc[0],
+                     "cv": (b.std(ddof=1) / mb) if len(b) >= 3 and mb > 0 else np.nan,
+                     "flow_pct": (late["flow_pop"].mean() / mb - 1) if len(late) and mb > 0 else np.nan,
+                     "months_d": {r.std_ym: r.flow_pop / mb - 1 for r in late.itertuples()} if mb > 0 else {}})
+    s = pd.DataFrame(rows)
+    pooled_cv = s.groupby("sgg_code")["cv"].median()
+    s["flow_cv"] = s["sgg_code"].map(pooled_cv)
+    s["flow_region_pct"] = _loo_median(s["flow_pct"], s["sgg_code"])
+    s["baseline_z"] = -(s["flow_pct"] - s["flow_region_pct"]) / s["flow_cv"]
+    # 지속: 이후 달이 하나하나 모두 기준(observe)을 넘었나
+    m_rows = [{"cohort_id": r.cohort_id, "sgg_code": r.sgg_code, "ym": ym, "pct": p, "cv": r.flow_cv}
+              for r in s.itertuples() for ym, p in r.months_d.items()]
+    if m_rows:
+        m = pd.DataFrame(m_rows)
+        m["common"] = 0.0
+        for _, idx in m.groupby("ym").groups.items():
+            sub = m.loc[idx]
+            m.loc[idx, "common"] = _loo_median(sub["pct"], sub["sgg_code"]).values
+        m["z"] = -(m["pct"] - m["common"]) / m["cv"]
+        all_over = (m["z"] >= J["observe"]).groupby(m["cohort_id"]).all()
+        s["flow_persist"] = s["cohort_id"].map(all_over).fillna(False).astype(bool)
+        s["flow_months"] = s["cohort_id"].map(m.groupby("cohort_id").size()).fillna(0).astype(int)
+    else:
+        s["flow_persist"], s["flow_months"] = False, 0
+    return s[["cohort_id", "baseline_z", "flow_pct", "flow_region_pct", "flow_cv", "flow_persist", "flow_months"]]
 
 
-def compute_baseline_z(flow_df: pd.DataFrame) -> pd.DataFrame:
-    """통신 배경지표 — 6개월 추세(첫 2개월 평균 → 마지막 2개월 평균 변화량)를
-    코호트 자체의 6개월 표준편차로 표준화. 부호 규약: 하락할수록 양(+)의 값(위험 방향).
-    출처: 데이터_분석근거_정리.md 5절 — 통신은 변동성이 작아(CV 4.3%) 절대수준보다
-    "자기 자신 대비 추세"로 봐야 함을 근거로, 코호트 간 비교가 아니라 코호트 내 시간
-    변화를 쓴다(같은 문서 9절 원칙 10).
+def compute_event_signal(detected: pd.DataFrame, card_sig: pd.DataFrame, as_of: date | None = None) -> pd.DataFrame:
+    """명절 동조도 β — 달력 공휴일 구간에 **지역(나를 뺀 다른 집단들)이 움직인 만큼 이 집단도 움직였나**.
+
+    날마다 '직전 4주 평소값 대비 변화율'을 구하고, 지역 변화율에 대한 기울기 β = Σ(나×지역)/Σ(지역²)를 잰다.
+    β≈1 이면 지역과 같이 움직임, β≈0 이면 무반응(H-A 가설의 시그니처). 다른 집단과 순위를 매기지 않는다.
+    - 사후에 데이터로 찾은 구간(calendar=False, 예: 7/16~17)은 쓰지 않는다
+    - 지역 움직임이 작아 β가 불확실한 구간(표준오차 > max_se)은 판정에 쓰지 않는다(예: 하루짜리 광복절)
     """
+    J = C.JUDGMENT["event"]
+    d = _until(detected, "ta_ymd", as_of).copy()
+    d["ta_ymd"] = pd.to_datetime(d["ta_ymd"]).dt.date
+    noise = (card_sig.set_index("cohort_id")["std_b"] / card_sig.set_index("cohort_id")["mean_b"])
+    blocks = [e for e in C.EVENT_PERIODS if e.get("calendar", True) and (as_of is None or e["end"] <= as_of)]
+    dev_rows = []
+    for e in blocks:
+        for cid, g in d.groupby("cohort_id"):
+            pre = g[(g["ta_ymd"] < e["start"]) & (g["ta_ymd"] >= e["start"] - pd.Timedelta(days=J["ref_days"]))
+                    & (g["split"] != "event")]["dow_corrected"].dropna()
+            if len(pre) < J["ref_days"] // 2:
+                continue
+            ref = pre.median()
+            on = g[(g["ta_ymd"] >= e["start"]) & (g["ta_ymd"] <= e["end"])]
+            for r in on.itertuples():
+                dev_rows.append({"block": e["name"], "cohort_id": cid, "sgg_code": r.sgg_code,
+                                 "ta_ymd": r.ta_ymd, "dev": r.dow_corrected / ref - 1})
+    cols = ["cohort_id", "event_beta", "event_se", "event_blocks_used", "event_blocks_low", "event_region_move"]
+    if not dev_rows:
+        return pd.DataFrame(columns=cols)
+    dv = pd.DataFrame(dev_rows)
+    dv["region"] = 0.0
+    for _, idx in dv.groupby("ta_ymd").groups.items():
+        sub = dv.loc[idx]
+        dv.loc[idx, "region"] = _loo_median(sub["dev"], sub["sgg_code"]).values
+    dv["xy"], dv["xx"] = dv["dev"] * dv["region"], dv["region"] ** 2
+
+    per_block = dv.groupby(["cohort_id", "block"])[["xy", "xx"]].sum().reset_index()
+    per_block["beta"] = per_block["xy"] / per_block["xx"]
+    per_block["se"] = per_block["cohort_id"].map(noise) / np.sqrt(per_block["xx"])
+    per_block["usable"] = per_block["se"] <= J["max_se"]
     rows = []
-    for cohort_id, g in flow_df.sort_values("std_ym").groupby("cohort_id"):
-        vals = g["flow_pop"].to_numpy(dtype=float)
-        early = vals[:2].mean()
-        late = vals[-2:].mean()
-        std = vals.std(ddof=0)
-        std_safe = std if std > 1e-9 else 1e-9
-        baseline_z = -(late - early) / std_safe
-        rows.append({"cohort_id": cohort_id, "baseline_z": baseline_z})
-    return pd.DataFrame(rows)
+    for cid, b in per_block.groupby("cohort_id"):
+        u = b[b["usable"]]
+        if u.empty:
+            rows.append({"cohort_id": cid, "event_beta": np.nan, "event_se": np.nan, "event_blocks_used": 0,
+                         "event_blocks_low": 0, "event_region_move": np.nan})
+            continue
+        xx = u["xx"].sum()
+        rows.append({"cohort_id": cid, "event_beta": u["xy"].sum() / xx, "event_se": noise.get(cid, np.nan) / np.sqrt(xx),
+                     "event_blocks_used": int(len(u)), "event_blocks_low": int((u["beta"] <= J["observe"]).sum()),
+                     "event_region_move": float(np.sqrt(xx / dv[(dv.cohort_id == cid) & dv.block.isin(u.block)].shape[0]))})
+    return pd.DataFrame(rows, columns=cols)
 
 
-def compute_micro_signal(psych_df: pd.DataFrame) -> pd.DataFrame:
-    """미시 신호 — 심리상담 NPC 위험 키워드 빈출도·심각도(6-4절 핵심 미시 신호).
-    표본 부족(k-익명성 미달) 코호트는 micro_signal = NaN으로 남긴다(risk_scores.micro_signal
-    이 null을 허용하는 설계, DB_테이블_정의서.md 4-2절과 동일한 원칙).
+def compute_micro_signal(psych_df: pd.DataFrame, as_of: date | None = None) -> pd.DataFrame:
+    """대화 신호 — 심리상담 NPC 대화의 평균 심각도(0~1)를 **절대 기준**으로 본다(루미 판정 구간과 같은 값).
+
+    다른 집단과 비교하지 않는다. 최근 window_months개월 중 표본 기준(세션 K건)을 넘긴 달만 쓴다.
+    주의: 현재 표본 기준은 세션 수다. 실제 고유 사용자 수 기준으로 바꾸는 일은 별도 작업(실행계획 작업 2).
     """
-    if psych_df.empty:
-        return pd.DataFrame(columns=["cohort_id", "micro_signal", "avg_session_count"])
-
-    # 데이터에 있는 가장 최근 N개월 — 합성 모드는 2025년, Supabase 모드는 서비스 운영 중인 현재 달
-    months = sorted(psych_df["measured_month"].astype(str).unique())[-C.MICRO_RECENT_MONTHS:]
-    recent = psych_df[psych_df["measured_month"].astype(str).isin(months)].copy()
-    recent["keyword_rate"] = recent["risk_keyword_count"] / recent["session_count"].replace(0, np.nan)
-    agg = recent.groupby("cohort_id").agg(
-        severity_score=("severity_score", "mean"),
-        keyword_rate=("keyword_rate", "mean"),
-        avg_session_count=("session_count", "mean"),
-    ).reset_index()
-
-    # 코호트 간(cross-sectional) z-score — 동료 코호트 대비 상대적 심각도
-    for col in ["severity_score", "keyword_rate"]:
-        mu, sd = agg[col].mean(), agg[col].std(ddof=0)
-        sd_safe = sd if sd > 1e-9 else 1e-9
-        agg[f"{col}_z"] = (agg[col] - mu) / sd_safe
-
-    agg["micro_signal"] = (agg["severity_score_z"] + agg["keyword_rate_z"]) / 2
-    agg.loc[agg["avg_session_count"] < C.K_ANONYMITY_MIN, "micro_signal"] = np.nan
-    return agg[["cohort_id", "micro_signal", "avg_session_count"]]
+    J = C.JUDGMENT["micro"]
+    cols = ["cohort_id", "micro_severity", "micro_high_months", "micro_months", "avg_session_count"]
+    if psych_df is None or psych_df.empty:
+        return pd.DataFrame(columns=cols)
+    p = psych_df.copy()
+    p["measured_month"] = p["measured_month"].astype(str).str[:7]
+    if as_of is not None:
+        p = p[(pd.to_datetime(p["measured_month"] + "-01") + pd.offsets.MonthEnd(0)).dt.date <= as_of]
+    months = sorted(p["measured_month"].unique())[-J["window_months"]:]
+    p = p[p["measured_month"].isin(months)]
+    rows = []
+    for cid, g in p.groupby("cohort_id"):
+        ok = g[g["session_count"] >= C.K_ANONYMITY_MIN].sort_values("measured_month")
+        rows.append({"cohort_id": cid,
+                     "micro_severity": float(ok["severity_score"].iloc[-1]) if len(ok) else np.nan,
+                     "micro_high_months": int((ok["severity_score"] >= J["observe"]).sum()),
+                     "micro_months": int(len(ok)),
+                     "avg_session_count": float(g["session_count"].mean())})
+    return pd.DataFrame(rows, columns=cols)
 
 
 # ------------------------------------------------------------------
-# ④ 판단 — 통합 스코어 산출 → 5단계 등급화
+# ④ 판단 — 4단계 상태(판단보류·평소범위·변화관찰·확인권장) + 확인 순서
+#    분위수 5단계(집단끼리 줄 세우기)를 대체한다(2026-10-09). 근거: 실행계획 v2 J2, docs/판단검증_결과.md
 # ------------------------------------------------------------------
-def _z_to_subscore(z, clip=3.0):
-    z = np.clip(z, -clip, clip)
-    return (z + clip) / (2 * clip) * 100.0
+SIGNAL_KEYS = ["trigger_z", "baseline_z", "event_beta", "micro_severity"]
 
 
-def compute_scores(baseline_df, trigger_df, event_df, micro_df) -> pd.DataFrame:
-    df = baseline_df.merge(trigger_df, on="cohort_id", how="left") \
-                     .merge(event_df[["cohort_id", "event_response"]], on="cohort_id", how="left") \
-                     .merge(micro_df[["cohort_id", "micro_signal", "avg_session_count"]], on="cohort_id", how="left")
+def _signal_states(r) -> dict:
+    """신호별 (값, 관찰 기준 넘음, 확인 기준 넘음, 세기)를 만든다. 세기 1.0 = 확인 기준선."""
+    J = C.JUDGMENT
+    st = {}
+    z = r.get("trigger_z")
+    if pd.notna(z):
+        st["trigger_z"] = (z, z >= J["card"]["observe"],
+                           z >= J["card"]["alert"] and r["card_persist_weeks"] >= J["card"]["persist_weeks"],
+                           z / J["card"]["alert"])
+    z = r.get("baseline_z")
+    if pd.notna(z):
+        st["baseline_z"] = (z, z >= J["flow"]["observe"] and bool(r["flow_persist"]),
+                            z >= J["flow"]["alert"] and bool(r["flow_persist"]) and r["flow_months"] >= 2,
+                            z / J["flow"]["alert"])
+    b = r.get("event_beta")
+    if pd.notna(b):
+        E = J["event"]
+        st["event_beta"] = (b, b <= E["observe"],
+                            b <= E["alert"] and r["event_blocks_used"] >= E["min_blocks"]
+                            and r["event_blocks_low"] == r["event_blocks_used"],
+                            (1 - b) / (1 - E["alert"]))
+    v = r.get("micro_severity")
+    if pd.notna(v):
+        M = J["micro"]
+        st["micro_severity"] = (v, v >= M["observe"],
+                                v >= M["strong"] or r["micro_high_months"] >= M["persist_months"],
+                                v / M["observe"])
+    return st
 
-    def row_score(r):
-        sub = {
-            "baseline_z": _z_to_subscore(r["baseline_z"]),
-            "trigger_z": _z_to_subscore(r["trigger_z"]),
-            "event_response": _z_to_subscore(r["event_response"]),
-        }
-        has_micro = pd.notna(r.get("micro_signal"))
-        if has_micro:
-            sub["micro_signal"] = _z_to_subscore(r["micro_signal"])
-            weights = C.WEIGHTS_WITH_MICRO
+
+def judge(persona_table, flow_df, card_df, psych_df, as_of: date | None = None, mode: str = "prospective") -> pd.DataFrame:
+    """②~④를 한 번에 — 코호트별 4단계 상태와 신호값을 돌려준다.
+
+    as_of를 주면 그날까지의 자료만 쓴다(그 이후 행은 잘라냄). 판정 신호는 모두 그날까지의 자료로만 계산되므로
+    as_of 이후 데이터를 바꿔도 결과가 같다(tests/test_judgment.py가 확인).
+    """
+    card_split = add_date_split_label(card_df.drop(columns=["split"], errors="ignore"))
+    detected = detect_card_anomalies(card_split, mode=mode)
+    card_sig = compute_card_signal(detected, as_of)
+    out = pd.DataFrame(persona_table)
+    out = (out.merge(card_sig, on="cohort_id", how="left")
+              .merge(compute_flow_signal(flow_df, as_of), on="cohort_id", how="left")
+              .merge(compute_event_signal(detected, card_sig, as_of), on="cohort_id", how="left")
+              .merge(compute_micro_signal(psych_df, as_of), on="cohort_id", how="left"))
+    statuses, strengths, alerts, observes, scores = [], [], [], [], []
+    for _, r in out.iterrows():
+        st = _signal_states(r)
+        strength = {k: round(float(v[3]), 3) for k, v in st.items()}
+        a = [k for k, v in st.items() if v[2]]
+        o = [k for k, v in st.items() if v[1]]
+        # 통신(월 6점)은 배경 신호다(데이터_분석근거_정리.md 6절: 통신=배경, 카드=변화 신호).
+        # 통신만 확인 기준을 넘고 다른 신호가 하나도 관찰 기준을 안 넘으면 확인권장이 아니라 변화관찰로 둔다.
+        if a == ["baseline_z"] and not [k for k in o if k != "baseline_z"]:
+            a = []
+        if not r.get("card_ok", False) or pd.isna(r.get("trigger_z")):
+            status = "hold"       # 카드(일별 핵심 신호)를 계산할 수 없으면 판단하지 않는다
+        elif a:
+            status = "check"
+        elif o:
+            status = "watch"
         else:
-            weights = C.WEIGHTS_MACRO_ONLY
-        score = sum(weights[k] * sub[k] for k in weights)
-        contrib = {k: weights[k] * sub[k] for k in weights}
-        return pd.Series({"score": score, "_contrib": contrib, "_weights_used": "with_micro" if has_micro else "macro_only"})
-
-    scored = df.apply(row_score, axis=1)
-    out = pd.concat([df, scored], axis=1)
-
-    # 5단계 등급화 — 분위수(quintile) 기준 (통합기획서 5장)
-    ranks = out["score"].rank(method="first")
-    out["risk_level"] = pd.qcut(ranks, 5, labels=[1, 2, 3, 4, 5]).astype(int)
-
-    # 안전 하한(safety floor) — 거시가 "정상"으로 보여도 미시 신호(심리상담 위험 키워드·심각도)
-    # 자체가 뚜렷하면(z>=2.0, 동료 코호트 상위 약 2.3% 수준) 최소 Lv.3(주의)까지는 끌어올린다.
-    # 근거: 6-4절은 심리상담 NPC 신호를 미시 층의 "핵심 신호"라고 명시한다 — 거시가 주(主)라는
-    # 5-1절의 가중치 설계를 유지하되, 명확한 단일 신호가 가중합에 희석되어 사라지는 것은 막는다.
-    # 임계값 2.0은 잠정값이며 실 데이터 검증 후 threshold_settings로 이전할 Open Item이다.
-    micro_floor_mask = out["micro_signal"].notna() & (out["micro_signal"] >= 2.0)
-    out.loc[micro_floor_mask, "risk_level"] = out.loc[micro_floor_mask, "risk_level"].clip(lower=3)
-
-    out["risk_level_label"] = out["risk_level"].map(C.RISK_LEVEL_LABELS)
-    out["scored_on"] = C.PERIOD_END.isoformat()
+            status = "normal"
+        statuses.append(status); strengths.append(strength); alerts.append(a); observes.append(o)
+        scores.append(round(float(np.clip(50 * max(strength.values()), 0, 100)), 1) if strength else np.nan)
+    out["status"] = statuses
+    out["status_label"] = out["status"].map(C.STATUS_LABELS)
+    out["strength"] = strengths
+    out["alert_signals"] = alerts
+    out["observe_signals"] = observes
+    # score: 가장 강한 신호가 확인 기준선의 몇 배인지(기준선 = 50점). 확인 순서를 정할 때만 쓴다
+    out["score"] = scores
+    out["risk_level"] = out["status"].map(C.STATUS_LEVEL).astype("Int64")
+    out["risk_level_label"] = out["status_label"]
+    out["scored_on"] = (as_of or C.PERIOD_END).isoformat()
     out["model_version"] = C.MODEL_VERSION
     return out
 
 
 # ------------------------------------------------------------------
-# ⑤ 원인 분석 — 규칙 기반 기여도 분해 (risk_factors)
-#    Open Item(통합기획서 6-6: "규칙 기반 vs SHAP") 중 규칙 기반을 채택 — 프로토타입 단계의
-#    해석 용이성·설명 가능성을 우선한다는 5-1절의 논리를 그대로 따른 선택.
+# ⑤ 원인 분석 — 어떤 신호가 기준을 넘었는지(세기 순)와 그 숫자를 문장으로
 # ------------------------------------------------------------------
 CAUSE_LABELS = {
-    "event_response": "이벤트 무반응형(H-A) 의심 — 명절 등 이벤트 시기에도 소비 패턴이 거의 변하지 않음",
-    "trigger_z": "선택적 소비 위축형(H-B) 의심 — 최근 카드 결제 활동이 평소 추세보다 낮게 유지됨",
-    "baseline_z": "구조적 저활동형(H-C) 의심 — 통신 유동인구가 6개월간 완만히 낮아지는 추세",
-    "micro_signal": "미시신호 우세형 — 소셜 월드 심리상담 대화에서 위험 키워드·심각도가 동료 코호트 대비 높음",
+    "event_beta": "이벤트 무반응형(H-A) 의심 — 명절에 지역 전체가 움직일 때 이 집단은 거의 따라 움직이지 않음",
+    "trigger_z": "선택적 소비 위축형(H-B) 의심 — 최근 카드 결제가 자기 평소보다 낮은 상태가 여러 주 이어짐",
+    "baseline_z": "구조적 저활동형(H-C) 의심 — 통신 유동인구가 자기 평소보다 낮아짐",
+    "micro_signal": "미시신호 우세형 — 소셜 월드 심리상담 대화의 심각도가 기준(0.45)을 넘음",
 }
-
+CAUSE_LABELS["micro_severity"] = CAUSE_LABELS.pop("micro_signal")
 
 FACTOR_SHORT = {
-    "event_response": "이벤트 무반응", "trigger_z": "카드 소비 위축",
-    "baseline_z": "유동인구 하락", "micro_signal": "심리상담 위험신호",
+    "event_beta": "명절 무반응", "trigger_z": "카드 소비 위축",
+    "baseline_z": "유동인구 하락", "micro_severity": "심리상담 위험신호",
 }
-# 중립(z=0, subscore=50) 대비 초과 기여가 이 값(점) 미만이면 "뚜렷한 원인 없음"으로 본다
-MIN_EXCESS_POINTS = 3.0
 
 
-def explain_scores(scored_df: pd.DataFrame) -> pd.DataFrame:
-    """기여도 = 가중치 × (subscore − 50). 즉 "중립 대비 점수를 얼마나 끌어올렸는가"로 분해한다.
-    가중치 × subscore를 그대로 비교하면 z=0(아무 신호 없음)이어도 가중치가 큰 요인이 항상 1위가
-    되는 왜곡이 생기므로, 중립점(50)을 빼고 비교한다.
-    """
+def _reason_text(r) -> str:
+    J = C.JUDGMENT
+    parts = []
+    if pd.notna(r.get("trigger_z")):
+        parts.append(f"카드 결제 {r['card_pct']*100:+.1f}%(지역 공통 {r['card_region_pct']*100:+.1f}% 제외 후 "
+                     f"평소 흔들림의 {r['trigger_z']:.1f}배, 기준 넘은 주 {int(r['card_persist_weeks'])}/{int(r['card_weeks'])}주)")
+    if pd.notna(r.get("baseline_z")):
+        parts.append(f"유동인구 {r['flow_pct']*100:+.1f}%(지역 공통 {r['flow_region_pct']*100:+.1f}% 제외 후 {r['baseline_z']:.1f}배)")
+    if pd.notna(r.get("event_beta")):
+        parts.append(f"명절 동조도 {r['event_beta']:.2f}(1=지역과 같이 움직임, 판정 구간 {int(r['event_blocks_used'])}개)")
+    if pd.notna(r.get("micro_severity")):
+        parts.append(f"대화 심각도 {r['micro_severity']:.2f}(기준 {J['micro']['observe']}, 넘은 달 {int(r['micro_high_months'])}개)")
+    return " · ".join(parts)
+
+
+def explain_scores(judged: pd.DataFrame) -> pd.DataFrame:
+    """주된 요인 = 기준을 넘은 신호 중 세기가 가장 큰 것. 판정의 '이유'이지 고립의 원인을 확정한 것은 아니다."""
     rows = []
-    for _, r in scored_df.iterrows():
-        weights = C.WEIGHTS_WITH_MICRO if r["_weights_used"] == "with_micro" else C.WEIGHTS_MACRO_ONLY
-        excess = {k: r["_contrib"][k] - weights[k] * 50.0 for k in weights}
-        breakdown = {k: round(v, 2) for k, v in excess.items()}
-        if r["risk_level"] <= 2:
-            rows.append({"cohort_id": r["cohort_id"], "dominant_factor": None,
-                         "archetype_guess": "특이 신호 없음", "factor_breakdown": breakdown})
+    for _, r in judged.iterrows():
+        base = {"cohort_id": r["cohort_id"], "factor_breakdown": r["strength"], "reason": _reason_text(r)}
+        if r["status"] == "hold":
+            rows.append({**base, "dominant_factor": None, "archetype_guess": "판단보류 — 자료가 부족해 판단하지 않음"})
             continue
-        items = sorted(excess.items(), key=lambda kv: kv[1], reverse=True)
-        (f1, v1), (f2, v2) = items[0], items[1]
-        if v1 < MIN_EXCESS_POINTS:
-            label = "뚜렷한 단일 원인 없음 — 여러 지표가 약하게 겹쳐 상위 분위에 진입(오탐 가능성 검토 필요)"
-        elif v2 >= MIN_EXCESS_POINTS and (v1 - v2) < 0.35 * v1:
-            label = f"복합형 — {FACTOR_SHORT[f1]} + {FACTOR_SHORT[f2]}"
+        if r["status"] == "normal":
+            rows.append({**base, "dominant_factor": None, "archetype_guess": "특이 신호 없음"})
+            continue
+        pool = r["alert_signals"] if r["status"] == "check" else r["observe_signals"]
+        ranked = sorted(pool, key=lambda k: r["strength"].get(k, 0), reverse=True)
+        f1 = ranked[0]
+        if r["status"] == "check" and len(ranked) >= 2:
+            label = f"복합형 — {FACTOR_SHORT[ranked[0]]} + {FACTOR_SHORT[ranked[1]]}"
+        elif r["status"] == "watch":
+            label = f"변화관찰 — {FACTOR_SHORT[f1]} 신호가 관찰 기준을 넘음(확인 기준·지속 조건은 아직 아님)"
         else:
             label = CAUSE_LABELS[f1]
-        rows.append({"cohort_id": r["cohort_id"], "dominant_factor": f1 if v1 >= MIN_EXCESS_POINTS else None,
-                     "archetype_guess": label, "factor_breakdown": breakdown})
+        rows.append({**base, "dominant_factor": f1, "archetype_guess": label})
     return pd.DataFrame(rows)
 
 
 # ------------------------------------------------------------------
-# ⑥ 추천 — 등급별 개입 방안 + 복지자원 매칭
+# ⑥ 추천 — 확인권장 집단에만 복지자원 매칭
 # ------------------------------------------------------------------
 ARCHETYPE_FROM_FACTOR = {
-    "event_response": "event_unresponsive",
+    "event_beta": "event_unresponsive",
     "trigger_z": "essential_only",
     "baseline_z": "structurally_low",
-    "micro_signal": "micro_flagged",
+    "micro_severity": "micro_flagged",
 }
 
 
@@ -285,83 +434,85 @@ def recommend_resources(scored_df: pd.DataFrame, explained_df: pd.DataFrame) -> 
     merged = scored_df.merge(explained_df, on="cohort_id")
     rows = []
     for _, r in merged.iterrows():
-        if r["risk_level"] < 3:
+        if r["status"] != "check":
             continue
         if pd.isna(r["dominant_factor"]) or r["dominant_factor"] is None:
-            continue  # 원인이 불분명한 코호트에 자원을 억지로 매칭하지 않는다 — 담당자 검토로 넘김
+            continue  # 이유가 불분명한 코호트에 자원을 억지로 매칭하지 않는다 — 담당자 검토로 넘김
         archetype = ARCHETYPE_FROM_FACTOR[r["dominant_factor"]]
         resources = match_resources(archetype, r["sgg_code"], r["age_group"])
         for rank, res in enumerate(resources, start=1):
             rows.append({
-                "cohort_id": r["cohort_id"], "risk_level": r["risk_level"],
+                "cohort_id": r["cohort_id"], "status": r["status"],
                 "rank": rank, "resource_id": res["resource_id"], "resource_name": res["name"],
                 "category": res["category"], "provider": res["provider"],
             })
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["cohort_id", "status", "rank", "resource_id", "resource_name", "category", "provider"])
 
 
 # ------------------------------------------------------------------
-# ⑦ 우선순위 — v_priority_targets 상당 (Lv.3 이상, 점수 내림차순)
+# ⑦ 확인 순서 — 확인권장 먼저, 그다음 변화관찰. 각 묶음 안에서만 세기(score) 순
+#    줄 세우기는 "누가 위험한가"를 정하는 데 쓰지 않고, 이미 기준을 넘은 집단을 어떤 순서로 볼지에만 쓴다
 # ------------------------------------------------------------------
 def build_priority_targets(scored_df: pd.DataFrame, explained_df: pd.DataFrame) -> pd.DataFrame:
     merged = scored_df.merge(explained_df, on="cohort_id")
-    pri = merged[merged["risk_level"] >= 3].sort_values("score", ascending=False).copy()
+    pri = merged[merged["status"].isin(["check", "watch"])].copy()
+    pri["_o"] = pri["status"].map({s: i for i, s in enumerate(C.STATUS_ORDER)})
+    pri = pri.sort_values(["_o", "score", "cohort_id"], ascending=[True, False, True])
     pri["priority_rank"] = range(1, len(pri) + 1)
-    cols = ["priority_rank", "cohort_id", "region_name", "gender", "age_group",
-            "score", "risk_level", "risk_level_label", "archetype_guess",
-            "baseline_z", "trigger_z", "event_response", "micro_signal"]
+    cols = ["priority_rank", "cohort_id", "region_name", "gender", "age_group", "status", "status_label",
+            "score", "archetype_guess", "reason"] + SIGNAL_KEYS
     return pri[cols].reset_index(drop=True)
 
 
 # ------------------------------------------------------------------
 # ⑧ 행동 제안 — 공무원에게 구체적 행동 제안 (대회 운영흐름 대비 확장 단계)
 # ------------------------------------------------------------------
+URGENCY = {"check": "이번 달 안에 확인해 주세요.", "watch": "지금은 지켜보고, 다음 달 결과로 다시 확인해 주세요."}
+
+
 def build_action_suggestions(priority_df: pd.DataFrame, recommend_df: pd.DataFrame) -> pd.DataFrame:
     rows = []
-    urgency_map = {5: "2주 안에 조치해 주세요.", 4: "한 달 안에 조치해 주세요.", 3: "지켜보면서 다음 달에 다시 확인해 주세요."}
     for _, r in priority_df.iterrows():
         res = recommend_df[recommend_df["cohort_id"] == r["cohort_id"]]
-        urgency = urgency_map[int(r["risk_level"])]
-        who = f"{r['region_name']} {r['age_group']} {C.GENDER_LABEL[r['gender']]}"
-
-        if res.empty:
-            # 원인 불명확 → 자원 연계보다 "진짜 신호인지"부터 확인하는 것이 올바른 행동
-            action = (f"{urgency} 뚜렷한 이유가 없어서 복지자원을 바로 연결하기보다 먼저 사실인지 확인하는 게 좋아요. "
-                      f"① 다음 달 결과에서도 '주의' 이상인지 보기 "
-                      f"② 이 집단이 많이 사는 동 주민센터에 최근 상담·민원 분위기 물어보기 "
-                      f"③ 두 달 연속 '주의' 이상이면 사례로 등록하기")
+        urgency = URGENCY[r["status"]]
+        if r["status"] == "watch":
+            action = (f"{urgency} 아직 확인 기준(지속 조건 포함)을 넘지 않았어요. "
+                      f"다음 달에도 같은 신호가 이어지면 '확인권장'으로 올라가요.")
+        elif res.empty:
+            # 이유가 뚜렷하지 않음 → 자원 연계보다 "진짜 신호인지"부터 확인
+            action = (f"{urgency} 복지자원을 바로 연결하기보다 먼저 사실인지 확인하는 게 좋아요. "
+                      f"① 이 집단이 많이 사는 동 주민센터에 최근 상담·민원 분위기 물어보기 "
+                      f"② 다음 달에도 '확인권장'이면 사례로 등록하기")
         else:
             names = ", ".join(res["resource_name"].tolist())
             if r["age_group"] in C.MICRO_ELIGIBLE_AGE_GROUPS:
-                # 청년 → 소셜 월드가 개입 채널(7-1절)
                 channel = "소셜 월드에서 이 집단 사용자에게 맞는 NPC·미션을 먼저 보여주기(자동으로 반영돼요)"
             else:
-                # 중장년·고령 → 기존 오프라인 돌봄으로 분기(5-2절)
                 channel = "이 집단이 많이 사는 동 주민센터에 안부 확인·방문 상담이 필요한 분을 찾아 달라고 요청하기"
             action = (f"{urgency} ① {channel} ② 이 자원 안내하기: {names} "
                       f"③ 한 달 뒤 같은 기준으로 다시 확인하기")
         rows.append({
             "cohort_id": r["cohort_id"], "priority_rank": r["priority_rank"],
-            "risk_level": r["risk_level"], "urgency": urgency, "action_text": action,
+            "status": r["status"], "urgency": urgency, "action_text": action,
         })
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["cohort_id", "priority_rank", "status", "urgency", "action_text"])
 
 
 # ------------------------------------------------------------------
-# ⑩ 환류 — 소셜 월드 NPC 개인화로 되돌리는 피드백 페이로드
+# ⑩ 환류 — 소셜 월드 NPC 개인화로 되돌리는 피드백 페이로드(확인권장 집단만)
 # ------------------------------------------------------------------
 NPC_EMPHASIS_FROM_FACTOR = {
-    "event_response": "psych",      # 관계망 신호가 약하므로 심리상담 NPC로 먼저 유도
+    "event_beta": "psych",          # 관계망 신호가 약하므로 심리상담 NPC로 먼저 유도
     "trigger_z": "job",             # 선택적 소비 위축 → 하루 일·취업 안내(경제적 트리거 가능성). 월드에선 하루가 받음
     "baseline_z": "policy",         # 구조적 저활동 → 하루 정책 안내(복지 자원 우선). 월드에선 하루가 받음
-    "micro_signal": "psych",
+    "micro_severity": "psych",
 }
-# 마을이장이 받는 환류 — 이벤트 "주제"만 넘긴다(등급·점수 없음). 코드 → 뜻은 chief.THEMES
+# 마을이장이 받는 환류 — 이벤트 "주제"만 넘긴다(상태·점수 없음). 코드 → 뜻은 chief.THEMES
 EVENT_THEME_FROM_FACTOR = {
-    "event_response": "outdoor_walk",   # 명절 등 이벤트 무반응 → 부담 없는 야외 활동(오프라인 접촉)
+    "event_beta": "outdoor_walk",       # 명절 등 이벤트 무반응 → 부담 없는 야외 활동(오프라인 접촉)
     "trigger_z": "free_activity",       # 선택적 소비 위축 → 돈 안 드는 활동
     "baseline_z": "info_support",       # 구조적 저활동 → 생활 정보·지원센터 안내
-    "micro_signal": "small_talk",       # 대화 신호 → 가벼운 대화 모임
+    "micro_severity": "small_talk",     # 대화 신호 → 가벼운 대화 모임
 }
 MISSION_SUGGESTIONS = {
     "psych": ["심리상담 NPC와 대화하기", "일주일 연속 출석하기"],
@@ -372,16 +523,15 @@ MISSION_SUGGESTIONS = {
 
 def build_feedback_payload(scored_df: pd.DataFrame, explained_df: pd.DataFrame) -> dict:
     merged = scored_df.merge(explained_df, on="cohort_id")
-    micro_targets = merged[(merged["risk_level"] >= 3) &
-                            merged["age_group"].isin(C.MICRO_ELIGIBLE_AGE_GROUPS)]
+    targets = merged[(merged["status"] == "check") & merged["age_group"].isin(C.MICRO_ELIGIBLE_AGE_GROUPS)]
     payload = {}
-    for _, r in micro_targets.iterrows():
+    for _, r in targets.iterrows():
         if pd.isna(r["dominant_factor"]):
-            continue  # 원인이 불분명하면 개인화를 바꾸지 않는다(오탐일 때 사용자 경험을 흔들지 않기 위함)
+            continue  # 이유가 불분명하면 개인화를 바꾸지 않는다(오탐일 때 사용자 경험을 흔들지 않기 위함)
         npc = NPC_EMPHASIS_FROM_FACTOR[r["dominant_factor"]]
         payload[r["cohort_id"]] = {
             "sgg_code": r["sgg_code"], "gender": r["gender"], "age_group": r["age_group"],
-            "risk_level": int(r["risk_level"]), "risk_level_label": r["risk_level_label"],
+            "status": r["status"], "status_label": r["status_label"],
             "archetype_guess": r["archetype_guess"],
             "npc_emphasis": npc,
             "priority_missions": MISSION_SUGGESTIONS[npc],

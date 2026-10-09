@@ -12,6 +12,7 @@ outputs/ 에 DB 스키마(DB_테이블_정의서.md)와 최대한 맞춘 CSV + �
 import argparse
 import json
 import os
+from datetime import date, datetime
 
 import pandas as pd
 
@@ -35,6 +36,10 @@ def parse_args():
                     help="소셜 월드 실제 대화 신호를 Supabase에서 읽고, ⑩ 환류 결과를 Supabase에 씀(전체 순환). "
                          "--youth와 함께 사용. .env에 SUPABASE_URL·SUPABASE_SECRET_KEY 필요")
     ap.add_argument("--out", help="출력 폴더(기본: 합성=outputs, 청년=outputs_youth)")
+    ap.add_argument("--as-of", type=date.fromisoformat, default=None,
+                    help="이 날짜까지의 자료로만 판정(YYYY-MM-DD). 생략하면 자료 전체")
+    ap.add_argument("--mode", choices=["prospective", "retrospective"], default="prospective",
+                    help="급변 z 추세선 방식. prospective=그날까지만(기본), retrospective=앞뒤 14일(사후 분석)")
     return ap.parse_args()
 
 
@@ -113,23 +118,13 @@ def main():
               else "[2/10 정합] 전처리 산출물의 split 라벨과 전부 일치 확인")
     print(f"[2/10 정합] split 분포: {card_split['split'].value_counts().to_dict()}")
 
-    # ③ 탐지
-    detected = P.detect_card_anomalies(card_split)
+    # ③ 탐지 · ④ 판단 — 각 집단을 자기 평소와만 비교해 4단계 상태(판단보류·평소범위·변화관찰·확인권장)
+    detected = P.detect_card_anomalies(card_split, mode=args.mode)
     n_anom = (detected["robust_z"].abs() >= C.ROBUST_Z_THRESHOLD).sum()
-    print(f"[3/10 탐지] robust_z 계산 완료. |z|>={C.ROBUST_Z_THRESHOLD} 인 코호트-일 조합: {n_anom}건")
-
-    event_df = P.compute_event_response(detected, persona_table)
-    trigger_df = P.compute_trigger_z(detected)
-    baseline_df = P.compute_baseline_z(flow_df)
-    micro_df = P.compute_micro_signal(psych_df)
-
-    # 코호트 메타(지역명 등) 붙이기 위한 베이스 프레임
-    persona_df = pd.DataFrame(persona_table)
-    base_meta = persona_df.merge(baseline_df, on="cohort_id", how="left")
-
-    # ④ 판단
-    scored = P.compute_scores(base_meta, trigger_df, event_df, micro_df)
-    print(f"[4/10 판단] 등급 분포: {scored['risk_level'].value_counts().sort_index().to_dict()}")
+    print(f"[3/10 탐지] 요일 보정·급변 z 계산({args.mode}). |z|>={C.ROBUST_Z_THRESHOLD} 인 코호트-일 조합: {n_anom}건(참고용)")
+    scored = P.judge(persona_table, flow_df, card_df, psych_df, as_of=args.as_of, mode=args.mode)
+    dist = scored["status"].map(C.STATUS_LABELS).value_counts().to_dict()
+    print(f"[4/10 판단] 상태 분포: {dist}" + (f" (기준일 {args.as_of})" if args.as_of else ""))
 
     # ⑤ 원인 분석
     explained = P.explain_scores(scored)
@@ -141,7 +136,7 @@ def main():
 
     # ⑦ 우선순위
     priority = P.build_priority_targets(scored, explained)
-    print(f"[7/10 우선순위] Lv.3 이상 {len(priority)}개 코호트")
+    print(f"[7/10 확인 순서] 확인권장 {(priority['status'] == 'check').sum()}개 · 변화관찰 {(priority['status'] == 'watch').sum()}개")
 
     # ⑧ 행동 제안
     actions = P.build_action_suggestions(priority, recommend)
@@ -191,10 +186,15 @@ def main():
         engagement_df.to_csv(os.path.join(OUT, "engagement_metrics.csv"), index=False)
 
     risk_scores_cols = ["cohort_id", "sgg_code", "region_name", "gender", "age_group",
-                         "scored_on", "score", "risk_level", "risk_level_label",
-                         "baseline_z", "trigger_z", "event_response", "micro_signal",
-                         "avg_session_count", "model_version"]
-    scored[risk_scores_cols].to_csv(os.path.join(OUT, "risk_scores.csv"), index=False)
+                         "scored_on", "status", "status_label", "score", "risk_level", "risk_level_label",
+                         "trigger_z", "card_pct", "card_region_pct", "card_persist_weeks", "card_weeks",
+                         "baseline_z", "flow_pct", "flow_region_pct", "flow_persist",
+                         "event_beta", "event_se", "event_blocks_used", "event_blocks_low",
+                         "micro_severity", "micro_high_months", "avg_session_count", "model_version"]
+    rs = scored.copy()
+    for col in ["alert_signals", "observe_signals"]:          # 기준을 넘은 신호 목록(;로 구분)
+        rs[col] = rs[col].apply(";".join)
+    rs[risk_scores_cols + ["alert_signals", "observe_signals"]].to_csv(os.path.join(OUT, "risk_scores.csv"), index=False)
 
     risk_factors = scored[["cohort_id"]].merge(explained, on="cohort_id")
     risk_factors["factor_breakdown"] = risk_factors["factor_breakdown"].apply(json.dumps, ensure_ascii=False)
@@ -206,15 +206,16 @@ def main():
 
     # 대시보드(브리핑용 Artifact)용 번들 JSON — 점수·우선순위·설명을 한 번에
     dashboard_payload = {
-        "generated_at": C.PERIOD_END.isoformat(),
+        "generated_at": datetime.now().isoformat(timespec="seconds"),   # 실제 실행 시각
+        "data_end": (args.as_of or C.PERIOD_END).isoformat(),             # 판정에 쓴 자료의 마지막 날
         "source": source,
         "model_version": C.MODEL_VERSION,
-        "cohorts": json.loads(scored.drop(columns=["_contrib", "_weights_used"]).to_json(orient="records")),
+        "cohorts": json.loads(scored.drop(columns=["strength", "alert_signals", "observe_signals"]).to_json(orient="records")),
         "priority": json.loads(priority.to_json(orient="records")),
         "actions": json.loads(actions.to_json(orient="records")),
         "recommend": json.loads(recommend.to_json(orient="records")),
         "explained": json.loads(explained.drop(columns=["factor_breakdown"]).to_json(orient="records")),
-        "level_labels": C.RISK_LEVEL_LABELS,
+        "status_labels": C.STATUS_LABELS,
     }
     with open(os.path.join(OUT, "dashboard_data.json"), "w", encoding="utf-8") as f:
         json.dump(dashboard_payload, f, ensure_ascii=False, indent=2)
