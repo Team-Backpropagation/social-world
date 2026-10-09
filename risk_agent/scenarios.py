@@ -14,6 +14,8 @@ evaluate.py가 이 데이터를 판정기에 넣고 정답표와 비교해 혼�
 | S3_short_dip        | 정상 6개에 eval 중 1주짜리 급감              | 전부 normal(경고 X)     |
 | S3_region_common    | 강남 전체가 eval에 같이 감소(계절·날씨)      | 전부 normal(경고 X)     |
 | S5_independent      | 탐지기 가정과 다른 모양으로 심은 위험 6개    | 위험 6 / normal 18      |
+| S6_youth_mixed      | 청년 8개만 판정. 춘천 20대는 학기 중 +25%, 명절엔 귀성으로 −40%(반대로 움직임). 지역 기준 = 전 연령 합계 | 전부 normal(경고 X) |
+| S6_youth_mixed_noref| 같은 데이터, 지역 기준 없이 청년끼리만 비교(10/9 실데이터에서 생긴 문제 재현용, ALL_SCENARIOS에 없음) | 전부 normal |
 
 S5는 생성 규칙이 판정 규칙과 같은 모양이면 "심은 걸 다시 찾는" 순환 검증이 되는 문제를 줄이려고 둔다
 (계단형 감소, eval 중반에 시작하는 감소, 명절에 자기 평소값으로 머무는 무반응).
@@ -149,12 +151,38 @@ def scenario(name, seed):
                 s["card"].loc[m, "use_cnt"] = (pre * rng.normal(1, C_CARD_NOISE, m.sum())).round().astype("int64")
             s["labels"][cid] = "indep_event_flat"
         return s
+    if name.startswith("S6_youth_mixed"):
+        # 2026-10-09 실데이터 점검에서 드러난 상황: 같은 지역 청년 집단이 서로 반대로 움직인다
+        s = _generate(seed, {})
+        term = [x for x in _all_dates() if date(2025, 9, 1) <= x <= date(2025, 12, 20)]
+        leave = [x for e in C.EVENT_PERIODS if e["name"] != "광복절"
+                 for x in _all_dates() if e["start"] <= x <= e["end"]]
+        for cid in ("51110-M-20대", "51110-F-20대"):
+            _scale(s["card"], cid, [x for x in term if x not in leave], 1.25)   # 학기 중 학생 복귀
+            _scale(s["card"], cid, leave, 0.6)                                 # 명절·연말 귀성
+        region_ref = (s["card"].groupby(["sgg_code", "ta_ymd"], as_index=False)["use_cnt"].sum()
+                        .rename(columns={"use_cnt": "region_cnt"}))            # 전 연령 24개 합계
+        keep = {p["cohort_id"] for p in s["persona_table"] if p["age_group"] in C.MICRO_ELIGIBLE_AGE_GROUPS}
+        s["persona_table"] = [p for p in s["persona_table"] if p["cohort_id"] in keep]
+        for k in ("card", "flow", "psych"):
+            s[k] = s[k][s[k]["cohort_id"].isin(keep)].reset_index(drop=True)
+        s["labels"] = {cid: "normal" for cid in keep}
+        s["region_ref"] = None if name.endswith("noref") else region_ref
+        return s
     raise ValueError(f"알 수 없는 시나리오: {name}")
+
+
+def _all_dates():
+    d, out = C.PERIOD_START, []
+    while d <= C.PERIOD_END:
+        out.append(d)
+        d += timedelta(days=1)
+    return out
 
 
 C_CARD_NOISE = 0.097   # synth_macro.CARD_CV와 같은 잡음 크기
 
 ALL_SCENARIOS = ["S0_all_normal", "S1_default", "S2_strong", "S2_medium", "S2_weak",
-                 "S3_one_day_dip", "S3_short_dip", "S3_region_common", "S5_independent"]
+                 "S3_one_day_dip", "S3_short_dip", "S3_region_common", "S5_independent", "S6_youth_mixed"]
 TUNE_SEEDS = list(range(1, 11))          # 임계값을 고를 때만 쓴다
 EVAL_SEEDS = list(range(101, 121))       # 성적은 이 seed로만 보고한다

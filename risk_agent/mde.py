@@ -35,9 +35,25 @@ def _inject(card, cohort_id, drop, days):
     return c
 
 
-def run(persona_table, flow, card, psych):
+def _inject_ref(region_ref, card, cohort_id, drop, days):
+    """지역 전체 합계에도 같은 감소분을 반영한다(그 집단도 지역 합계의 일부이므로)."""
+    if region_ref is None:
+        return None
+    before = card[card["cohort_id"] == cohort_id][["sgg_code", "ta_ymd", "use_cnt"]]
+    after = _inject(card, cohort_id, drop, days)
+    after = after[after["cohort_id"] == cohort_id][["ta_ymd", "use_cnt"]]
+    delta = before.assign(delta=after["use_cnt"].to_numpy() - before["use_cnt"].to_numpy())
+    r = region_ref.copy()
+    r["ta_ymd"] = r["ta_ymd"].astype(str).str[:10]
+    delta["ta_ymd"] = delta["ta_ymd"].astype(str).str[:10]
+    r = r.merge(delta[["sgg_code", "ta_ymd", "delta"]], on=["sgg_code", "ta_ymd"], how="left")
+    r["region_cnt"] = r["region_cnt"] + r["delta"].fillna(0)
+    return r.drop(columns="delta")
+
+
+def run(persona_table, flow, card, psych, region_ref=None):
     empty = psych.iloc[0:0] if psych is not None else pd.DataFrame()
-    base = P.judge(persona_table, flow, card, empty).set_index("cohort_id")["status"]
+    base = P.judge(persona_table, flow, card, empty, region_ref=region_ref).set_index("cohort_id")["status"]
     rows = []
     for p in persona_table:
         cid = p["cohort_id"]
@@ -49,7 +65,8 @@ def run(persona_table, flow, card, psych):
         for label, days in DURATIONS.items():
             found = None
             for drop in DROPS:
-                j = P.judge(persona_table, flow, _inject(card, cid, drop, days), empty).set_index("cohort_id")
+                j = P.judge(persona_table, flow, _inject(card, cid, drop, days), empty,
+                            region_ref=_inject_ref(region_ref, card, cid, drop, days)).set_index("cohort_id")
                 if j.loc[cid, "status"] == "check":
                     found = drop
                     break
@@ -65,7 +82,7 @@ def main():
     args = ap.parse_args()
     if args.youth:
         from real_youth import load_youth_master
-        persona_table, flow, card = load_youth_master(args.youth)
+        persona_table, flow, card, region_ref = load_youth_master(args.youth)
         card = card.drop(columns="split_source")
         src = f"실제 청년 데이터({args.youth})"
     else:
@@ -75,8 +92,10 @@ def main():
         persona_table = [p for p in s["persona_table"] if p["age_group"] in keep]
         ids = {p["cohort_id"] for p in persona_table}
         flow, card = s["flow"][s["flow"].cohort_id.isin(ids)], s["card"][s["card"].cohort_id.isin(ids)]
-        src = "합성 청년 8개(시연)"
-    res = run(persona_table, flow, card, None)
+        region_ref = (s["card"].groupby(["sgg_code", "ta_ymd"], as_index=False)["use_cnt"].sum()
+                        .rename(columns={"use_cnt": "region_cnt"}))       # 전 연령 24개 합계
+        src = "합성 청년 8개(시연, 지역 기준 = 합성 전 연령)"
+    res = run(persona_table, flow, card, None, region_ref)
     print(f"=== 탐지 한계: 확인권장이 처음 뜨는 결제 감소 폭 — {src} ===")
     print("(감소는 eval 마지막 날부터 거꾸로 이어지게 넣음. 대화 신호 없이 카드·통신만으로 판정)")
     print(res.to_string(index=False))

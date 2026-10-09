@@ -18,6 +18,7 @@ COLS = ["cohort_id", "status", "trigger_z", "baseline_z", "event_beta", "micro_s
 
 
 def judge(s, **kw):
+    kw.setdefault("region_ref", s.get("region_ref"))
     return P.judge(s["persona_table"], s["flow"], s["card"], s["psych"], **kw).set_index("cohort_id")
 
 
@@ -98,6 +99,31 @@ class CommonShockAndShortDips(unittest.TestCase):
     def test_one_week_dip_is_not_an_alert(self):
         j = judge(S.scenario("S3_short_dip", 101))
         self.assertEqual((j["status"] == "check").sum(), 0)
+
+
+class RegionReference(unittest.TestCase):
+    """2026-10-09 실데이터에서 춘천 청년 4개가 전부 확인권장이 된 문제의 재발 방지."""
+
+    def test_youth_groups_moving_opposite_are_not_alerts(self):
+        for seed in (101, 102):
+            j = judge(S.scenario("S6_youth_mixed", seed))
+            self.assertEqual((j["status"] == "check").sum(), 0, f"seed {seed}")
+
+    def test_region_reference_removes_peer_distortion(self):
+        """지역 기준 없이 청년끼리만 비교하면 춘천 30대의 '지역 공통 변화'가 20대 학기 효과에 끌려 올라간다(대조군).
+        이 왜곡이 그대로면 30대의 평범한 수준이 '지역보다 낮음'으로 읽힌다 — 10/9 실데이터에서 생긴 문제."""
+        cids = ["51110-M-30대", "51110-F-30대"]
+        for seed in (101, 102):
+            ref = judge(S.scenario("S6_youth_mixed", seed)).loc[cids, "card_region_pct"]
+            noref = judge(S.scenario("S6_youth_mixed_noref", seed)).loc[cids, "card_region_pct"]
+            self.assertTrue((noref - ref > 0.03).all(), f"seed {seed}: ref={ref.tolist()} noref={noref.tolist()}")
+
+    def test_opposite_big_move_is_not_unresponsive(self):
+        """명절에 반대로 크게 움직인 집단(춘천 20대 귀성)은 β가 낮아도 '무반응'이 아니다."""
+        j = judge(S.scenario("S6_youth_mixed", 102))
+        for cid in ("51110-M-20대", "51110-F-20대"):
+            self.assertGreater(j.loc[cid, "event_own_move"], C.JUDGMENT["event"]["max_own_move"])
+            self.assertNotIn("event_beta", j.loc[cid, "alert_signals"])
 
 
 class FlowIsBackgroundOnly(unittest.TestCase):

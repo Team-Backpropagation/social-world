@@ -73,7 +73,7 @@ def main():
     # ① 수집
     if real:
         from real_youth import load_youth_master
-        persona_table, flow_df, card_df = load_youth_master(args.youth)
+        persona_table, flow_df, card_df, region_ref = load_youth_master(args.youth)
         if args.supabase:
             import supabase_sync as S
             sb = S.client()
@@ -98,6 +98,7 @@ def main():
             engagement_df = pd.DataFrame()
             source = "실제 청년 데이터(통신·카드), 미시신호 없음"
     else:
+        region_ref = None          # 합성 모드는 전 연령 24개가 다 있으므로 입력 자료 안에서 지역 나머지를 만든다
         persona_table = build_persona_table()
         flow_df = generate_flow_cohort_monthly(persona_table)
         card_df = generate_card_cohort_daily(persona_table)
@@ -122,7 +123,7 @@ def main():
     detected = P.detect_card_anomalies(card_split, mode=args.mode)
     n_anom = (detected["robust_z"].abs() >= C.ROBUST_Z_THRESHOLD).sum()
     print(f"[3/10 탐지] 요일 보정·급변 z 계산({args.mode}). |z|>={C.ROBUST_Z_THRESHOLD} 인 코호트-일 조합: {n_anom}건(참고용)")
-    scored = P.judge(persona_table, flow_df, card_df, psych_df, as_of=args.as_of, mode=args.mode)
+    scored = P.judge(persona_table, flow_df, card_df, psych_df, as_of=args.as_of, mode=args.mode, region_ref=region_ref)
     dist = scored["status"].map(C.STATUS_LABELS).value_counts().to_dict()
     print(f"[4/10 판단] 상태 분포: {dist}" + (f" (기준일 {args.as_of})" if args.as_of else ""))
 
@@ -187,7 +188,7 @@ def main():
 
     risk_scores_cols = ["cohort_id", "sgg_code", "region_name", "gender", "age_group",
                          "scored_on", "status", "status_label", "score", "risk_level", "risk_level_label",
-                         "trigger_z", "card_pct", "card_region_pct", "card_persist_weeks", "card_weeks",
+                         "trigger_z", "card_pct", "card_region_pct", "card_adj_drop", "card_persist_weeks", "card_weeks",
                          "baseline_z", "flow_pct", "flow_region_pct", "flow_persist",
                          "event_beta", "event_se", "event_blocks_used", "event_blocks_low",
                          "micro_severity", "micro_high_months", "avg_session_count", "model_version"]

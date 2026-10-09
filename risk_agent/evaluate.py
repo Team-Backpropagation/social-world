@@ -26,7 +26,7 @@ import scenarios as S
 
 def judge_scenario(s, as_of=None):
     """시나리오 데이터 한 벌을 판정기에 넣고 코호트별 결과를 돌려준다."""
-    return P.judge(s["persona_table"], s["flow"], s["card"], s["psych"], as_of=as_of)
+    return P.judge(s["persona_table"], s["flow"], s["card"], s["psych"], as_of=as_of, region_ref=s.get("region_ref"))
 
 
 def confusion(judged, labels):

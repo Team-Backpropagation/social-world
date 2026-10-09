@@ -71,13 +71,15 @@ def build_report_markdown(scored_df, explained_df, priority_df, recommend_df, ac
     lines.append("- **분석 단위**: 개인 추적 불가 → 지역×성별×연령대 코호트(통합기획서 5장)")
     lines.append("- **시간 분할**: baseline(7/1~10/31 중 이벤트 제외) / event(달력 공휴일 등) / eval(11/1~12/23 중 이벤트 제외)")
     lines.append("- **혼자 기준선**: 각 집단을 다른 집단과 줄 세우지 않고 **자기 평소(baseline)와만** 비교한다. "
-                 "같은 지역 다른 집단들의 공통 변화(계절·날씨 등)는 빼고 본다.")
+                 "'나를 뺀 지역 나머지 전체'(전 연령)의 같은 기간 변화(계절·날씨 등)는 빼고 본다.")
     lines.append(f"- **카드 결제**: 요일 보정 후 eval 수준이 평소 하루 흔들림의 몇 배 낮아졌나. "
-                 f"관찰 {J['card']['observe']}배, 확인 {J['card']['alert']}배 + 기준을 넘은 주 {J['card']['persist_weeks']}주 이상")
+                 f"관찰 {J['card']['observe']}배, 확인 {J['card']['alert']}배 + 기준을 넘은 주 {J['card']['persist_weeks']}주 이상 "
+                 f"+ 실제 감소 {J['card']['min_drop_alert']:.0%} 이상")
     lines.append(f"- **유동인구(월별)**: 평소 월 흔들림의 몇 배 낮아졌나. 관찰 {J['flow']['observe']}배(이후 달 모두), "
                  f"확인 {J['flow']['alert']}배. 월 6점뿐인 배경 신호라 **혼자서는 확인권장이 되지 않는다**")
     lines.append(f"- **명절 동조도 β**: 달력 공휴일에 지역이 움직인 만큼 이 집단도 움직였나(1=같이, 0=무반응). "
-                 f"관찰 {J['event']['observe']} 이하, 확인 {J['event']['alert']} 이하 + 판정 가능한 명절 {J['event']['min_blocks']}개 이상에서 모두 낮음")
+                 f"관찰 {J['event']['observe']} 이하, 확인 {J['event']['alert']} 이하 + 판정 가능한 명절 {J['event']['min_blocks']}개 이상에서 모두 낮음 "
+                 f"+ 자기 자신의 명절 움직임이 평소 흔들림의 {J['event']['max_own_move']}배 이하(반대로 크게 움직인 것은 무반응이 아님)")
     lines.append(f"- **대화 심각도**: 루미 판정과 같은 절대 기준. 관찰 {J['micro']['observe']}, "
                  f"확인 {J['micro']['strong']} 또는 최근 {J['micro']['window_months']}개월 중 {J['micro']['persist_months']}개월 이상 관찰 기준 초과")
     lines.append("- **상태**: 확인 기준을 넘은 신호가 있으면 확인권장, 관찰 기준만 넘었으면 변화관찰, 아니면 평소범위, "

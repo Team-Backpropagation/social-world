@@ -103,55 +103,86 @@ def _until(df, col, as_of):
     return df if as_of is None else df[df[col] <= as_of]
 
 
-def compute_card_signal(detected: pd.DataFrame, as_of: date | None = None) -> pd.DataFrame:
+REST = "#rest"   # '나를 뺀 지역 나머지' 시계열에 붙이는 cohort_id 꼬리표
+
+
+def _rest_of_region(card: pd.DataFrame, region_ref: pd.DataFrame | None = None) -> pd.DataFrame:
+    """집단마다 '나를 뺀 같은 지역 나머지 전체'의 하루 결제 건수를 만든다 = 지역 공통 변화의 기준.
+
+    region_ref(지역×날짜의 **전 연령** 합계, 컬럼 sgg_code·ta_ymd·region_cnt)가 있으면 거기서 나를 빼고,
+    없으면 입력 카드 자료의 같은 지역 다른 집단 합계를 쓴다.
+    2026-10-09 실데이터 점검: 청년 모드에서 '같은 지역 청년 3개 집단'을 기준으로 삼았더니 춘천 20대(학기·귀성)와
+    30대가 반대로 움직여 기준이 무너졌다 → 지역 전 연령 합계를 기준으로 바꿈(docs/판단검증_결과.md 9절).
+    """
+    c = card[["cohort_id", "sgg_code", "ta_ymd", "use_cnt"]].copy()
+    c["ta_ymd"] = c["ta_ymd"].astype(str).str[:10]
+    if region_ref is not None and len(region_ref):
+        r = region_ref.assign(ta_ymd=region_ref["ta_ymd"].astype(str).str[:10])
+        tot = r.groupby(["sgg_code", "ta_ymd"])["region_cnt"].sum()
+    else:
+        tot = c.groupby(["sgg_code", "ta_ymd"])["use_cnt"].sum()
+    key = pd.MultiIndex.from_frame(c[["sgg_code", "ta_ymd"]])
+    rest = c.assign(cohort_id=c["cohort_id"] + REST,
+                    use_cnt=tot.reindex(key).to_numpy(dtype=float) - c["use_cnt"].to_numpy(dtype=float))
+    return rest[rest["use_cnt"] > 0]      # 지역에 나 혼자면 비교 기준이 없다(공통 변화 0으로 처리)
+
+
+def _level_profile(g: pd.DataFrame) -> dict:
+    """한 시계열의 baseline 평균·평소 하루 흔들림·eval 평균 변화율·주별 변화율."""
+    J = C.JUDGMENT
+    base = g.loc[g["split"] == "baseline", "dow_corrected"].dropna()
+    ev = g[g["split"] == "eval"].dropna(subset=["dow_corrected"])
+    # 평소 하루 흔들림 = baseline 안에서 '그 무렵 수준(29일 중앙값)'에서 하루하루 벗어난 정도.
+    # baseline 전체 평균에서 벗어난 정도로 재면 baseline 안의 완만한 추세까지 흔들림으로 잡혀 기준이 부풀려진다.
+    # baseline은 eval보다 모두 과거이므로 baseline 안에서는 중심 창을 써도 미래 정보가 eval 판정에 섞이지 않는다.
+    local = base.rolling(C.TREND_WINDOW_DAYS, center=True, min_periods=10).median()
+    mean_b = base.mean()
+    std_b = (base / local - 1).std(ddof=0) * mean_b
+    ok = len(base) >= J["min_baseline_days"] and len(ev) >= J["min_eval_days"] and std_b > 0
+    week = ((pd.to_datetime(ev["ta_ymd"]) - pd.Timestamp(C.EVAL_START)).dt.days // 7)
+    wk = ev.groupby(week.values)["dow_corrected"].agg(["mean", "size"])
+    wk = wk[wk["size"] >= 4]
+    return {"ok": bool(ok), "mean_b": mean_b, "std_b": std_b,
+            "pct": (ev["dow_corrected"].mean() / mean_b - 1) if ok else np.nan,
+            "weeks": {int(k): v / mean_b - 1 for k, v in wk["mean"].items()} if ok else {}}
+
+
+def compute_card_signal(detected: pd.DataFrame, as_of: date | None = None,
+                        rest_detected: pd.DataFrame | None = None) -> pd.DataFrame:
     """카드 결제 수준 신호 — 평소(baseline) 대비 최근(eval) 수준이 **평소 하루 흔들림의 몇 배** 낮아졌나.
 
-    - 혼자 기준선: 기준은 그 집단의 baseline 평균·표준편차뿐이다(다른 집단과 줄 세우지 않음)
-    - 지역 공통 변화 차감: 같은 지역 다른 집단들의 변화율 중앙값을 빼서 계절·날씨처럼 다 같이 겪은 감소를 걸러낸다
+    - 혼자 기준선: 기준은 그 집단의 baseline 평균·흔들림뿐이다(다른 집단과 줄 세우지 않음)
+    - 지역 공통 변화 차감: '나를 뺀 지역 나머지'(rest_detected)의 같은 기간 변화율을 빼서
+      계절·날씨처럼 다 같이 겪은 감소를 걸러낸다
     - 지속: eval을 1주 단위로 나눠, 기준(observe)을 넘은 주가 몇 주인지 센다
     부호: 낮아질수록 +(위험 방향).
     """
     J = C.JUDGMENT
     d = _until(detected, "ta_ymd", as_of)
-    rows = []
+    rest = {} if rest_detected is None else {
+        cid[:-len(REST)]: _level_profile(g) for cid, g in _until(rest_detected, "ta_ymd", as_of).groupby("cohort_id")}
+    rows, wk_rows = [], []
     for cid, g in d.groupby("cohort_id"):
-        base = g.loc[g["split"] == "baseline", "dow_corrected"].dropna()
-        ev = g[g["split"] == "eval"].dropna(subset=["dow_corrected"])
-        # 평소 하루 흔들림 = baseline 안에서 '그 무렵 수준(29일 중앙값)'에서 하루하루 벗어난 정도.
-        # baseline 전체 평균에서 벗어난 정도로 재면 baseline 안의 완만한 추세까지 흔들림으로 잡혀 기준이 부풀려진다.
-        # baseline은 eval보다 모두 과거이므로 baseline 안에서는 중심 창을 써도 미래 정보가 eval 판정에 섞이지 않는다.
-        local = base.rolling(C.TREND_WINDOW_DAYS, center=True, min_periods=10).median()
-        mean_b = base.mean()
-        std_b = (base / local - 1).std(ddof=0) * mean_b
-        ok = len(base) >= J["min_baseline_days"] and len(ev) >= J["min_eval_days"] and std_b > 0
-        week = ((pd.to_datetime(ev["ta_ymd"]) - pd.Timestamp(C.EVAL_START)).dt.days // 7)
-        wk = ev.groupby(week.values)["dow_corrected"].agg(["mean", "size"])
-        wk = wk[wk["size"] >= 4]
-        rows.append({"cohort_id": cid, "sgg_code": g["sgg_code"].iloc[0], "card_ok": bool(ok),
-                     "mean_b": mean_b, "std_b": std_b,
-                     "card_pct": (ev["dow_corrected"].mean() / mean_b - 1) if ok else np.nan,
-                     "weeks_d": {int(k): v / mean_b - 1 for k, v in wk["mean"].items()} if ok else {}})
+        p = _level_profile(g)
+        r = rest.get(cid, {"ok": False})
+        common = r["pct"] if r["ok"] else 0.0
+        scale = p["mean_b"] / p["std_b"] if p["ok"] else np.nan
+        rows.append({"cohort_id": cid, "card_ok": p["ok"], "mean_b": p["mean_b"], "std_b": p["std_b"],
+                     "card_pct": p["pct"], "card_region_pct": common if p["ok"] else np.nan,
+                     "trigger_z": -(p["pct"] - common) * scale if p["ok"] else np.nan})
+        for w, pct in p["weeks"].items():
+            wc = r["weeks"].get(w, 0.0) if r["ok"] else 0.0
+            wk_rows.append({"cohort_id": cid, "z": -(pct - wc) * scale})
     s = pd.DataFrame(rows)
-    s["card_region_pct"] = _loo_median(s["card_pct"], s["sgg_code"])
-    s["trigger_z"] = -(s["card_pct"] - s["card_region_pct"]) * s["mean_b"] / s["std_b"]
-
-    # 주별로도 같은 계산(주마다 지역 공통 변화를 따로 뺀다) → 기준을 넘은 주 수
-    wk_rows = [{"cohort_id": r.cohort_id, "sgg_code": r.sgg_code, "week": w, "pct": p, "scale": r.mean_b / r.std_b}
-               for r in s.itertuples() for w, p in r.weeks_d.items()]
+    s["card_adj_drop"] = -(s["card_pct"] - s["card_region_pct"])
     if wk_rows:
         w = pd.DataFrame(wk_rows)
-        w["common"] = 0.0
-        for _, idx in w.groupby("week").groups.items():
-            sub = w.loc[idx]
-            w.loc[idx, "common"] = _loo_median(sub["pct"], sub["sgg_code"]).values
-        w["z"] = -(w["pct"] - w["common"]) * w["scale"]
-        persist = (w["z"] >= J["card"]["observe"]).groupby(w["cohort_id"]).sum()
-        s["card_persist_weeks"] = s["cohort_id"].map(persist).fillna(0).astype(int)
+        s["card_persist_weeks"] = s["cohort_id"].map((w["z"] >= J["card"]["observe"]).groupby(w["cohort_id"]).sum()).fillna(0).astype(int)
         s["card_weeks"] = s["cohort_id"].map(w.groupby("cohort_id").size()).fillna(0).astype(int)
     else:
         s["card_persist_weeks"], s["card_weeks"] = 0, 0
-    s.loc[~s["card_ok"], ["trigger_z"]] = np.nan
-    return s[["cohort_id", "card_ok", "trigger_z", "card_pct", "card_region_pct", "card_persist_weeks", "card_weeks", "std_b", "mean_b"]]
+    return s[["cohort_id", "card_ok", "trigger_z", "card_pct", "card_region_pct", "card_adj_drop",
+              "card_persist_weeks", "card_weeks", "std_b", "mean_b"]]
 
 
 def compute_flow_signal(flow_df: pd.DataFrame, as_of: date | None = None) -> pd.DataFrame:
@@ -198,8 +229,9 @@ def compute_flow_signal(flow_df: pd.DataFrame, as_of: date | None = None) -> pd.
     return s[["cohort_id", "baseline_z", "flow_pct", "flow_region_pct", "flow_cv", "flow_persist", "flow_months"]]
 
 
-def compute_event_signal(detected: pd.DataFrame, card_sig: pd.DataFrame, as_of: date | None = None) -> pd.DataFrame:
-    """명절 동조도 β — 달력 공휴일 구간에 **지역(나를 뺀 다른 집단들)이 움직인 만큼 이 집단도 움직였나**.
+def compute_event_signal(detected: pd.DataFrame, card_sig: pd.DataFrame, as_of: date | None = None,
+                         rest_detected: pd.DataFrame | None = None) -> pd.DataFrame:
+    """명절 동조도 β — 달력 공휴일 구간에 **지역(나를 뺀 지역 나머지 전체)이 움직인 만큼 이 집단도 움직였나**.
 
     날마다 '직전 4주 평소값 대비 변화율'을 구하고, 지역 변화율에 대한 기울기 β = Σ(나×지역)/Σ(지역²)를 잰다.
     β≈1 이면 지역과 같이 움직임, β≈0 이면 무반응(H-A 가설의 시그니처). 다른 집단과 순위를 매기지 않는다.
@@ -207,7 +239,7 @@ def compute_event_signal(detected: pd.DataFrame, card_sig: pd.DataFrame, as_of: 
     - 지역 움직임이 작아 β가 불확실한 구간(표준오차 > max_se)은 판정에 쓰지 않는다(예: 하루짜리 광복절)
     """
     J = C.JUDGMENT["event"]
-    d = _until(detected, "ta_ymd", as_of).copy()
+    d = _until(detected if rest_detected is None else pd.concat([detected, rest_detected]), "ta_ymd", as_of).copy()
     d["ta_ymd"] = pd.to_datetime(d["ta_ymd"]).dt.date
     noise = (card_sig.set_index("cohort_id")["std_b"] / card_sig.set_index("cohort_id")["mean_b"])
     blocks = [e for e in C.EVENT_PERIODS if e.get("calendar", True) and (as_of is None or e["end"] <= as_of)]
@@ -223,17 +255,27 @@ def compute_event_signal(detected: pd.DataFrame, card_sig: pd.DataFrame, as_of: 
             for r in on.itertuples():
                 dev_rows.append({"block": e["name"], "cohort_id": cid, "sgg_code": r.sgg_code,
                                  "ta_ymd": r.ta_ymd, "dev": r.dow_corrected / ref - 1})
-    cols = ["cohort_id", "event_beta", "event_se", "event_blocks_used", "event_blocks_low", "event_region_move"]
+    cols = ["cohort_id", "event_beta", "event_se", "event_blocks_used", "event_blocks_low", "event_region_move", "event_own_move"]
     if not dev_rows:
         return pd.DataFrame(columns=cols)
     dv = pd.DataFrame(dev_rows)
-    dv["region"] = 0.0
-    for _, idx in dv.groupby("ta_ymd").groups.items():
-        sub = dv.loc[idx]
-        dv.loc[idx, "region"] = _loo_median(sub["dev"], sub["sgg_code"]).values
-    dv["xy"], dv["xx"] = dv["dev"] * dv["region"], dv["region"] ** 2
+    is_rest = dv["cohort_id"].str.endswith(REST)
+    if is_rest.any():
+        # 지역 움직임 = 나를 뺀 지역 나머지 전체가 같은 날 직전 4주 대비 얼마나 움직였나
+        rd = dv[is_rest].assign(cohort_id=lambda x: x["cohort_id"].str[:-len(REST)])
+        dv = dv[~is_rest].merge(rd[["block", "cohort_id", "ta_ymd", "dev"]].rename(columns={"dev": "region"}),
+                                on=["block", "cohort_id", "ta_ymd"], how="inner")
+    else:
+        dv["region"] = 0.0
+        for _, idx in dv.groupby("ta_ymd").groups.items():
+            sub = dv.loc[idx]
+            dv.loc[idx, "region"] = _loo_median(sub["dev"], sub["sgg_code"]).values
+    if dv.empty:
+        return pd.DataFrame(columns=cols)
+    dv["xy"], dv["xx"], dv["dd"] = dv["dev"] * dv["region"], dv["region"] ** 2, dv["dev"] ** 2
 
-    per_block = dv.groupby(["cohort_id", "block"])[["xy", "xx"]].sum().reset_index()
+    per_block = dv.groupby(["cohort_id", "block"])[["xy", "xx", "dd"]].sum().reset_index()
+    per_block["n"] = dv.groupby(["cohort_id", "block"]).size().to_numpy()
     per_block["beta"] = per_block["xy"] / per_block["xx"]
     per_block["se"] = per_block["cohort_id"].map(noise) / np.sqrt(per_block["xx"])
     per_block["usable"] = per_block["se"] <= J["max_se"]
@@ -242,12 +284,14 @@ def compute_event_signal(detected: pd.DataFrame, card_sig: pd.DataFrame, as_of: 
         u = b[b["usable"]]
         if u.empty:
             rows.append({"cohort_id": cid, "event_beta": np.nan, "event_se": np.nan, "event_blocks_used": 0,
-                         "event_blocks_low": 0, "event_region_move": np.nan})
+                         "event_blocks_low": 0, "event_region_move": np.nan, "event_own_move": np.nan})
             continue
-        xx = u["xx"].sum()
+        xx, n = u["xx"].sum(), u["n"].sum()
         rows.append({"cohort_id": cid, "event_beta": u["xy"].sum() / xx, "event_se": noise.get(cid, np.nan) / np.sqrt(xx),
                      "event_blocks_used": int(len(u)), "event_blocks_low": int((u["beta"] <= J["observe"]).sum()),
-                     "event_region_move": float(np.sqrt(xx / dv[(dv.cohort_id == cid) & dv.block.isin(u.block)].shape[0]))})
+                     "event_region_move": float(np.sqrt(xx / n)),
+                     # 이 집단 자신이 명절에 움직인 크기 ÷ 평소 하루 흔들림. 1 근처면 '평소처럼' = 무반응
+                     "event_own_move": float(np.sqrt(u["dd"].sum() / n) / noise.get(cid, np.nan))})
     return pd.DataFrame(rows, columns=cols)
 
 
@@ -291,8 +335,10 @@ def _signal_states(r) -> dict:
     st = {}
     z = r.get("trigger_z")
     if pd.notna(z):
-        st["trigger_z"] = (z, z >= J["card"]["observe"],
-                           z >= J["card"]["alert"] and r["card_persist_weeks"] >= J["card"]["persist_weeks"],
+        drop = r["card_adj_drop"]    # 지역 공통 변화를 뺀 실제 감소율 — 통계적으로 뚜렷해도 너무 작으면 세지 않는다
+        st["trigger_z"] = (z, z >= J["card"]["observe"] and drop >= J["card"]["min_drop_observe"],
+                           z >= J["card"]["alert"] and drop >= J["card"]["min_drop_alert"]
+                           and r["card_persist_weeks"] >= J["card"]["persist_weeks"],
                            z / J["card"]["alert"])
     z = r.get("baseline_z")
     if pd.notna(z):
@@ -302,8 +348,11 @@ def _signal_states(r) -> dict:
     b = r.get("event_beta")
     if pd.notna(b):
         E = J["event"]
-        st["event_beta"] = (b, b <= E["observe"],
-                            b <= E["alert"] and r["event_blocks_used"] >= E["min_blocks"]
+        # 무반응 = 지역을 따라 움직이지 않았고(β 낮음) **자기 자신도 평소 흔들림 이상으로 움직이지 않음**.
+        # β가 낮아도 반대 방향으로 크게 움직였다면(예: 춘천 20대 귀성) 반응한 것이지 무반응이 아니다.
+        still = r["event_own_move"] <= E["max_own_move"]
+        st["event_beta"] = (b, b <= E["observe"] and still,
+                            b <= E["alert"] and still and r["event_blocks_used"] >= E["min_blocks"]
                             and r["event_blocks_low"] == r["event_blocks_used"],
                             (1 - b) / (1 - E["alert"]))
     v = r.get("micro_severity")
@@ -315,19 +364,25 @@ def _signal_states(r) -> dict:
     return st
 
 
-def judge(persona_table, flow_df, card_df, psych_df, as_of: date | None = None, mode: str = "prospective") -> pd.DataFrame:
+def judge(persona_table, flow_df, card_df, psych_df, as_of: date | None = None, mode: str = "prospective",
+          region_ref: pd.DataFrame | None = None) -> pd.DataFrame:
     """②~④를 한 번에 — 코호트별 4단계 상태와 신호값을 돌려준다.
 
     as_of를 주면 그날까지의 자료만 쓴다(그 이후 행은 잘라냄). 판정 신호는 모두 그날까지의 자료로만 계산되므로
     as_of 이후 데이터를 바꿔도 결과가 같다(tests/test_judgment.py가 확인).
+    region_ref: 지역×날짜 전 연령 결제 합계(sgg_code·ta_ymd·region_cnt). 청년 모드처럼 일부 연령만 넣을 때
+    지역 공통 변화를 '나를 뺀 지역 전체'로 재기 위해 쓴다. 없으면 입력 자료의 같은 지역 다른 집단 합계.
     """
-    card_split = add_date_split_label(card_df.drop(columns=["split"], errors="ignore"))
-    detected = detect_card_anomalies(card_split, mode=mode)
-    card_sig = compute_card_signal(detected, as_of)
+    card = card_df.drop(columns=["split"], errors="ignore")
+    both = add_date_split_label(pd.concat([card, _rest_of_region(card, region_ref)], ignore_index=True))
+    det_all = detect_card_anomalies(both, mode=mode)
+    is_rest = det_all["cohort_id"].str.endswith(REST)
+    detected, rest_det = det_all[~is_rest], det_all[is_rest]
+    card_sig = compute_card_signal(detected, as_of, rest_det)
     out = pd.DataFrame(persona_table)
     out = (out.merge(card_sig, on="cohort_id", how="left")
               .merge(compute_flow_signal(flow_df, as_of), on="cohort_id", how="left")
-              .merge(compute_event_signal(detected, card_sig, as_of), on="cohort_id", how="left")
+              .merge(compute_event_signal(detected, card_sig, as_of, rest_det), on="cohort_id", how="left")
               .merge(compute_micro_signal(psych_df, as_of), on="cohort_id", how="left"))
     statuses, strengths, alerts, observes, scores = [], [], [], [], []
     for _, r in out.iterrows():
@@ -384,12 +439,13 @@ def _reason_text(r) -> str:
     J = C.JUDGMENT
     parts = []
     if pd.notna(r.get("trigger_z")):
-        parts.append(f"카드 결제 {r['card_pct']*100:+.1f}%(지역 공통 {r['card_region_pct']*100:+.1f}% 제외 후 "
+        parts.append(f"카드 결제 {r['card_pct']*100:+.1f}%(지역 나머지 {r['card_region_pct']*100:+.1f}% 제외 후 "
                      f"평소 흔들림의 {r['trigger_z']:.1f}배, 기준 넘은 주 {int(r['card_persist_weeks'])}/{int(r['card_weeks'])}주)")
     if pd.notna(r.get("baseline_z")):
         parts.append(f"유동인구 {r['flow_pct']*100:+.1f}%(지역 공통 {r['flow_region_pct']*100:+.1f}% 제외 후 {r['baseline_z']:.1f}배)")
     if pd.notna(r.get("event_beta")):
-        parts.append(f"명절 동조도 {r['event_beta']:.2f}(1=지역과 같이 움직임, 판정 구간 {int(r['event_blocks_used'])}개)")
+        parts.append(f"명절 동조도 {r['event_beta']:.2f}(1=지역과 같이 움직임, 판정 구간 {int(r['event_blocks_used'])}개, "
+                     f"자기 움직임 평소 흔들림의 {r['event_own_move']:.1f}배)")
     if pd.notna(r.get("micro_severity")):
         parts.append(f"대화 심각도 {r['micro_severity']:.2f}(기준 {J['micro']['observe']}, 넘은 달 {int(r['micro_high_months'])}개)")
     return " · ".join(parts)
