@@ -189,6 +189,7 @@ def main():
     risk_scores_cols = ["cohort_id", "sgg_code", "region_name", "gender", "age_group",
                          "scored_on", "status", "status_label", "score", "risk_level", "risk_level_label",
                          "trigger_z", "card_pct", "card_region_pct", "card_adj_drop", "card_persist_weeks", "card_weeks",
+                         "social_z", "social_pct", "social_region_pct", "social_adj_drop", "social_persist_weeks", "social_weeks",
                          "baseline_z", "flow_pct", "flow_region_pct", "flow_persist",
                          "event_beta", "event_se", "event_blocks_used", "event_blocks_low",
                          "micro_severity", "micro_high_months", "avg_session_count", "model_version"]

@@ -148,6 +148,10 @@ JUDGMENT = {
     #   min_drop_*: 지역 공통 변화를 뺀 실제 감소율 하한. 큰 집단은 흔들림이 작아 2~3% 감소도 z가 커지므로
     #   (2026-10-09 실데이터 mde.py: 강남 여성 3%에서 확인권장) 계절과 구분 안 되는 작은 변화는 세지 않는다
     "card": {"observe": 1.0, "alert": 1.3, "persist_weeks": 3, "min_drop_observe": 0.03, "min_drop_alert": 0.05},
+    # 사회활동 소비(외식·문화·운동 건수) — 카드와 같은 계산·같은 기준(2026-10-10, J5).
+    #   전체 결제는 그대로인데 사람을 만나는 소비만 줄어드는 경우(편의점·배달로 대체)를 잡는다.
+    #   자료에 social_cnt가 없거나, 지역 기준(region_ref)에 사회활동 합계가 없으면 계산하지 않는다(빈칸).
+    "social": {"observe": 1.0, "alert": 1.3, "persist_weeks": 3, "min_drop_observe": 0.03, "min_drop_alert": 0.05},
     # 통신 유동인구(월별, 지역 공통 변화 차감) — 평소 월 흔들림의 몇 배만큼 낮아졌나.
     #   월 6점뿐인 배경 신호라 카드보다 기준을 높게 두고, 관찰도 이후 달이 모두 기준을 넘을 때만 센다.
     #   통신 혼자서는 확인권장이 되지 않는다(pipeline.judge).
@@ -169,7 +173,7 @@ STATUS_ORDER = ["check", "watch", "normal", "hold"]
 # 판단보류는 숫자로 표현하지 않는다(비워 둠) — status 칸으로만 구분.
 STATUS_LEVEL = {"normal": 1, "watch": 2, "check": 3}
 
-MODEL_VERSION = "risk-agent-2026.10.09-status4"
+MODEL_VERSION = "risk-agent-2026.10.10-status4-social"
 
 RNG_SEED = 20260923  # 재현성 — 오늘 날짜를 시드로 고정(가상데이터 생성방식 설명자료에 명시)
 

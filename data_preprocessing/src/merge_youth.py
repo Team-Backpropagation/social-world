@@ -13,6 +13,7 @@
 지표별로 사용하는 업종 집합이 다르다.
     cnt_all        90종 전체
     cnt_ex_fixed   고정지출 4종 제외          ← 규모 지표
+    cnt_social     외식 + 문화·여가·운동       ← 사회활동 지표 (config.SOCIAL_ACTIVITY_GROUPS)
     H_offline      고정+원격+ZZ 제외 (76종)   ← 다양성 지표
 근거는 `Claude outputs/업종분류_고정지출_제외안_초안.md` 참조.
 """
@@ -43,8 +44,13 @@ def _load_card_industry(youth_only: bool = True) -> pd.DataFrame:
     return df.rename(columns={"MCT_SGG_CD": "region", "SEX_CCD": "sex"})
 
 
+def _social_codes() -> list:
+    return [c for g in config.SOCIAL_ACTIVITY_GROUPS for c in config.INDUSTRY_SHARE_GROUPS[g]]
+
+
 def build_region_total(ind_all: pd.DataFrame) -> pd.DataFrame:
-    """지역 × 날짜의 **전 연령·전 성별** 결제 건수(고정지출 제외, cnt_ex_fixed와 같은 업종 집합).
+    """지역 × 날짜의 **전 연령·전 성별** 결제 건수(고정지출 제외, cnt_ex_fixed와 같은 업종 집합)와
+    사회활동 건수(외식·문화·운동, cnt_social과 같은 업종 집합).
 
     위험 탐지 에이전트가 '지역 공통 변화'를 잴 때 쓴다(집단마다 이 합계에서 자기 몫을 빼서 '나를 뺀 지역 나머지'로 비교).
     청년 4개 집단만으로 지역 공통 변화를 재면 춘천처럼 20대(학기·귀성)와 30대가 반대로 움직일 때 기준이 무너진다
@@ -52,8 +58,13 @@ def build_region_total(ind_all: pd.DataFrame) -> pd.DataFrame:
     region_* 규칙: 연령·성별 구분이 없는 지역 단위 값이라 같은 지역·날짜의 4개 코호트 행에 똑같이 들어간다.
     """
     ex = ind_all[~ind_all["MCT_RY_CD"].isin(config.FIXED_EXPENSE_CODES)]
-    return (ex.groupby(["region", "date"], as_index=False)["cnt"].sum()
-              .rename(columns={"cnt": "region_cnt_ex_fixed_all"}))
+    total = (ex.groupby(["region", "date"], as_index=False)["cnt"].sum()
+               .rename(columns={"cnt": "region_cnt_ex_fixed_all"}))
+    soc = (ind_all[ind_all["MCT_RY_CD"].isin(_social_codes())].groupby(["region", "date"], as_index=False)["cnt"].sum()
+             .rename(columns={"cnt": "region_cnt_social_all"}))
+    out = total.merge(soc, on=["region", "date"], how="left")
+    out["region_cnt_social_all"] = out["region_cnt_social_all"].fillna(0).astype("int64")
+    return out
 
 
 def build_scale(card: pd.DataFrame) -> pd.DataFrame:
@@ -98,9 +109,13 @@ def build_industry(ind: pd.DataFrame) -> pd.DataFrame:
     ent = _entropy(offline)
     off_cnt = offline.groupby(KEY, as_index=False).agg(cnt_offline=("cnt", "sum"))
 
+    social = (ind[ind["MCT_RY_CD"].isin(_social_codes())].groupby(KEY, as_index=False)["cnt"].sum()
+                .rename(columns={"cnt": "cnt_social"}))
+
     out = tot.merge(scale, on=KEY, how="left").merge(ent, on=KEY, how="left").merge(
         off_cnt, on=KEY, how="left"
-    )
+    ).merge(social, on=KEY, how="left")
+    out["cnt_social"] = out["cnt_social"].fillna(0).astype("int64")
 
     for name, codes in config.INDUSTRY_SHARE_GROUPS.items():
         s = (
@@ -174,12 +189,12 @@ def build_youth_master(report: Report | None = None, baseline_end: str | None = 
 
     cols = (
         KEY + ["split", "dow", "is_weekend", "chuncheon_term_flag", "STD_YM"]
-        + ["cnt_all", "amount_all", "cnt_ex_fixed", "amount_ex_fixed", "cnt_offline"]
+        + ["cnt_all", "amount_all", "cnt_ex_fixed", "amount_ex_fixed", "cnt_offline", "cnt_social"]
         + ["cnt_resident", "resident_share"]
         + ["H_offline", "n_eff_offline", "n_industry_offline"]
         + [f"share_{k}" for k in config.INDUSTRY_SHARE_GROUPS]
         + ["flow_pop_monthly", "region_night_share_monthly", "region_weekend_share_monthly"]
-        + ["region_cnt_ex_fixed_all"]
+        + ["region_cnt_ex_fixed_all", "region_cnt_social_all"]
     )
     out = out[cols].sort_values(KEY).reset_index(drop=True)
 
@@ -198,6 +213,9 @@ def build_youth_master(report: Report | None = None, baseline_end: str | None = 
         youth_sum = out.groupby(["region", "date"])["cnt_ex_fixed"].sum()
         region_sum = out.groupby(["region", "date"])["region_cnt_ex_fixed_all"].first()
         report.expect("[youth] 지역 전체 합계 < 청년 합계인 날(0이어야 정상)", int((region_sum < youth_sum).sum()), 0)
+        youth_soc = out.groupby(["region", "date"])["cnt_social"].sum()
+        region_soc = out.groupby(["region", "date"])["region_cnt_social_all"].first()
+        report.expect("[youth] 지역 사회활동 합계 < 청년 합계인 날(0이어야 정상)", int((region_soc < youth_soc).sum()), 0)
         report.expect(
             "[youth] 카드 건수 보존",
             int(out["cnt_all"].sum()),

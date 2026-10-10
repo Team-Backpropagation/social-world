@@ -16,6 +16,8 @@ evaluate.py가 이 데이터를 판정기에 넣고 정답표와 비교해 혼�
 | S5_independent      | 탐지기 가정과 다른 모양으로 심은 위험 6개    | 위험 6 / normal 18      |
 | S6_youth_mixed      | 청년 8개만 판정. 춘천 20대는 학기 중 +25%, 명절엔 귀성으로 −40%(반대로 움직임). 지역 기준 = 전 연령 합계 | 전부 normal(경고 X) |
 | S6_youth_mixed_noref| 같은 데이터, 지역 기준 없이 청년끼리만 비교(10/9 실데이터에서 생긴 문제 재현용, ALL_SCENARIOS에 없음) | 전부 normal |
+| S7_social_shift     | 정상 6개가 eval에 외식·문화·운동 건수만 30% 줄이고 그만큼 다른 소비로 옮김(전체 결제는 그대로) | 위축 6 / normal 18 |
+| S7_social_weak      | 같은 모양, 15%만                              | 위축 6 / normal 18      |
 
 S5는 생성 규칙이 판정 규칙과 같은 모양이면 "심은 걸 다시 찾는" 순환 검증이 되는 문제를 줄이려고 둔다
 (계단형 감소, eval 중반에 시작하는 감소, 명절에 자기 평소값으로 머무는 무반응).
@@ -89,9 +91,19 @@ def _eval_dates():
 
 
 def _scale(card, cohort_id, dates, factor):
+    """전체 결제를 factor배. 사회활동 건수도 같은 비율로 움직인다(구성은 그대로)."""
     iso = {d.isoformat() for d in dates}
     m = (card["cohort_id"] == cohort_id) & card["ta_ymd"].isin(iso)
-    card.loc[m, "use_cnt"] = (card.loc[m, "use_cnt"] * factor).round().astype("int64")
+    for col in ("use_cnt", "social_cnt"):
+        if col in card.columns:
+            card.loc[m, col] = (card.loc[m, col] * factor).round().astype("int64")
+
+
+def _shift_social(card, cohort_id, dates, drop):
+    """사회활동 건수만 drop만큼 줄이고, 줄어든 만큼은 다른 소비(편의점·배달 등)로 옮겨 전체 결제는 그대로 둔다."""
+    iso = {d.isoformat() for d in dates}
+    m = (card["cohort_id"] == cohort_id) & card["ta_ymd"].isin(iso)
+    card.loc[m, "social_cnt"] = (card.loc[m, "social_cnt"] * (1 - drop)).round().astype("int64")
 
 
 def scenario(name, seed):
@@ -160,14 +172,22 @@ def scenario(name, seed):
         for cid in ("51110-M-20대", "51110-F-20대"):
             _scale(s["card"], cid, [x for x in term if x not in leave], 1.25)   # 학기 중 학생 복귀
             _scale(s["card"], cid, leave, 0.6)                                 # 명절·연말 귀성
-        region_ref = (s["card"].groupby(["sgg_code", "ta_ymd"], as_index=False)["use_cnt"].sum()
-                        .rename(columns={"use_cnt": "region_cnt"}))            # 전 연령 24개 합계
+        region_ref = (s["card"].groupby(["sgg_code", "ta_ymd"], as_index=False)[["use_cnt", "social_cnt"]].sum()
+                        .rename(columns={"use_cnt": "region_cnt", "social_cnt": "region_social_cnt"}))  # 전 연령 24개 합계
         keep = {p["cohort_id"] for p in s["persona_table"] if p["age_group"] in C.MICRO_ELIGIBLE_AGE_GROUPS}
         s["persona_table"] = [p for p in s["persona_table"] if p["cohort_id"] in keep]
         for k in ("card", "flow", "psych"):
             s[k] = s[k][s[k]["cohort_id"].isin(keep)].reset_index(drop=True)
         s["labels"] = {cid: "normal" for cid in keep}
         s["region_ref"] = None if name.endswith("noref") else region_ref
+        return s
+    if name.startswith("S7_social"):
+        # 2026-10-10 J5: 전체 결제는 그대로인데 사람을 만나는 소비만 줄어드는 위축(카드 총량 신호로는 안 보임)
+        s = _generate(seed, {})
+        drop = {"S7_social_shift": 0.30, "S7_social_weak": 0.15}[name]
+        for cid in PERTURB_COHORTS:
+            _shift_social(s["card"], cid, evd, drop)
+            s["labels"][cid] = "social_withdrawal"
         return s
     raise ValueError(f"알 수 없는 시나리오: {name}")
 
@@ -183,6 +203,7 @@ def _all_dates():
 C_CARD_NOISE = 0.097   # synth_macro.CARD_CV와 같은 잡음 크기
 
 ALL_SCENARIOS = ["S0_all_normal", "S1_default", "S2_strong", "S2_medium", "S2_weak",
-                 "S3_one_day_dip", "S3_short_dip", "S3_region_common", "S5_independent", "S6_youth_mixed"]
+                 "S3_one_day_dip", "S3_short_dip", "S3_region_common", "S5_independent", "S6_youth_mixed",
+                 "S7_social_shift", "S7_social_weak"]
 TUNE_SEEDS = list(range(1, 11))          # 임계값을 고를 때만 쓴다
 EVAL_SEEDS = list(range(101, 121))       # 성적은 이 seed로만 보고한다

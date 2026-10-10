@@ -24,9 +24,13 @@ import pipeline as P
 import scenarios as S
 
 
+USE_SOCIAL = True   # --no-social: 사회활동 신호를 빼고 돌려 J5 전후를 비교한다
+
+
 def judge_scenario(s, as_of=None):
     """시나리오 데이터 한 벌을 판정기에 넣고 코호트별 결과를 돌려준다."""
-    return P.judge(s["persona_table"], s["flow"], s["card"], s["psych"], as_of=as_of, region_ref=s.get("region_ref"))
+    card = s["card"] if USE_SOCIAL else s["card"].drop(columns="social_cnt", errors="ignore")
+    return P.judge(s["persona_table"], s["flow"], card, s["psych"], as_of=as_of, region_ref=s.get("region_ref"))
 
 
 def confusion(judged, labels):
@@ -101,8 +105,11 @@ def main():
     ap.add_argument("--scenarios", nargs="*", default=S.ALL_SCENARIOS)
     ap.add_argument("--out", help="seed별 원자료 CSV 저장 경로")
     ap.add_argument("--timeline", action="store_true", help="S1을 매주 그날까지의 자료로만 판정(순차 평가)")
+    ap.add_argument("--no-social", action="store_true", help="사회활동(외식·문화·운동) 신호 없이 판정(J5 전후 비교용)")
     ap.add_argument("-v", action="store_true")
     args = ap.parse_args()
+    global USE_SOCIAL
+    USE_SOCIAL = not args.no_social
     seeds = S.EVAL_SEEDS if args.seeds == "eval" else S.TUNE_SEEDS
     if args.timeline:
         print(f"=== 순차 평가 S1_default ({args.seeds} seed {len(seeds)}개) — 그날까지의 자료만 사용 ===")
@@ -112,7 +119,8 @@ def main():
     if args.out:
         df.to_csv(args.out, index=False)
     pd.set_option("display.width", 200)
-    print(f"=== 판단 검증 ({args.seeds} seed {len(seeds)}개, 모델 {C.MODEL_VERSION}) ===")
+    print(f"=== 판단 검증 ({args.seeds} seed {len(seeds)}개, 모델 {C.MODEL_VERSION}"
+          f"{', 사회활동 신호 끔' if args.no_social else ''}) ===")
     print(summarize(df).round(3).to_string())
 
 

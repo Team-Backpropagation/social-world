@@ -300,10 +300,11 @@ const hasMicro = D.cohorts.some(c => c.micro);
 const synthetic = D.source.includes("합성") && !D.source.includes("실제");
 let selected = D.priority[0] || D.cohorts[0].id;
 
-// 신호 4종 — 전문 용어 대신 "무엇을 봤는지"를 질문으로
+// 신호 5종 — 전문 용어 대신 "무엇을 봤는지"를 질문으로
 const SIGNALS = [
   {k:"micro_severity", ic:"💬", q:"상담 대화에서 힘든 이야기가 많이 나왔나요?", sub:"소셜 월드 심리상담 대화의 평균 심각도(0~1). 루미와 같은 기준으로 0.45를 넘으면 관찰"},
   {k:"trigger_z", ic:"💳", q:"최근 카드 결제가 평소보다 줄었나요?", sub:"11~12월 결제 수준을 이 집단의 7~10월 평소와 비교(요일 효과와, 나를 뺀 지역 전체의 같은 기간 변화를 뺌)"},
+  {k:"social_z", ic:"☕", q:"사람을 만나는 소비(외식·문화·운동)가 줄었나요?", sub:"전체 결제는 그대로인데 외식·문화·운동만 줄고 편의점·배달로 옮겨 가는 경우를 봐요. 계산 방식은 카드 결제와 같아요"},
   {k:"event_beta", ic:"🎉", q:"명절·연휴에 평소처럼 움직이지 않았나요?", sub:"명절에 지역이 움직인 만큼 이 집단도 움직였는지(1=같이 움직임, 0=무반응). 반대로 크게 움직인 건 무반응이 아니에요"},
   {k:"baseline_z", ic:"🚶", q:"이 집단의 유동인구가 줄고 있나요?", sub:"통신 유동인구(월별)를 평소 달과 비교. 배경 신호라 혼자서는 확인권장이 되지 않아요"}
 ];
@@ -318,6 +319,7 @@ function verdict(c, k){
 const CAUSE_PLAIN = {
   micro_severity: "소셜 월드 상담 대화의 심각도가 기준을 넘었어요. 외로움·무기력 같은 힘든 이야기가 이어지고 있어요.",
   trigger_z: "최근 카드 결제가 이 집단의 평소보다 낮은 상태가 여러 주 이어지고 있어요. 밖에서 쓰는 소비가 줄었다는 뜻일 수 있어요.",
+  social_z: "외식·문화·운동처럼 사람을 만나는 소비가 이 집단의 평소보다 낮은 상태가 여러 주 이어지고 있어요. 꼭 필요한 소비만 남았다는 뜻일 수 있어요.",
   event_beta: "명절·연휴에 지역 전체는 크게 움직였는데 이 집단은 거의 따라 움직이지 않았어요. 만나거나 찾아갈 사람이 적을 수 있다는 신호예요.",
   baseline_z: "이 집단의 유동인구가 평소 달보다 낮아졌어요."
 };
@@ -328,7 +330,7 @@ function causeText(c){
   const t = CAUSE_PLAIN[c.dominant] || c.cause;
   return c.status === "watch" ? t + " 아직 확인 기준(지속 조건 포함)은 넘지 않아 지켜보는 단계예요." : t;
 }
-const CAUSE_SHORT = {micro_severity:"상담 대화 심각도 높음", trigger_z:"카드 결제 감소", event_beta:"명절에도 움직임 없음", baseline_z:"유동인구 감소"};
+const CAUSE_SHORT = {micro_severity:"상담 대화 심각도 높음", trigger_z:"카드 결제 감소", social_z:"외식·문화·운동 감소", event_beta:"명절에도 움직임 없음", baseline_z:"유동인구 감소"};
 
 // 대본 태그 → 사람이 읽는 말
 const TAG_LABEL = {

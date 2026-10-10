@@ -148,7 +148,7 @@ def _level_profile(g: pd.DataFrame) -> dict:
 
 
 def compute_card_signal(detected: pd.DataFrame, as_of: date | None = None,
-                        rest_detected: pd.DataFrame | None = None) -> pd.DataFrame:
+                        rest_detected: pd.DataFrame | None = None, cfg: str = "card") -> pd.DataFrame:
     """카드 결제 수준 신호 — 평소(baseline) 대비 최근(eval) 수준이 **평소 하루 흔들림의 몇 배** 낮아졌나.
 
     - 혼자 기준선: 기준은 그 집단의 baseline 평균·흔들림뿐이다(다른 집단과 줄 세우지 않음)
@@ -156,6 +156,7 @@ def compute_card_signal(detected: pd.DataFrame, as_of: date | None = None,
       계절·날씨처럼 다 같이 겪은 감소를 걸러낸다
     - 지속: eval을 1주 단위로 나눠, 기준(observe)을 넘은 주가 몇 주인지 센다
     부호: 낮아질수록 +(위험 방향).
+    cfg: 지속 주 수를 셀 기준 묶음(config.JUDGMENT의 "card" 또는 "social").
     """
     J = C.JUDGMENT
     d = _until(detected, "ta_ymd", as_of)
@@ -177,12 +178,44 @@ def compute_card_signal(detected: pd.DataFrame, as_of: date | None = None,
     s["card_adj_drop"] = -(s["card_pct"] - s["card_region_pct"])
     if wk_rows:
         w = pd.DataFrame(wk_rows)
-        s["card_persist_weeks"] = s["cohort_id"].map((w["z"] >= J["card"]["observe"]).groupby(w["cohort_id"]).sum()).fillna(0).astype(int)
+        s["card_persist_weeks"] = s["cohort_id"].map((w["z"] >= J[cfg]["observe"]).groupby(w["cohort_id"]).sum()).fillna(0).astype(int)
         s["card_weeks"] = s["cohort_id"].map(w.groupby("cohort_id").size()).fillna(0).astype(int)
     else:
         s["card_persist_weeks"], s["card_weeks"] = 0, 0
     return s[["cohort_id", "card_ok", "trigger_z", "card_pct", "card_region_pct", "card_adj_drop",
               "card_persist_weeks", "card_weeks", "std_b", "mean_b"]]
+
+
+SOCIAL_COLS = ["social_ok", "social_z", "social_pct", "social_region_pct", "social_adj_drop",
+               "social_persist_weeks", "social_weeks"]
+
+
+def compute_social_signal(card: pd.DataFrame, region_ref: pd.DataFrame | None, as_of: date | None = None,
+                          mode: str = "prospective") -> pd.DataFrame:
+    """사회활동 소비(외식·문화·운동 건수, 컬럼 social_cnt) 신호 — 카드 결제 신호와 같은 계산을 이 건수에 한 번 더 한다.
+
+    전체 결제는 그대로인데 사람을 만나는 소비만 줄고 편의점·배달 같은 생존 소비로 옮겨 가면 카드 신호는 못 잡는다.
+    이 신호는 그 경우를 잡는다(2026-10-10, J5). 지역 공통 변화는 카드와 똑같이 '나를 뺀 지역 나머지'의
+    사회활동 건수로 뺀다. region_ref를 쓰는 청년 모드에서 그 안에 사회활동 합계(region_social_cnt)가 없으면
+    청년끼리만 비교하게 되어 기준이 무너지므로(판단검증_결과.md 9절) 계산하지 않고 빈칸으로 둔다.
+    """
+    empty = pd.DataFrame(columns=["cohort_id"] + SOCIAL_COLS)
+    if "social_cnt" not in card.columns or card["social_cnt"].isna().all():
+        return empty
+    ref = None
+    if region_ref is not None and len(region_ref):
+        if "region_social_cnt" not in region_ref.columns:
+            return empty
+        ref = region_ref[["sgg_code", "ta_ymd", "region_social_cnt"]].rename(columns={"region_social_cnt": "region_cnt"})
+    soc = card[["cohort_id", "sgg_code", "ta_ymd", "social_cnt"]].rename(columns={"social_cnt": "use_cnt"})
+    both = add_date_split_label(pd.concat([soc, _rest_of_region(soc, ref)], ignore_index=True))
+    det = detect_card_anomalies(both, mode=mode)
+    is_rest = det["cohort_id"].str.endswith(REST)
+    s = compute_card_signal(det[~is_rest], as_of, det[is_rest], cfg="social")
+    s = s.rename(columns={"card_ok": "social_ok", "trigger_z": "social_z", "card_pct": "social_pct",
+                          "card_region_pct": "social_region_pct", "card_adj_drop": "social_adj_drop",
+                          "card_persist_weeks": "social_persist_weeks", "card_weeks": "social_weeks"})
+    return s[["cohort_id"] + SOCIAL_COLS]
 
 
 def compute_flow_signal(flow_df: pd.DataFrame, as_of: date | None = None) -> pd.DataFrame:
@@ -326,7 +359,7 @@ def compute_micro_signal(psych_df: pd.DataFrame, as_of: date | None = None) -> p
 # ④ 판단 — 4단계 상태(판단보류·평소범위·변화관찰·확인권장) + 확인 순서
 #    분위수 5단계(집단끼리 줄 세우기)를 대체한다(2026-10-09). 근거: 실행계획 v2 J2, docs/판단검증_결과.md
 # ------------------------------------------------------------------
-SIGNAL_KEYS = ["trigger_z", "baseline_z", "event_beta", "micro_severity"]
+SIGNAL_KEYS = ["trigger_z", "social_z", "baseline_z", "event_beta", "micro_severity"]
 
 
 def _signal_states(r) -> dict:
@@ -340,6 +373,12 @@ def _signal_states(r) -> dict:
                            z >= J["card"]["alert"] and drop >= J["card"]["min_drop_alert"]
                            and r["card_persist_weeks"] >= J["card"]["persist_weeks"],
                            z / J["card"]["alert"])
+    z = r.get("social_z")
+    if pd.notna(z) and bool(r.get("social_ok")):
+        S, drop = J["social"], r["social_adj_drop"]
+        st["social_z"] = (z, z >= S["observe"] and drop >= S["min_drop_observe"],
+                          z >= S["alert"] and drop >= S["min_drop_alert"] and r["social_persist_weeks"] >= S["persist_weeks"],
+                          z / S["alert"])
     z = r.get("baseline_z")
     if pd.notna(z):
         st["baseline_z"] = (z, z >= J["flow"]["observe"] and bool(r["flow_persist"]),
@@ -372,15 +411,18 @@ def judge(persona_table, flow_df, card_df, psych_df, as_of: date | None = None, 
     as_of 이후 데이터를 바꿔도 결과가 같다(tests/test_judgment.py가 확인).
     region_ref: 지역×날짜 전 연령 결제 합계(sgg_code·ta_ymd·region_cnt). 청년 모드처럼 일부 연령만 넣을 때
     지역 공통 변화를 '나를 뺀 지역 전체'로 재기 위해 쓴다. 없으면 입력 자료의 같은 지역 다른 집단 합계.
+    사회활동 신호를 쓰려면 card_df에 social_cnt, region_ref에 region_social_cnt가 있어야 한다(없으면 빈칸).
     """
     card = card_df.drop(columns=["split"], errors="ignore")
-    both = add_date_split_label(pd.concat([card, _rest_of_region(card, region_ref)], ignore_index=True))
+    both = add_date_split_label(pd.concat([card.drop(columns=["social_cnt"], errors="ignore"),
+                                           _rest_of_region(card, region_ref)], ignore_index=True))
     det_all = detect_card_anomalies(both, mode=mode)
     is_rest = det_all["cohort_id"].str.endswith(REST)
     detected, rest_det = det_all[~is_rest], det_all[is_rest]
     card_sig = compute_card_signal(detected, as_of, rest_det)
     out = pd.DataFrame(persona_table)
     out = (out.merge(card_sig, on="cohort_id", how="left")
+              .merge(compute_social_signal(card, region_ref, as_of, mode), on="cohort_id", how="left")
               .merge(compute_flow_signal(flow_df, as_of), on="cohort_id", how="left")
               .merge(compute_event_signal(detected, card_sig, as_of, rest_det), on="cohort_id", how="left")
               .merge(compute_micro_signal(psych_df, as_of), on="cohort_id", how="left"))
@@ -424,13 +466,14 @@ def judge(persona_table, flow_df, card_df, psych_df, as_of: date | None = None, 
 CAUSE_LABELS = {
     "event_beta": "이벤트 무반응형(H-A) 의심 — 명절에 지역 전체가 움직일 때 이 집단은 거의 따라 움직이지 않음",
     "trigger_z": "선택적 소비 위축형(H-B) 의심 — 최근 카드 결제가 자기 평소보다 낮은 상태가 여러 주 이어짐",
+    "social_z": "사회활동 소비 위축형(H-B) 의심 — 외식·문화·운동 결제가 자기 평소보다 낮은 상태가 여러 주 이어짐",
     "baseline_z": "구조적 저활동형(H-C) 의심 — 통신 유동인구가 자기 평소보다 낮아짐",
     "micro_signal": "미시신호 우세형 — 소셜 월드 심리상담 대화의 심각도가 기준(0.45)을 넘음",
 }
 CAUSE_LABELS["micro_severity"] = CAUSE_LABELS.pop("micro_signal")
 
 FACTOR_SHORT = {
-    "event_beta": "명절 무반응", "trigger_z": "카드 소비 위축",
+    "event_beta": "명절 무반응", "trigger_z": "카드 소비 위축", "social_z": "사회활동 소비 위축",
     "baseline_z": "유동인구 하락", "micro_severity": "심리상담 위험신호",
 }
 
@@ -441,6 +484,9 @@ def _reason_text(r) -> str:
     if pd.notna(r.get("trigger_z")):
         parts.append(f"카드 결제 {r['card_pct']*100:+.1f}%(지역 나머지 {r['card_region_pct']*100:+.1f}% 제외 후 "
                      f"평소 흔들림의 {r['trigger_z']:.1f}배, 기준 넘은 주 {int(r['card_persist_weeks'])}/{int(r['card_weeks'])}주)")
+    if pd.notna(r.get("social_z")) and bool(r.get("social_ok")):
+        parts.append(f"외식·문화·운동 결제 {r['social_pct']*100:+.1f}%(지역 나머지 {r['social_region_pct']*100:+.1f}% 제외 후 "
+                     f"{r['social_z']:.1f}배, 기준 넘은 주 {int(r['social_persist_weeks'])}/{int(r['social_weeks'])}주)")
     if pd.notna(r.get("baseline_z")):
         parts.append(f"유동인구 {r['flow_pct']*100:+.1f}%(지역 공통 {r['flow_region_pct']*100:+.1f}% 제외 후 {r['baseline_z']:.1f}배)")
     if pd.notna(r.get("event_beta")):
@@ -481,6 +527,7 @@ def explain_scores(judged: pd.DataFrame) -> pd.DataFrame:
 ARCHETYPE_FROM_FACTOR = {
     "event_beta": "event_unresponsive",
     "trigger_z": "essential_only",
+    "social_z": "essential_only",
     "baseline_z": "structurally_low",
     "micro_severity": "micro_flagged",
 }
@@ -560,6 +607,7 @@ def build_action_suggestions(priority_df: pd.DataFrame, recommend_df: pd.DataFra
 NPC_EMPHASIS_FROM_FACTOR = {
     "event_beta": "psych",          # 관계망 신호가 약하므로 심리상담 NPC로 먼저 유도
     "trigger_z": "job",             # 선택적 소비 위축 → 하루 일·취업 안내(경제적 트리거 가능성). 월드에선 하루가 받음
+    "social_z": "psych",            # 사람을 만나는 소비만 줄어듦 → 관계망 신호이므로 심리상담 NPC로 먼저 유도
     "baseline_z": "policy",         # 구조적 저활동 → 하루 정책 안내(복지 자원 우선). 월드에선 하루가 받음
     "micro_severity": "psych",
 }
@@ -567,6 +615,7 @@ NPC_EMPHASIS_FROM_FACTOR = {
 EVENT_THEME_FROM_FACTOR = {
     "event_beta": "outdoor_walk",       # 명절 등 이벤트 무반응 → 부담 없는 야외 활동(오프라인 접촉)
     "trigger_z": "free_activity",       # 선택적 소비 위축 → 돈 안 드는 활동
+    "social_z": "small_talk",           # 외식·문화·운동만 줄어듦 → 사람을 만나는 가벼운 모임
     "baseline_z": "info_support",       # 구조적 저활동 → 생활 정보·지원센터 안내
     "micro_severity": "small_talk",     # 대화 신호 → 가벼운 대화 모임
 }

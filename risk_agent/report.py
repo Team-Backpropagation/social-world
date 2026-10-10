@@ -75,6 +75,9 @@ def build_report_markdown(scored_df, explained_df, priority_df, recommend_df, ac
     lines.append(f"- **카드 결제**: 요일 보정 후 eval 수준이 평소 하루 흔들림의 몇 배 낮아졌나. "
                  f"관찰 {J['card']['observe']}배, 확인 {J['card']['alert']}배 + 기준을 넘은 주 {J['card']['persist_weeks']}주 이상 "
                  f"+ 실제 감소 {J['card']['min_drop_alert']:.0%} 이상")
+    lines.append(f"- **사회활동 결제(외식·문화·운동 건수)**: 카드 결제와 같은 계산·같은 기준(관찰 {J['social']['observe']}배, "
+                 f"확인 {J['social']['alert']}배 + {J['social']['persist_weeks']}주 + 실제 감소 {J['social']['min_drop_alert']:.0%}). "
+                 "전체 결제는 그대로인데 사람을 만나는 소비만 줄어드는 경우를 잡는다. 자료에 없으면 빈칸")
     lines.append(f"- **유동인구(월별)**: 평소 월 흔들림의 몇 배 낮아졌나. 관찰 {J['flow']['observe']}배(이후 달 모두), "
                  f"확인 {J['flow']['alert']}배. 월 6점뿐인 배경 신호라 **혼자서는 확인권장이 되지 않는다**")
     lines.append(f"- **명절 동조도 β**: 달력 공휴일에 지역이 움직인 만큼 이 집단도 움직였나(1=같이, 0=무반응). "
@@ -84,7 +87,7 @@ def build_report_markdown(scored_df, explained_df, priority_df, recommend_df, ac
                  f"확인 {J['micro']['strong']} 또는 최근 {J['micro']['window_months']}개월 중 {J['micro']['persist_months']}개월 이상 관찰 기준 초과")
     lines.append("- **상태**: 확인 기준을 넘은 신호가 있으면 확인권장, 관찰 기준만 넘었으면 변화관찰, 아니면 평소범위, "
                  "카드 자료가 부족하면 판단보류")
-    lines.append("- **검증**: `evaluate.py` 시나리오 9종 × 평가용 seed 20개(임계값을 고른 seed와 분리). 결과는 `docs/판단검증_결과.md`")
+    lines.append("- **검증**: `evaluate.py` 시나리오 12종 × 평가용 seed 20개(임계값을 고른 seed와 분리). 결과는 `docs/판단검증_결과.md`")
     lines.append("")
     lines.append("## 5. 한계 (반드시 함께 제출)")
     lines.append("")

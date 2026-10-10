@@ -19,11 +19,11 @@ import pandas as pd
 from personas import ARCHETYPE_ASSIGNMENT
 
 OUT = os.path.join(os.path.dirname(__file__), "outputs")
-EXPECTED_FACTOR = {
-    "event_unresponsive": "event_beta",
-    "essential_only": "trigger_z",
-    "structurally_low": "baseline_z",
-    "micro_flagged": "micro_severity",
+EXPECTED_FACTOR = {               # 원형 → 주된 신호로 인정하는 것들
+    "event_unresponsive": {"event_beta"},
+    "essential_only": {"trigger_z", "social_z"},   # 선택적 소비 위축은 전체 결제·사회활동 결제 어느 쪽으로 잡혀도 같은 원형
+    "structurally_low": {"baseline_z"},
+    "micro_flagged": {"micro_severity"},
 }
 MIN_RECALL = 4 / 6             # structurally_low(원래부터 낮은 집단)는 자기 기준선 방식으로 못 찾는 것이 알려진 한계
 MAX_FALSE_ALERT_RATE = 1 / 18  # 정상 18개 중 1개까지
@@ -40,7 +40,7 @@ def main():
     tp = planted[planted["status"] == "check"]
     fp = normal[normal["status"] == "check"]
     tn = len(normal) - len(fp)
-    cause_ok = tp[tp["dominant_factor"] == tp["planted"].map(EXPECTED_FACTOR)]
+    cause_ok = tp[[f in EXPECTED_FACTOR[a] for f, a in zip(tp["dominant_factor"], tp["planted"])]]
 
     recall = len(tp) / len(planted)
     false_rate = len(fp) / len(normal)

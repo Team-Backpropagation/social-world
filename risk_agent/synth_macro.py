@@ -31,6 +31,10 @@ ANCHOR_FLOW = BASE_FLOW_MANMYEONG_JULY[("11680", "F", "20대")]
 # 6절 실측 변동계수 — 통신 4.3% / 카드 9.7% (코호트 CV, 정상 잡음 크기로 그대로 사용)
 FLOW_CV = 0.043
 CARD_CV = 0.097
+# 사회활동(외식·문화·운동) 건수 = 결제 건수 × 비중. 비중은 날마다 5% 안팎으로 흔들린다(가정값, 2026-10-10 J5).
+# 별도 난수열을 써서 기존 use_cnt 값은 바뀌지 않는다.
+SOCIAL_SHARE_BASE = 0.40
+SOCIAL_SHARE_CV = 0.05
 
 
 def _date_range():
@@ -90,6 +94,7 @@ def generate_card_cohort_daily(persona_table):
         flow_manmyeong = BASE_FLOW_MANMYEONG_JULY[key]
         base_daily = ANCHOR_CARD_DAILY * (flow_manmyeong / ANCHOR_FLOW) ** 0.6  # 인구 규모에 준해 스케일링
         rng = np.random.default_rng(C.stable_seed("card", p["cohort_id"]))
+        srng = np.random.default_rng(C.stable_seed("social", p["cohort_id"]))
         dow_mult = C.DOW_MULTIPLIER[p["sgg_code"]]
 
         essential_decline_end = C.SYNTH_EFFECTS["essential_decline_end"] if p["archetype"] == "essential_only" else 1.0
@@ -119,11 +124,13 @@ def generate_card_cohort_daily(persona_table):
 
             noise = rng.normal(0, CARD_CV)
             value = max(0.0, level * (1 + noise))
+            share = SOCIAL_SHARE_BASE * (1 + srng.normal(0, SOCIAL_SHARE_CV))
             rows.append({
                 "sgg_code": p["sgg_code"], "region_name": p["region_name"],
                 "gender": p["gender"], "age_group": p["age_group"],
                 "cohort_id": p["cohort_id"], "ta_ymd": d.isoformat(),
                 "use_cnt": round(value),
+                "social_cnt": round(round(value) * share),
             })
     return pd.DataFrame(rows)
 

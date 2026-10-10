@@ -25,33 +25,53 @@ DROPS = [0.03, 0.05, 0.08, 0.10, 0.15, 0.20, 0.30]       # 감소 폭
 DURATIONS = {"3주": 21, "5주": 35, "eval 전체": None}     # eval 끝에서부터 거꾸로 이어진 기간
 
 
-def _inject(card, cohort_id, drop, days):
-    c = card.copy()
+TARGETS = {
+    # all: 전체 결제가 줄고 사회활동도 같은 비율로 줄어듦(구성은 그대로)
+    # social: 외식·문화·운동만 줄고 줄어든 만큼 다른 소비로 옮겨 감(전체 결제는 그대로) — 2026-10-10 J5
+    "all": {"use_cnt": "region_cnt", "social_cnt": "region_social_cnt"},
+    "social": {"social_cnt": "region_social_cnt"},
+}
+
+
+def _mask(card, cohort_id, days):
     end = C.EVAL_END
     start = C.EVAL_START if days is None else end - timedelta(days=days - 1)
-    d = pd.to_datetime(c["ta_ymd"]).dt.date
-    m = (c["cohort_id"] == cohort_id) & (d >= start) & (d <= end)
-    c.loc[m, "use_cnt"] = (c.loc[m, "use_cnt"] * (1 - drop)).round().astype("int64")
+    d = pd.to_datetime(card["ta_ymd"]).dt.date
+    return (card["cohort_id"] == cohort_id) & (d >= start) & (d <= end)
+
+
+def _inject(card, cohort_id, drop, days, target="all"):
+    c = card.copy()
+    m = _mask(c, cohort_id, days)
+    for col in TARGETS[target]:
+        if col in c.columns:
+            c.loc[m, col] = (c.loc[m, col] * (1 - drop)).round().astype("int64")
     return c
 
 
-def _inject_ref(region_ref, card, cohort_id, drop, days):
+def _inject_ref(region_ref, card, cohort_id, drop, days, target="all"):
     """지역 전체 합계에도 같은 감소분을 반영한다(그 집단도 지역 합계의 일부이므로)."""
     if region_ref is None:
         return None
-    before = card[card["cohort_id"] == cohort_id][["sgg_code", "ta_ymd", "use_cnt"]]
-    after = _inject(card, cohort_id, drop, days)
-    after = after[after["cohort_id"] == cohort_id][["ta_ymd", "use_cnt"]]
-    delta = before.assign(delta=after["use_cnt"].to_numpy() - before["use_cnt"].to_numpy())
+    after = _inject(card, cohort_id, drop, days, target)
+    m = card["cohort_id"] == cohort_id
     r = region_ref.copy()
     r["ta_ymd"] = r["ta_ymd"].astype(str).str[:10]
-    delta["ta_ymd"] = delta["ta_ymd"].astype(str).str[:10]
-    r = r.merge(delta[["sgg_code", "ta_ymd", "delta"]], on=["sgg_code", "ta_ymd"], how="left")
-    r["region_cnt"] = r["region_cnt"] + r["delta"].fillna(0)
-    return r.drop(columns="delta")
+    for col, ref_col in TARGETS[target].items():
+        if col not in card.columns or ref_col not in r.columns:
+            continue
+        delta = card.loc[m, ["sgg_code", "ta_ymd"]].assign(
+            ta_ymd=lambda x: x["ta_ymd"].astype(str).str[:10],
+            delta=after.loc[m, col].to_numpy() - card.loc[m, col].to_numpy())
+        r = r.merge(delta, on=["sgg_code", "ta_ymd"], how="left")
+        r[ref_col] = r[ref_col] + r["delta"].fillna(0)
+        r = r.drop(columns="delta")
+    return r
 
 
-def run(persona_table, flow, card, psych, region_ref=None):
+def run(persona_table, flow, card, psych, region_ref=None, target="all"):
+    if target == "social" and "social_cnt" not in card.columns:
+        raise ValueError("사회활동 건수(social_cnt)가 없는 자료입니다 — 청년 마스터를 10/10 이후 버전으로 다시 만드세요")
     empty = psych.iloc[0:0] if psych is not None else pd.DataFrame()
     base = P.judge(persona_table, flow, card, empty, region_ref=region_ref).set_index("cohort_id")["status"]
     rows = []
@@ -65,8 +85,8 @@ def run(persona_table, flow, card, psych, region_ref=None):
         for label, days in DURATIONS.items():
             found = None
             for drop in DROPS:
-                j = P.judge(persona_table, flow, _inject(card, cid, drop, days), empty,
-                            region_ref=_inject_ref(region_ref, card, cid, drop, days)).set_index("cohort_id")
+                j = P.judge(persona_table, flow, _inject(card, cid, drop, days, target), empty,
+                            region_ref=_inject_ref(region_ref, card, cid, drop, days, target)).set_index("cohort_id")
                 if j.loc[cid, "status"] == "check":
                     found = drop
                     break
@@ -79,6 +99,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--youth", help="youth_master_daily.csv 경로(생략하면 합성 청년 8개로 시연)")
     ap.add_argument("--out", help="결과 CSV 경로")
+    ap.add_argument("--target", choices=list(TARGETS), default="all",
+                    help="all=전체 결제 감소(기본) / social=외식·문화·운동만 감소하고 전체 결제는 그대로")
     args = ap.parse_args()
     if args.youth:
         from real_youth import load_youth_master
@@ -92,11 +114,12 @@ def main():
         persona_table = [p for p in s["persona_table"] if p["age_group"] in keep]
         ids = {p["cohort_id"] for p in persona_table}
         flow, card = s["flow"][s["flow"].cohort_id.isin(ids)], s["card"][s["card"].cohort_id.isin(ids)]
-        region_ref = (s["card"].groupby(["sgg_code", "ta_ymd"], as_index=False)["use_cnt"].sum()
-                        .rename(columns={"use_cnt": "region_cnt"}))       # 전 연령 24개 합계
+        region_ref = (s["card"].groupby(["sgg_code", "ta_ymd"], as_index=False)[["use_cnt", "social_cnt"]].sum()
+                        .rename(columns={"use_cnt": "region_cnt", "social_cnt": "region_social_cnt"}))  # 전 연령 24개 합계
         src = "합성 청년 8개(시연, 지역 기준 = 합성 전 연령)"
-    res = run(persona_table, flow, card, None, region_ref)
-    print(f"=== 탐지 한계: 확인권장이 처음 뜨는 결제 감소 폭 — {src} ===")
+    res = run(persona_table, flow, card, None, region_ref, args.target)
+    what = "결제 감소 폭" if args.target == "all" else "외식·문화·운동 결제 감소 폭(전체 결제는 그대로)"
+    print(f"=== 탐지 한계: 확인권장이 처음 뜨는 {what} — {src} ===")
     print("(감소는 eval 마지막 날부터 거꾸로 이어지게 넣음. 대화 신호 없이 카드·통신만으로 판정)")
     print(res.to_string(index=False))
     if args.out:

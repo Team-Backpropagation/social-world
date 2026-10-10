@@ -14,6 +14,8 @@
 - split: 파일에 이미 있는 값과 파이프라인이 계산하는 값이 일치하는지 검사만 한다
 - 지역 기준: `region_cnt_ex_fixed_all`(지역×날짜 전 연령 합계)을 region_ref로 돌려준다. 판정기가 이 합계에서
   자기 몫을 빼 '나를 뺀 지역 나머지'로 지역 공통 변화를 잰다. 옛 파일(이 컬럼 없음)이면 None과 함께 안내를 출력
+- 사회활동 신호(2026-10-10 J5): `cnt_social`(외식·문화·운동 건수) → card_df.social_cnt,
+  `region_cnt_social_all`(지역 전 연령 합계) → region_ref.region_social_cnt. 둘 중 하나라도 없으면 이 신호만 빈칸
 """
 import pandas as pd
 
@@ -40,8 +42,10 @@ def load_youth_master(path):
                .drop_duplicates().sort_values("cohort_id").to_dict("records"))
     persona_table = [{**c, "archetype": "unknown", "micro_eligible": True} for c in cohorts]
 
-    card_df = df[["sgg_code", "region_name", "gender", "age_group", "cohort_id", "date", "cnt_ex_fixed", "split"]] \
-        .rename(columns={"date": "ta_ymd", "cnt_ex_fixed": "use_cnt", "split": "split_source"})
+    has_social = {"cnt_social", "region_cnt_social_all"} <= set(df.columns)
+    card_cols = ["sgg_code", "region_name", "gender", "age_group", "cohort_id", "date", "cnt_ex_fixed", "split"]
+    card_df = df[card_cols + (["cnt_social"] if has_social else [])] \
+        .rename(columns={"date": "ta_ymd", "cnt_ex_fixed": "use_cnt", "split": "split_source", "cnt_social": "social_cnt"})
 
     flow_df = (df.groupby(["sgg_code", "region_name", "gender", "age_group", "cohort_id", "STD_YM"], as_index=False)
                  ["flow_pop_monthly"].first())
@@ -50,10 +54,16 @@ def load_youth_master(path):
 
     region_ref = None
     if "region_cnt_ex_fixed_all" in df.columns:
-        region_ref = (df.groupby(["sgg_code", "date"], as_index=False)["region_cnt_ex_fixed_all"].first()
-                        .rename(columns={"date": "ta_ymd", "region_cnt_ex_fixed_all": "region_cnt"}))
+        ref_cols = ["region_cnt_ex_fixed_all"] + (["region_cnt_social_all"] if has_social else [])
+        region_ref = (df.groupby(["sgg_code", "date"], as_index=False)[ref_cols].first()
+                        .rename(columns={"date": "ta_ymd", "region_cnt_ex_fixed_all": "region_cnt",
+                                         "region_cnt_social_all": "region_social_cnt"}))
     else:
         print("[안내] youth_master_daily.csv에 region_cnt_ex_fixed_all이 없습니다(옛 파일). 지역 공통 변화를 청년 4개 집단으로만 "
               "재게 되어 춘천처럼 20대·30대가 반대로 움직이면 판정이 틀어집니다.\n"
+              "       data_preprocessing 폴더에서 `python run_pipeline.py --only youth`로 마스터를 다시 만드세요.")
+    if not has_social:
+        print("[안내] youth_master_daily.csv에 cnt_social·region_cnt_social_all이 없습니다(10/10 이전 파일). "
+              "사회활동(외식·문화·운동) 신호는 빈칸으로 두고 나머지로 판정합니다.\n"
               "       data_preprocessing 폴더에서 `python run_pipeline.py --only youth`로 마스터를 다시 만드세요.")
     return persona_table, flow_df, card_df, region_ref

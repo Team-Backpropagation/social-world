@@ -126,6 +126,59 @@ class RegionReference(unittest.TestCase):
             self.assertNotIn("event_beta", j.loc[cid, "alert_signals"])
 
 
+class SocialActivitySignal(unittest.TestCase):
+    """2026-10-10 J5: 전체 결제는 그대로인데 외식·문화·운동만 줄어드는 위축을 잡는다."""
+
+    def test_social_only_withdrawal_is_found_by_social_signal(self):
+        s = S.scenario("S7_social_shift", 101)
+        j = judge(s)
+        for cid in S.PERTURB_COHORTS:
+            self.assertEqual(j.loc[cid, "status"], "check", cid)
+            self.assertIn("social_z", j.loc[cid, "alert_signals"])
+            self.assertNotIn("trigger_z", j.loc[cid, "alert_signals"])      # 전체 결제는 그대로라 카드 신호는 못 잡는다
+
+    def test_without_social_column_it_is_missed(self):
+        s = S.scenario("S7_social_shift", 101)
+        s["card"] = s["card"].drop(columns="social_cnt")
+        j = judge(s)
+        self.assertTrue(j["social_z"].isna().all())
+        self.assertEqual(int(j.loc[S.PERTURB_COHORTS, "status"].eq("check").sum()), 0)
+
+    def test_social_signal_adds_no_false_alerts(self):
+        for seed in (101, 102):
+            s = S.scenario("S0_all_normal", seed)
+            a = judge(s)["status"]
+            s["card"] = s["card"].drop(columns="social_cnt")
+            b = judge(s)["status"]
+            self.assertTrue((a == b).all(), f"seed {seed}")
+            self.assertEqual(int(a.eq("check").sum()), 0)
+
+    def test_downstream_steps_accept_social_as_main_reason(self):
+        """주된 이유가 사회활동 신호여도 ⑤ 이유 ~ ⑩ 환류가 모두 돈다(매핑 표 누락 방지)."""
+        j = judge(S.scenario("S7_social_shift", 101)).reset_index()
+        ex = P.explain_scores(j)
+        self.assertTrue((ex.set_index("cohort_id").loc[S.PERTURB_COHORTS, "dominant_factor"] == "social_z").all())
+        pr = P.build_priority_targets(j, ex)
+        rec = P.recommend_resources(j, ex)
+        P.build_action_suggestions(pr, rec)
+        fb = P.build_feedback_payload(j, ex)
+        self.assertTrue(fb)
+        for k in (P.SIGNAL_KEYS):
+            self.assertIn(k, P.FACTOR_SHORT)
+            self.assertIn(k, P.CAUSE_LABELS)
+            self.assertIn(k, P.ARCHETYPE_FROM_FACTOR)
+            self.assertIn(k, P.NPC_EMPHASIS_FROM_FACTOR)
+            self.assertIn(k, P.EVENT_THEME_FROM_FACTOR)
+
+    def test_region_reference_without_social_total_skips_signal(self):
+        """청년 모드에서 지역 사회활동 합계가 없으면 청년끼리 비교하게 되므로 계산하지 않는다(빈칸)."""
+        s = S.scenario("S6_youth_mixed", 101)
+        s["region_ref"] = s["region_ref"].drop(columns="region_social_cnt")
+        j = judge(s)
+        self.assertTrue(j["social_z"].isna().all())
+        self.assertEqual(int(j["status"].eq("check").sum()), 0)
+
+
 class FlowIsBackgroundOnly(unittest.TestCase):
     def test_flow_alone_never_checks(self):
         s = S.scenario("S0_all_normal", 101)
