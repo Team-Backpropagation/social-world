@@ -142,9 +142,9 @@ def build_flow(report: Report | None = None) -> pd.DataFrame:
     return coh.merge(reg, on=["region", "STD_YM"], how="left")
 
 
-def add_calendar(df: pd.DataFrame) -> pd.DataFrame:
-    """요일, 주말, split 라벨, 춘천 학기 플래그."""
-    df = add_split_label(df, date_col="date")
+def add_calendar(df: pd.DataFrame, baseline_end: str | None = None) -> pd.DataFrame:
+    """요일, 주말, split 라벨, 춘천 학기 플래그. baseline_end는 run_pipeline --baseline-end를 그대로 받는다."""
+    df = add_split_label(df, date_col="date", baseline_end=baseline_end)
     d = pd.to_datetime(df["date"])
     df["dow"] = d.dt.dayofweek                      # 0=월
     df["is_weekend"] = df["dow"].ge(5).astype(int)
@@ -159,7 +159,7 @@ def add_calendar(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def build_youth_master(report: Report | None = None) -> pd.DataFrame:
+def build_youth_master(report: Report | None = None, baseline_end: str | None = None) -> pd.DataFrame:
     card = _load_card_cohort()
     ind = _load_card_industry()
 
@@ -170,7 +170,7 @@ def build_youth_master(report: Report | None = None) -> pd.DataFrame:
     out["STD_YM"] = pd.to_datetime(out["date"]).dt.strftime("%Y%m").astype(int)
     out = out.merge(build_flow(report), on=["region", "STD_YM", "sex", "age_group"], how="left")
     out = out.merge(build_region_total(_load_card_industry(youth_only=False)), on=["region", "date"], how="left")
-    out = add_calendar(out)
+    out = add_calendar(out, baseline_end=baseline_end)
 
     cols = (
         KEY + ["split", "dow", "is_weekend", "chuncheon_term_flag", "STD_YM"]
@@ -189,8 +189,12 @@ def build_youth_master(report: Report | None = None) -> pd.DataFrame:
         report.expect("[youth] 코호트 수", out.groupby(KEY[:1] + KEY[2:]).ngroups, exp["cohorts"])
         report.expect("[youth] 날짜 수", out["date"].nunique(), exp["n_dates"])
         report.expect("[youth] 결측 칸 수", int(out.isna().sum().sum()), 0)
-        for k, v in exp["split_days"].items():
-            report.expect(f"[youth] split={k} 일수", out.loc[out["split"] == k, "date"].nunique(), v)
+        if baseline_end in (None, config.BASELINE_END):      # 기대값은 기본 경계일 기준이라 바꾸면 비교하지 않는다
+            for k, v in exp["split_days"].items():
+                report.expect(f"[youth] split={k} 일수", out.loc[out["split"] == k, "date"].nunique(), v)
+        else:
+            report.note("[youth] split 일수(경계일 변경으로 기대값 비교 생략)",
+                        out.groupby("split")["date"].nunique().to_dict())
         youth_sum = out.groupby(["region", "date"])["cnt_ex_fixed"].sum()
         region_sum = out.groupby(["region", "date"])["region_cnt_ex_fixed_all"].first()
         report.expect("[youth] 지역 전체 합계 < 청년 합계인 날(0이어야 정상)", int((region_sum < youth_sum).sum()), 0)
