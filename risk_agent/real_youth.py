@@ -12,6 +12,8 @@
 - 통신 월별 지표: `flow_pop_monthly` — 일별 행에 복제돼 있으므로 월별 1행으로 되돌린다.
   `region_*_monthly` 컬럼은 연령·성별 축이 없어 코호트 신호로 쓰지 않는다(생태학적 오류 방지)
 - split: 파일에 이미 있는 값과 파이프라인이 계산하는 값이 일치하는지 검사만 한다
+- 지역 기준: `region_cnt_ex_fixed_all`(지역×날짜 전 연령 합계)을 region_ref로 돌려준다. 판정기가 이 합계에서
+  자기 몫을 빼 '나를 뺀 지역 나머지'로 지역 공통 변화를 잰다. 옛 파일(이 컬럼 없음)이면 None과 함께 안내를 출력
 """
 import pandas as pd
 
@@ -46,4 +48,12 @@ def load_youth_master(path):
     flow_df["std_ym"] = flow_df["STD_YM"].str[:4] + "-" + flow_df["STD_YM"].str[4:]
     flow_df = flow_df.rename(columns={"flow_pop_monthly": "flow_pop"}).drop(columns="STD_YM")
 
-    return persona_table, flow_df, card_df
+    region_ref = None
+    if "region_cnt_ex_fixed_all" in df.columns:
+        region_ref = (df.groupby(["sgg_code", "date"], as_index=False)["region_cnt_ex_fixed_all"].first()
+                        .rename(columns={"date": "ta_ymd", "region_cnt_ex_fixed_all": "region_cnt"}))
+    else:
+        print("[안내] youth_master_daily.csv에 region_cnt_ex_fixed_all이 없습니다(옛 파일). 지역 공통 변화를 청년 4개 집단으로만 "
+              "재게 되어 춘천처럼 20대·30대가 반대로 움직이면 판정이 틀어집니다.\n"
+              "       data_preprocessing 폴더에서 `python run_pipeline.py --only youth`로 마스터를 다시 만드세요.")
+    return persona_table, flow_df, card_df, region_ref

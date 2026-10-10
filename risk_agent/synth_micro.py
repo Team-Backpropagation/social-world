@@ -39,8 +39,8 @@ def generate_npc_chat_metrics(persona_table):
                 # 시간이 갈수록 심각도가 서서히 올라가는 패턴(만성화) — 급성 위기가 아니라
                 # 관찰 기간 내내 서서히 누적되는 유형으로 설계(위기 에스컬레이션 8-1과는 별개 트랙)
                 frac = i / (len(C.MONTHS) - 1)
-                severity_base = 0.28 + frac * 0.45
-                keyword_rate_base = 0.9 + frac * 2.1
+                severity_base = 0.28 + frac * C.SYNTH_EFFECTS["micro_severity_rise"]
+                keyword_rate_base = 0.9 + frac * C.SYNTH_EFFECTS["micro_keyword_rise"]
                 session_count = max(session_count, C.K_ANONYMITY_MIN + 2)  # 표본 부족으로 묻히지 않게
 
             severity_score = float(np.clip(rng.normal(severity_base, 0.08), 0, 1))

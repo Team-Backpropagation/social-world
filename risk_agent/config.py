@@ -64,11 +64,13 @@ MONTHS = ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"]
 # 3. 이벤트 구간 — 데이터_분석근거_정리.md 12-7 (2026-09-21 확정, 코드 반영 완료 명시)
 #    "이동성 이벤트"로 분류된 8개 공휴일이 정확히 일치한 구간 그대로 사용.
 # ------------------------------------------------------------------
+# calendar=True  : 달력에서 미리 알 수 있는 구간(공휴일·연말) — 운영(과거 데이터만 쓰는) 판정에 쓴다
+# calendar=False : 같은 기간 데이터를 보고 사후에 찾아낸 구간 — 분할(split)에는 쓰지만 명절 반응 판정에는 안 쓴다
 EVENT_PERIODS = [
-    {"name": "전국 동시 감소(원인불명)", "start": date(2025, 7, 16), "end": date(2025, 7, 17)},
-    {"name": "광복절", "start": date(2025, 8, 15), "end": date(2025, 8, 15)},
-    {"name": "추석 연휴(개천절~한글날)", "start": date(2025, 10, 3), "end": date(2025, 10, 9)},
-    {"name": "연말(크리스마스~연말)", "start": date(2025, 12, 24), "end": date(2025, 12, 31)},
+    {"name": "전국 동시 감소(원인불명)", "start": date(2025, 7, 16), "end": date(2025, 7, 17), "calendar": False},
+    {"name": "광복절", "start": date(2025, 8, 15), "end": date(2025, 8, 15), "calendar": True},
+    {"name": "추석 연휴(개천절~한글날)", "start": date(2025, 10, 3), "end": date(2025, 10, 9), "calendar": True},
+    {"name": "연말(크리스마스~연말)", "start": date(2025, 12, 24), "end": date(2025, 12, 31), "calendar": True},
 ]
 
 # baseline/event/eval 3분할 경계 — 데이터_분석근거_정리.md 12-7
@@ -101,6 +103,18 @@ EVENT_INTENSITY_BY_NAME = {
 }
 CHUSEOK_PEAK_DATE = date(2025, 10, 6)  # 가장 강한 이탈이 관측된 날 — 발견3/12-4절
 
+# 합성 원형의 효과 크기 — synth_macro.py / synth_micro.py가 읽는다.
+# 검증 시나리오(scenarios.py)가 약·중·강으로 바꿔 가며 "어느 크기부터 잡히는지"를 잰다.
+# 아래 기본값이 기존 합성 데이터(가상데이터_생성방식_설명자료.md)와 같은 값이다.
+SYNTH_EFFECTS = {
+    "essential_decline_end": 0.65,     # essential_only: 184일 동안 결제 수준이 1.0 → 0.65로 선형 하락
+    "event_dampening": 0.12,           # event_unresponsive: 명절 효과를 12%만 받음
+    "structural_monthly_decline": 0.028,  # structurally_low: 유동인구 월 2.8%씩 하락
+    "structural_card_level": 0.85,     # structurally_low: 카드 결제가 원래부터 85% 수준
+    "micro_severity_rise": 0.45,       # micro_flagged: 대화 심각도가 6개월 동안 0.28 → 0.73으로 상승
+    "micro_keyword_rise": 2.1,         # micro_flagged: 세션당 위험 키워드 0.9 → 3.0으로 상승
+}
+
 # ------------------------------------------------------------------
 # 5. 업종 — 고정지출 5종 제외 원칙 (데이터_분석근거_정리.md 8·12-3절, 방식 B 채택)
 # ------------------------------------------------------------------
@@ -124,26 +138,38 @@ K_ANONYMITY_MIN = 5
 MICRO_RECENT_MONTHS = 1
 
 # ------------------------------------------------------------------
-# 8. 거시·미시 결합 가중치 — 통합기획서 5-1절
-#    "거시를 주(主)로 두고 미시를 보정 신호로 얹는 구조"를 그대로 구현.
-#    미시 신호가 없는(k-익명성 미달) 코호트는 거시 3개 가중치로 재정규화한다.
+# 8. 판정 기준 — "혼자 기준선" 4단계 상태 (2026-10-09, 분위수 5단계 대체)
+#    각 집단을 다른 집단과 줄 세우지 않고 **자기 평소(baseline)와만** 비교한다.
+#    숫자는 scenarios.py 조정용 seed(1~10)로 고른 잠정값이며, 성적은 평가용 seed(101~120)로 따로 보고한다
+#    (risk_agent/docs/판단검증_결과.md). 실서비스에서는 threshold_settings 테이블로 옮길 자리.
 # ------------------------------------------------------------------
-WEIGHTS_WITH_MICRO = {
-    "baseline_z": 0.20,      # 거시-통신 배경지표
-    "trigger_z": 0.30,       # 거시-카드 트리거
-    "event_response": 0.30,  # 거시-이벤트 반응도 (H-A 가설의 핵심 지표)
-    "micro_signal": 0.20,    # 미시-소셜월드 신호
-}
-WEIGHTS_MACRO_ONLY = {
-    "baseline_z": 0.25,
-    "trigger_z": 0.375,
-    "event_response": 0.375,
+JUDGMENT = {
+    # 카드 결제 수준(요일 보정, 지역 공통 변화 차감) — 평소 하루 흔들림의 몇 배만큼 낮아졌나
+    #   min_drop_*: 지역 공통 변화를 뺀 실제 감소율 하한. 큰 집단은 흔들림이 작아 2~3% 감소도 z가 커지므로
+    #   (2026-10-09 실데이터 mde.py: 강남 여성 3%에서 확인권장) 계절과 구분 안 되는 작은 변화는 세지 않는다
+    "card": {"observe": 1.0, "alert": 1.3, "persist_weeks": 3, "min_drop_observe": 0.03, "min_drop_alert": 0.05},
+    # 통신 유동인구(월별, 지역 공통 변화 차감) — 평소 월 흔들림의 몇 배만큼 낮아졌나.
+    #   월 6점뿐인 배경 신호라 카드보다 기준을 높게 두고, 관찰도 이후 달이 모두 기준을 넘을 때만 센다.
+    #   통신 혼자서는 확인권장이 되지 않는다(pipeline.judge).
+    "flow": {"observe": 1.5, "alert": 2.0},
+    # 명절 동조도 β — 지역이 명절에 움직인 만큼 이 집단도 움직였나(1=같이, 0=무반응). 낮을수록 위험
+    #   max_se: β의 불확실성(평소 흔들림 ÷ 지역 움직임 크기)이 이보다 크면 그 구간은 판정에 안 씀
+    #   max_own_move: 명절 동안 이 집단 자신의 움직임이 평소 하루 흔들림의 몇 배 이하여야 '무반응'으로 본다
+    #   (2026-10-09: 반대 방향으로 크게 움직인 집단이 β<0으로 무반응 판정되던 문제 수정)
+    "event": {"observe": 0.6, "alert": 0.35, "max_se": 0.35, "min_blocks": 2, "ref_days": 28, "max_own_move": 2.0},
+    # 대화 심각도(0~1) — 루미 판정 구간(social_world/common/severity.py)과 같은 절대 기준
+    "micro": {"observe": 0.45, "strong": 0.8, "persist_months": 2, "window_months": 3},
+    # 이보다 자료가 적으면 판단보류
+    "min_baseline_days": 30, "min_eval_days": 7,
 }
 
-# 5단계 등급 — DB_테이블_정의서.md 4-2절 risk_scores.risk_level 그대로
-RISK_LEVEL_LABELS = {1: "안심", 2: "관찰", 3: "주의", 4: "경계", 5: "위험"}
+STATUS_LABELS = {"hold": "판단보류", "normal": "평소범위", "watch": "변화관찰", "check": "확인권장"}
+STATUS_ORDER = ["check", "watch", "normal", "hold"]
+# DB risk_scores.risk_level(1~5 smallint)와 기존 쿼리("risk_level >= 3")를 깨지 않기 위한 매핑.
+# 판단보류는 숫자로 표현하지 않는다(비워 둠) — status 칸으로만 구분.
+STATUS_LEVEL = {"normal": 1, "watch": 2, "check": 3}
 
-MODEL_VERSION = "risk-agent-prototype-2026.09.23"
+MODEL_VERSION = "risk-agent-2026.10.09-status4"
 
 RNG_SEED = 20260923  # 재현성 — 오늘 날짜를 시드로 고정(가상데이터 생성방식 설명자료에 명시)
 

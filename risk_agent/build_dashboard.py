@@ -17,7 +17,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 def main():
     OUT = os.path.join(HERE, sys.argv[1]) if len(sys.argv) > 1 else os.path.join(HERE, "outputs")
     with open(os.path.join(OUT, "dashboard_data.json"), encoding="utf-8") as f:
-        source = json.load(f).get("source", "페르소나 기반 합성 데이터")
+        bundle = json.load(f)
+    source = bundle.get("source", "페르소나 기반 합성 데이터")
     scores = pd.read_csv(os.path.join(OUT, "risk_scores.csv"), dtype={"sgg_code": str})
     factors = pd.read_csv(os.path.join(OUT, "risk_factors.csv"))
     recs = pd.read_csv(os.path.join(OUT, "resource_recommendations.csv"))
@@ -52,11 +53,14 @@ def main():
         cid = r["cohort_id"]
         cohorts.append({
             "id": cid, "sgg": r["sgg_code"], "region": r["region_name"], "gender": r["gender"],
-            "age": r["age_group"], "score": round(r["score"], 1), "level": int(r["risk_level"]),
-            "z": {k: (None if pd.isna(r[k]) else round(float(r[k]), 2))
-                  for k in ["baseline_z", "trigger_z", "event_response", "micro_signal"]},
+            "age": r["age_group"], "status": r["status"],
+            "score": None if pd.isna(r["score"]) else round(float(r["score"]), 1),
+            "v": {k: (None if pd.isna(r[k]) else round(float(r[k]), 2)) for k in P.SIGNAL_KEYS},
+            "alert": [x for x in str(r["alert_signals"] if pd.notna(r["alert_signals"]) else "").split(";") if x],
+            "observe": [x for x in str(r["observe_signals"] if pd.notna(r["observe_signals"]) else "").split(";") if x],
             "sessions": None if pd.isna(r["avg_session_count"]) else round(float(r["avg_session_count"]), 1),
-            "excess": json.loads(r["factor_breakdown"]),
+            "strength": json.loads(r["factor_breakdown"]),
+            "reason": r["reason"] if pd.notna(r["reason"]) else "",
             "cause": r["archetype_guess"],
             "dominant": None if pd.isna(r["dominant_factor"]) else r["dominant_factor"],
             "resources": recs.loc[recs["cohort_id"] == cid, ["resource_name", "provider", "category"]].to_dict("records"),
@@ -72,6 +76,7 @@ def main():
         "model_version": C.MODEL_VERSION,
         "source": source,
         "period": [str(C.PERIOD_START), str(C.PERIOD_END)],
+        "data_end": bundle.get("data_end", str(C.PERIOD_END)),
         "dates": dates,
         "events": [{"name": e["name"], "start": str(e["start"]), "end": str(e["end"])} for e in C.EVENT_PERIODS],
         "eval": [str(C.EVAL_START), str(C.EVAL_END)],
@@ -81,7 +86,7 @@ def main():
         "demand": {k: v for k, v in demand.items() if k != "by_cohort"} or None,
         "k_min": C.K_ANONYMITY_MIN,
         "region_names": C.REGION_NAMES,
-        "weights": {"with_micro": C.WEIGHTS_WITH_MICRO, "macro_only": C.WEIGHTS_MACRO_ONLY},
+        "judgment": C.JUDGMENT,
     }
     tpl = open(os.path.join(HERE, "dashboard_template.html"), encoding="utf-8").read()
     assert "/*__DATA__*/null" in tpl, "dashboard_template.html의 데이터 자리표시자가 없습니다"

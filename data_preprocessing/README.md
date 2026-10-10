@@ -84,7 +84,9 @@ python run_pipeline.py --only card
 | `python run_pipeline.py --only flow` | 통신 데이터만 |
 | `python run_pipeline.py --only card` | 카드 데이터만 (약 16초) |
 | `python run_pipeline.py --no-save` | 파일 저장 없이 검증만 |
-| `python run_pipeline.py --baseline-end 2025-09-30` | 분할 기준일 변경 |
+| `python run_pipeline.py --baseline-end 2025-09-30` | 분할 기준일 변경 (청년 마스터·탐지까지 전달) |
+| `python run_pipeline.py --only youth --detect-mode retrospective` | 청년 탐지를 사후 분석 기준(앞뒤 29일)으로 |
+| `python -m unittest discover -s tests` | 청년 이탈 탐지 규칙 테스트 (원본 DATA 없이) |
 | `python run_pipeline.py --data-dir <경로>` | 원본 폴더 위치 지정 |
 | `python run_pipeline.py --clean-dir <경로>` | 산출물 폴더 위치 지정 |
 

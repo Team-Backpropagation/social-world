@@ -35,11 +35,25 @@ def _load_card_cohort() -> pd.DataFrame:
     return df.rename(columns={"MCT_SGG_CD": "region", "SEX_CCD": "sex"})
 
 
-def _load_card_industry() -> pd.DataFrame:
+def _load_card_industry(youth_only: bool = True) -> pd.DataFrame:
     p = config.CLEAN_DIR / "card_industry_daily.csv"
     df = pd.read_csv(p, encoding=config.OUT_ENCODING)
-    df = df[df["age_group"].isin(config.YOUTH_AGE_GROUPS)].copy()
+    if youth_only:
+        df = df[df["age_group"].isin(config.YOUTH_AGE_GROUPS)].copy()
     return df.rename(columns={"MCT_SGG_CD": "region", "SEX_CCD": "sex"})
+
+
+def build_region_total(ind_all: pd.DataFrame) -> pd.DataFrame:
+    """지역 × 날짜의 **전 연령·전 성별** 결제 건수(고정지출 제외, cnt_ex_fixed와 같은 업종 집합).
+
+    위험 탐지 에이전트가 '지역 공통 변화'를 잴 때 쓴다(집단마다 이 합계에서 자기 몫을 빼서 '나를 뺀 지역 나머지'로 비교).
+    청년 4개 집단만으로 지역 공통 변화를 재면 춘천처럼 20대(학기·귀성)와 30대가 반대로 움직일 때 기준이 무너진다
+    (2026-10-09 실데이터 점검, risk_agent/docs/판단검증_결과.md 9절).
+    region_* 규칙: 연령·성별 구분이 없는 지역 단위 값이라 같은 지역·날짜의 4개 코호트 행에 똑같이 들어간다.
+    """
+    ex = ind_all[~ind_all["MCT_RY_CD"].isin(config.FIXED_EXPENSE_CODES)]
+    return (ex.groupby(["region", "date"], as_index=False)["cnt"].sum()
+              .rename(columns={"cnt": "region_cnt_ex_fixed_all"}))
 
 
 def build_scale(card: pd.DataFrame) -> pd.DataFrame:
@@ -128,9 +142,9 @@ def build_flow(report: Report | None = None) -> pd.DataFrame:
     return coh.merge(reg, on=["region", "STD_YM"], how="left")
 
 
-def add_calendar(df: pd.DataFrame) -> pd.DataFrame:
-    """요일, 주말, split 라벨, 춘천 학기 플래그."""
-    df = add_split_label(df, date_col="date")
+def add_calendar(df: pd.DataFrame, baseline_end: str | None = None) -> pd.DataFrame:
+    """요일, 주말, split 라벨, 춘천 학기 플래그. baseline_end는 run_pipeline --baseline-end를 그대로 받는다."""
+    df = add_split_label(df, date_col="date", baseline_end=baseline_end)
     d = pd.to_datetime(df["date"])
     df["dow"] = d.dt.dayofweek                      # 0=월
     df["is_weekend"] = df["dow"].ge(5).astype(int)
@@ -145,7 +159,7 @@ def add_calendar(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def build_youth_master(report: Report | None = None) -> pd.DataFrame:
+def build_youth_master(report: Report | None = None, baseline_end: str | None = None) -> pd.DataFrame:
     card = _load_card_cohort()
     ind = _load_card_industry()
 
@@ -155,7 +169,8 @@ def build_youth_master(report: Report | None = None) -> pd.DataFrame:
 
     out["STD_YM"] = pd.to_datetime(out["date"]).dt.strftime("%Y%m").astype(int)
     out = out.merge(build_flow(report), on=["region", "STD_YM", "sex", "age_group"], how="left")
-    out = add_calendar(out)
+    out = out.merge(build_region_total(_load_card_industry(youth_only=False)), on=["region", "date"], how="left")
+    out = add_calendar(out, baseline_end=baseline_end)
 
     cols = (
         KEY + ["split", "dow", "is_weekend", "chuncheon_term_flag", "STD_YM"]
@@ -164,6 +179,7 @@ def build_youth_master(report: Report | None = None) -> pd.DataFrame:
         + ["H_offline", "n_eff_offline", "n_industry_offline"]
         + [f"share_{k}" for k in config.INDUSTRY_SHARE_GROUPS]
         + ["flow_pop_monthly", "region_night_share_monthly", "region_weekend_share_monthly"]
+        + ["region_cnt_ex_fixed_all"]
     )
     out = out[cols].sort_values(KEY).reset_index(drop=True)
 
@@ -173,8 +189,15 @@ def build_youth_master(report: Report | None = None) -> pd.DataFrame:
         report.expect("[youth] 코호트 수", out.groupby(KEY[:1] + KEY[2:]).ngroups, exp["cohorts"])
         report.expect("[youth] 날짜 수", out["date"].nunique(), exp["n_dates"])
         report.expect("[youth] 결측 칸 수", int(out.isna().sum().sum()), 0)
-        for k, v in exp["split_days"].items():
-            report.expect(f"[youth] split={k} 일수", out.loc[out["split"] == k, "date"].nunique(), v)
+        if baseline_end in (None, config.BASELINE_END):      # 기대값은 기본 경계일 기준이라 바꾸면 비교하지 않는다
+            for k, v in exp["split_days"].items():
+                report.expect(f"[youth] split={k} 일수", out.loc[out["split"] == k, "date"].nunique(), v)
+        else:
+            report.note("[youth] split 일수(경계일 변경으로 기대값 비교 생략)",
+                        out.groupby("split")["date"].nunique().to_dict())
+        youth_sum = out.groupby(["region", "date"])["cnt_ex_fixed"].sum()
+        region_sum = out.groupby(["region", "date"])["region_cnt_ex_fixed_all"].first()
+        report.expect("[youth] 지역 전체 합계 < 청년 합계인 날(0이어야 정상)", int((region_sum < youth_sum).sum()), 0)
         report.expect(
             "[youth] 카드 건수 보존",
             int(out["cnt_all"].sum()),

@@ -60,6 +60,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--baseline-end", default=None,
                    help="baseline/eval 경계일 (기본: config.BASELINE_END). "
                         "이벤트 구간은 config.EVENT_PERIODS 로 별도 관리")
+    p.add_argument("--detect-mode", choices=["prospective", "retrospective"], default="prospective",
+                   help="청년 이탈 탐지 급성 기준선: prospective=지난 29일(기본, 운영) / "
+                        "retrospective=앞뒤 29일(사후 분석, 그날 이후 자료를 씀)")
     p.add_argument("--clean-dir", default=None,
                    help="출력 폴더 (기본: <프로젝트>/clean)")
     p.add_argument("--data-dir", default=None,
@@ -183,22 +186,28 @@ def main() -> int:
     # ---------------------------------------------------------- 청년
     if args.only in ("youth", "all"):
         print("\n[7단계] 청년(20~30대) 통합 마스터 생성")
-        youth = merge_youth.build_youth_master(report=report)
+        youth = merge_youth.build_youth_master(report=report, baseline_end=args.baseline_end)
         print(f"    → {len(youth):,}행 · 코호트 8개 × {youth['date'].nunique()}일")
         if save:
             out = merge_youth.save(youth)
             print(f"    저장: {out.name}")
 
         print("\n[8단계] 요일인자 제거 및 이탈 탐지")
-        sig = detect_youth.build_signals(youth if save else youth)
+        sig = detect_youth.build_signals(youth, mode=args.detect_mode)
         sig = detect_youth.classify(detect_youth.classify(sig, "sustain"), "acute")
+        cls = sig["class_sustain"]
         rate = (
-            sig[sig["class_sustain"].ne("정상")].groupby("split").size()
+            sig[~cls.isin(["정상", detect_youth.HOLD])].groupby("split").size()
             / sig.groupby("split").size() * 100
         ).round(1).to_dict()
+        print(f"    → 기준선: {args.detect_mode} (급성 = "
+              f"{'지난 29일' if args.detect_mode == 'prospective' else '앞뒤 29일, 사후 분석'})")
         print(f"    → 이상 탐지율(지속 기준): {rate}")
-        print(f"    → 위축후보: {int(sig['class_sustain'].eq('위축후보').sum())}건 "
-              f"(임계 {detect_youth.Z_THRESHOLD})")
+        print(f"    → 위축후보: {int(cls.eq('위축후보').sum())}건 "
+              f"(임계 {detect_youth.Z_THRESHOLD}, 지난 {detect_youth.PERSIST_WINDOW}일 중 "
+              f"{detect_youth.PERSIST_MIN}일 이상 지속) · 단기위축 {int(cls.eq('단기위축').sum())}건 · "
+              f"판단보류 {int(cls.eq(detect_youth.HOLD).sum())}건")
+        print(f"    → 감소 종류(지속 기준): {cls[~cls.isin(['정상'])].value_counts().to_dict()}")
         if save:
             out = detect_youth.save(sig)
             print(f"    저장: {out.name}")
