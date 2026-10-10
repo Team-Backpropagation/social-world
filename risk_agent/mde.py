@@ -9,7 +9,8 @@
 (집단 결제 ○% 감소 ≈ 집단 안 ○%가 활동을 완전히 멈춘 것과 같은 크기)
 
 실행:
-  python3 mde.py --youth ../data_preprocessing/clean/youth_master_daily.csv   # 실제 청년 데이터(로컬)
+  python3 mde.py --youth                                                    # 실제 청년 데이터(경로 자동 탐색)
+  python3 mde.py --youth --target social                                    # 외식·문화·운동만 줄 때
   python3 mde.py                                                            # 합성 데이터 시연(청년 8개)
 결과: 표 출력 + --out CSV
 """
@@ -97,11 +98,17 @@ def run(persona_table, flow, card, psych, region_ref=None, target="all"):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--youth", help="youth_master_daily.csv 경로(생략하면 합성 청년 8개로 시연)")
+    ap.add_argument("--youth", metavar="CSV", nargs="?", const="auto",
+                    help="실제 청년 데이터. 경로를 생략하면 youth_master_daily.csv를 자동으로 찾음(run_pipeline.py와 같음). "
+                         "옵션 자체를 빼면 합성 청년 8개로 시연")
     ap.add_argument("--out", help="결과 CSV 경로")
     ap.add_argument("--target", choices=list(TARGETS), default="all",
                     help="all=전체 결제 감소(기본) / social=외식·문화·운동만 감소하고 전체 결제는 그대로")
     args = ap.parse_args()
+    if args.youth == "auto":
+        from run_pipeline import find_youth_csv
+        args.youth = find_youth_csv()
+        print(f"[입력] 청년 데이터 자동 탐색: {args.youth}")
     if args.youth:
         from real_youth import load_youth_master
         persona_table, flow, card, region_ref = load_youth_master(args.youth)
